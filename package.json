@@ -1,0 +1,20 @@
+{
+  "name": "sail",
+  "version": "1.0.0",
+  "description": "a lib of 3d graph by webgl",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "keywords": [
+    "webgl",
+    "graph"
+  ],
+  "author": "easonzero",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "rollup": "^0.41.5",
+    "rollup-watch": "^3.2.2"
+  }
+}

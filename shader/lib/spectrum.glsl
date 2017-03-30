@@ -1,0 +1,3 @@
+struct Spectrum{
+    int a;
+};
