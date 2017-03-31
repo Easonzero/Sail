@@ -2,9 +2,9 @@ var vs_render = "attribute vec3 vertex;\nvarying vec2 texCoord;\nvoid main() {\n
 
 var fs_render = "precision highp float;\nvarying vec2 texCoord;\nuniform sampler2D texture;\nvoid main() {\n    gl_FragColor = texture2D(texture, texCoord);\n}";
 
-var vs_trace = "vec3 ensure3byW(vec4 vec){\n    return vec3(vec.x/vec.w,vec.y/vec.w,vec.z/vec.w);\n}\nattribute vec3 vertex;\nuniform vec3 eye;\nuniform vec3 test;\nuniform mat4 matrix;\nvarying vec3 light;\nvoid main() {\n    gl_Position = vec4(vertex, 1.0);\n    light = ensure3byW(matrix*gl_Position)-eye;\n}";
+var vs_trace = "vec3 ensure3byW(vec4 vec){\n    return vec3(vec.x/vec.w,vec.y/vec.w,vec.z/vec.w);\n}\nattribute vec3 vertex;\nuniform vec3 eye;\nuniform vec3 test;\nuniform mat4 matrix;\nvarying vec3 ray;\nvoid main() {\n    gl_Position = vec4(vertex, 1.0);\n    light = ensure3byW(matrix*gl_Position)-eye;\n}";
 
-var fs_trace = "precision highp float;\nvarying vec3 light;\nuniform sampler2D texture;\nuniform sampler2D vecs;\nvoid main() {\n    gl_FragColor = vec4(mix(vec3(1,1,1),light,0.99), 1.0);\n}";
+var fs_trace = "struct Ray{\n    vec3 origin;\n    vec3 dir;\n};\nstruct Face {\n    vec3 vecs[3];\n    vec3 color;\n    int material;\n};\nFace parse(sampler2D data,int i){\n    Face face;\n    for(int t=0;t<3;t++){\n        face.vecs[t] = texture2D(data,vec2(i,t));\n    }\n    return face;\n}\nfloat intersect(Ray ray,Face face){\n    return 0;\n}\nprecision highp float;\nvarying vec3 ray;\nuniform sampler2D texture;\nuniform sampler2D vecs;\nvoid main() {\n    gl_FragColor = vec4(mix(vec3(1,1,1),ray,0.99), 1.0);\n}";
 
 /**
  * Created by eason on 17-3-21.
@@ -92,6 +92,10 @@ class ShaderProgram {
                 gl.uniform3fv(location, new Float32Array([entry[1].elements[0], entry[1].elements[1], entry[1].elements[2]]));
             } else if(entry[1] instanceof Matrix) {
                 gl.uniformMatrix4fv(location, false, new Float32Array(entry[1].flatten()));
+            } else if(entry[1][0]=='int'){
+                gl.uniform1i(location, entry[1][1]);
+            } else if(entry[1][0]=='float'){
+                gl.uniform1f(location, entry[1][1]);
             } else {
                 gl.uniform1f(location, entry[1]);
             }
@@ -216,7 +220,7 @@ class Tracer {
         this.source_texture = WebglHelper.createTexture();
         WebglHelper.setTexture(
             this.source_texture,1,
-            1, source.length,gl.LUMINANCE,gl.FLOAT,data
+            3, source.length/3,gl.LUMINANCE,gl.FLOAT,data
         );
         this.shader.uniforms.eye = eye;
         this.shader.uniforms.matrix = Matrix.Translation(
@@ -245,7 +249,8 @@ class Renderer {
         this.modelview = makeLookAt(this.eye.elements[0], this.eye.elements[1], this.eye.elements[2], 0, 0, 0, 0, 1, 0);
         this.projection = makePerspective(55, 1, 0.1, 100);
 
-        this.tracer.update([0,1,0,0],this.projection.multiply(this.modelview),this.eye);
+        this.tracer.update([1,0,0,0,1,0,0,0,1],
+            this.projection.multiply(this.modelview),this.eye);
     }
 
     render(){

@@ -1,8 +1,9 @@
-let rf = require("fs");
+let rf = require('fs');
+let path = require('path');
 
-function glsl(path) {
+function glsl() {
 
-    function compile(code,filelist){
+    function compile(code,filelist,current){
         let state = 0,include='',url='',temp='';
         for(let c of code){
             switch (c){
@@ -19,9 +20,10 @@ function glsl(path) {
                     if(state==9) state = 10;
                     else if(state==10) {
                         state = 0;
+                        url = path.normalize(current+'/'+url);
                         if(!filelist.includes(url)){
-                            temp += compile(rf.readFileSync('shader/'+url,"utf-8"),filelist);
                             filelist.push(url);
+                            temp += compile(rf.readFileSync('shader/'+url,"utf-8"),filelist,path.dirname(url));
                         }
 
                         url='';
@@ -50,9 +52,10 @@ function glsl(path) {
 
         transform( code, id ) {
 
-            let filename = /shader\/(.*?glsl)$/.exec( id );
-            if ( !filename ) return;
-            code = compile(code,[filename[1]]);
+            let result = /shader\/(.*?glsl)$/.exec( id );
+            if ( !result ) return;
+            let url = path.normalize(result[1]);
+            code = compile(code,[url],path.dirname(url));
 
             let transformedCode = 'export default ' + JSON.stringify(
                 code.replace( /[ \t]*\/\/.*\n/g, '' ) // remove //

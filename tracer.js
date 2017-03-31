@@ -20,7 +20,7 @@ class Tracer {
         this.source_texture = WebglHelper.createTexture();
         WebglHelper.setTexture(
             this.source_texture,1,
-            1, source.length,gl.LUMINANCE,gl.FLOAT,data
+            3, source.length/3,gl.LUMINANCE,gl.FLOAT,data
         );
         this.shader.uniforms.eye = eye;
         this.shader.uniforms.matrix = Matrix.Translation(

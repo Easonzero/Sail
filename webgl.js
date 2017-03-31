@@ -80,6 +80,10 @@ class ShaderProgram {
                 gl.uniform3fv(location, new Float32Array([entry[1].elements[0], entry[1].elements[1], entry[1].elements[2]]));
             } else if(entry[1] instanceof Matrix) {
                 gl.uniformMatrix4fv(location, false, new Float32Array(entry[1].flatten()));
+            } else if(entry[1][0]=='int'){
+                gl.uniform1i(location, entry[1][1]);
+            } else if(entry[1][0]=='float'){
+                gl.uniform1f(location, entry[1][1]);
             } else {
                 gl.uniform1f(location, entry[1]);
             }
