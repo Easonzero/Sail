@@ -8,9 +8,9 @@
 
 	var fs_render = "precision highp float;\nvarying vec2 texCoord;\nuniform sampler2D texture;\nvoid main() {\n    gl_FragColor = texture2D(texture, texCoord);\n}";
 
-	var vs_trace = "vec3 ensure3byW(vec4 vec){\n    return vec3(vec.x/vec.w,vec.y/vec.w,vec.z/vec.w);\n}\nattribute vec3 vertex;\nuniform vec3 eye;\nuniform vec3 test;\nuniform mat4 matrix;\nvarying vec3 ray;\nvoid main() {\n    gl_Position = vec4(vertex, 1.0);\n    light = ensure3byW(matrix*gl_Position)-eye;\n}";
+	var vs_trace = "vec3 ensure3byW(vec4 vec){\n    return vec3(vec.x/vec.w,vec.y/vec.w,vec.z/vec.w);\n}\nfloat modMatrix(mat3 mat){\n    return dot(cross(mat[0],mat[1]),mat[2]);\n}\nstruct Ray{\n    vec3 origin;\n    vec3 dir;\n};\nattribute vec3 vertex;\nuniform vec3 eye;\nuniform vec3 test;\nuniform mat4 matrix;\nvarying vec3 rayd;\nvoid main() {\n    gl_Position = vec4(vertex, 1.0);\n    rayd = normalize(ensure3byW(matrix*gl_Position)-eye);\n}";
 
-	var fs_trace = "struct Ray{\n    vec3 origin;\n    vec3 dir;\n};\nstruct Face {\n    vec3 vecs[3];\n    vec3 color;\n    int material;\n};\nFace parse(sampler2D data,int i){\n    Face face;\n    for(int t=0;t<3;t++){\n        face.vecs[t] = texture2D(data,vec2(i,t));\n    }\n    return face;\n}\nfloat intersect(Ray ray,Face face){\n    return 0;\n}\nprecision highp float;\nvarying vec3 ray;\nuniform sampler2D texture;\nuniform sampler2D vecs;\nvoid main() {\n    gl_FragColor = vec4(mix(vec3(1,1,1),ray,0.99), 1.0);\n}";
+	var fs_trace = "precision highp float;\n#define MAX_NUM_OBJECTS 100000000\n#define DATA_LENGTH 13.0\n#define MAX_DISTANCE 100000.0\nstruct Face {\n    vec3 vec_1;\n    vec3 vec_2;\n    vec3 vec_3;\n    vec3 normal;\n    int material;\n};\nFace parseFace(sampler2D data,int index){\n    Face face;\n    for(int i=0;i<3;i++){\n        face.vec_1[i] = texture2D(data,vec2(float(1+i)/DATA_LENGTH,index)).r;\n        face.vec_2[i] = texture2D(data,vec2(float(4+i)/DATA_LENGTH,index)).r;\n        face.vec_3[i] = texture2D(data,vec2(float(7+i)/DATA_LENGTH,index)).r;\n        face.normal[i] = texture2D(data,vec2(float(10+i)/DATA_LENGTH,index)).r;\n    }\n    face.material = int(texture2D(data,vec2(float(13)/DATA_LENGTH,index)).r);\n    return face;\n}\nstruct Cube{\n    vec3 lb;\n    vec3 rt;\n    int material;\n};\nCube parseCube(sampler2D data,int index){\n    Cube cube;\n    for(int i=0;i<3;i++){\n        cube.lb[i] = texture2D(data,vec2(float(i+1)/DATA_LENGTH,index)).r;\n        cube.rt[i] = texture2D(data,vec2(float(i+4)/DATA_LENGTH,index)).r;\n    }\n    cube.material = int(texture2D(data,vec2(float(7)/DATA_LENGTH,index)).r);\n    return cube;\n}\nstruct Sphere{\n    vec3 c;\n    float r;\n    int material;\n};\nSphere parseSphere(sampler2D data,int index){\n    Sphere sphere;\n    for(int i=0;i<3;i++){\n        sphere.c[i] = texture2D(data,vec2(float(i+1)/DATA_LENGTH,index)).r;\n    }\n    sphere.r = texture2D(data,vec2(float(4)/DATA_LENGTH,index)).r;\n    sphere.material = int(texture2D(data,vec2(float(5)/DATA_LENGTH,index)).r);\n    return sphere;\n}\nstruct Ray{\n    vec3 origin;\n    vec3 dir;\n};\nvec3 ensure3byW(vec4 vec){\n    return vec3(vec.x/vec.w,vec.y/vec.w,vec.z/vec.w);\n}\nfloat modMatrix(mat3 mat){\n    return dot(cross(mat[0],mat[1]),mat[2]);\n}\nstruct Intersect{\n    float d;\n    vec3 point;\n};\nIntersect intersectFace(Ray ray,Face face){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    float Amod = modMatrix(mat3(\n        face.vec_1.x-face.vec_2.x,face.vec_1.y-face.vec_2.y,face.vec_1.z-face.vec_2.z,\n        face.vec_1.x-face.vec_3.x,face.vec_1.y-face.vec_3.y,face.vec_1.z-face.vec_3.z,\n        ray.dir.x,ray.dir.y,ray.dir.z\n    ));\n    float t = modMatrix(mat3(\n        face.vec_1.x-face.vec_2.x,face.vec_1.y-face.vec_2.y,face.vec_1.z-face.vec_2.z,\n        face.vec_1.x-face.vec_3.x,face.vec_1.y-face.vec_3.y,face.vec_1.z-face.vec_3.z,\n        face.vec_1.x-ray.origin.x,face.vec_1.y-ray.origin.y,face.vec_1.z-ray.origin.z\n    ))/Amod;\n    if(t<0.0||t>=MAX_DISTANCE) return result;\n    float c = modMatrix(mat3(\n        face.vec_1.x-face.vec_2.x,face.vec_1.y-face.vec_2.y,face.vec_1.z-face.vec_2.z,\n        face.vec_1.x-ray.origin.x,face.vec_1.y-ray.origin.y,face.vec_1.z-ray.origin.z,\n        ray.dir.x,ray.dir.y,ray.dir.z\n    ))/Amod;\n    if(c>1.0||c<0.0) return result;\n    float b = modMatrix(mat3(\n        face.vec_1.x-ray.origin.x,face.vec_1.y-ray.origin.y,face.vec_1.z-ray.origin.z,\n        face.vec_1.x-face.vec_3.x,face.vec_1.y-face.vec_3.y,face.vec_1.z-face.vec_3.z,\n        ray.dir.x,ray.dir.y,ray.dir.z\n    ))/Amod;\n    if(c+b>1.0||b<0.0) return result;\n    result.d = t;\n    result.point = (1.0-b-c)*face.vec_1+b*face.vec_2+c*face.vec_3;\n    return result;\n}\nIntersect intersectCube(Ray ray,Cube cube){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 tMin = (cube.lb - ray.origin) / ray.dir;\n    vec3 tMax = (cube.rt- ray.origin) / ray.dir;\n    vec3 t1 = min( tMin, tMax );\n    vec3 t2 = max( tMin, tMax );\n    float tNear = max( max( t1.x, t1.y ), t1.z );\n    float tFar = min( min( t2.x, t2.y ), t2.z );\n    if(tNear>0.0&&tNear<tFar) result.d = tNear;\n    return result;\n}\nIntersect intersectSphere(Ray ray,Sphere sphere){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 toSphere = ray.origin - sphere.c;\n\tfloat a = dot( ray.dir, ray.dir );\n\tfloat b = 2.0 * dot( toSphere, ray.dir );\n\tfloat c = dot( toSphere, toSphere ) - sphere.r * sphere.r;\n\tfloat discriminant = b * b - 4.0 * a * c;\n\tif ( discriminant > 0.0 ){\n\t\tfloat t = (-b - sqrt( discriminant ) ) / (2.0 * a);\n\t\tif ( t > 0.0 )\n\t\t    result.d = t;\n\t}\n    return result;\n}\nvarying vec3 rayd;\nuniform vec3 eye;\nuniform int n;\nuniform sampler2D texture;\nuniform sampler2D vecs;\nvoid main() {\n    gl_FragColor = vec4(0.0,0.0,0.0,1.0);\n    Ray ray = Ray(eye,rayd);\n    Intersect intersect;\n    intersect.d = MAX_DISTANCE;\n    for(int i=0;i<MAX_NUM_OBJECTS;i++){\n        if(i>=n) break;\n        int category = int(texture2D(vecs,vec2(0.0,i)).r);\n        Intersect tmp;\n        if(category==0){\n            Face face = parseFace(vecs,i);\n            tmp = intersectFace(ray,face);\n        }else if(category==1){\n            Cube cube = parseCube(vecs,i);\n            tmp = intersectCube(ray,cube);\n        }else if(category==2){\n            Sphere sphere = parseSphere(vecs,i);\n            tmp = intersectSphere(ray,sphere);\n        }\n        if(tmp.d<intersect.d){\n            intersect = tmp;\n        }\n    }\n    if(intersect.d==MAX_DISTANCE)\n        gl_FragColor = vec4(vec3(0,0,0), 1.0);\n    else\n        gl_FragColor = vec4(vec3(0,1,0), 1.0);\n}";
 
 	/**
 	 * Created by eason on 17-3-21.
@@ -123,17 +123,26 @@
 	    }
 	}
 
+	ShaderProgram.DATA_LENGTH = 14;
+
 	class WebglHelper {
 	    static createTexture(){
 	        return gl.createTexture();
 	    }
 
-	    static setTexture(texture,unitID,width,height,format,type,data){
+	    static setTexture(texture,unitID,width,height,format,type,data,npot){
 	        gl.activeTexture(gl.TEXTURE0+unitID);
 
 	        gl.bindTexture(gl.TEXTURE_2D, texture);
-	        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-	        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	        if(npot){
+	            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+	            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	        }else{
+	            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	        }
 	        gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, format, type, data);
 	    }
 
@@ -223,15 +232,20 @@
 	    update(source,modelviewProjection,eye){
 	        let data = new Float32Array(source);
 
+	        let n = parseInt(source.length/ShaderProgram.DATA_LENGTH);
+
 	        this.source_texture = WebglHelper.createTexture();
 	        WebglHelper.setTexture(
 	            this.source_texture,1,
-	            3, source.length/3,gl.LUMINANCE,gl.FLOAT,data
+	            ShaderProgram.DATA_LENGTH, n,
+	            gl.LUMINANCE,gl.FLOAT,data,true
 	        );
+
 	        this.shader.uniforms.eye = eye;
 	        this.shader.uniforms.matrix = Matrix.Translation(
 	            Vector.create([Math.random() * 2 - 1, Math.random() * 2 - 1, 0]
 	        ).multiply(1 / 512)).multiply(modelviewProjection).inverse();
+	        this.shader.uniforms.n = ['int',n];
 	    }
 
 	    render(){
@@ -245,21 +259,21 @@
 	class Renderer {
 	    constructor(canvas){
 	        WebglHelper.initWebgl(canvas);
-	        WebglHelper.clearScreen();
 
 	        this.shader = new ShaderProgram(vs_render,fs_render);
 
 	        this.tracer = new Tracer();
 
-	        this.eye = $V([0,0,1]);
+	        this.eye = $V([0,0,10]);
 	        this.modelview = makeLookAt(this.eye.elements[0], this.eye.elements[1], this.eye.elements[2], 0, 0, 0, 0, 1, 0);
 	        this.projection = makePerspective(55, 1, 0.1, 100);
 
-	        this.tracer.update([1,0,0,0,1,0,0,0,1],
+	        this.tracer.update([1,-1,-1,-1,1,1,1,0,0,0,0,0,0,0],
 	            this.projection.multiply(this.modelview),this.eye);
 	    }
 
 	    render(){
+	        WebglHelper.clearScreen();
 	        this.tracer.render();
 	        this.shader.render();
 	    }

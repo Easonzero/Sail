@@ -15,6 +15,7 @@ function glsl() {
                     break;
                 case '#':
                     state = 1;
+                    include+='#';
                     break;
                 case `"`:
                     if(state==9) state = 10;
@@ -31,7 +32,7 @@ function glsl() {
                     break;
                 default:
                     if(state == 8){
-                        if(include == 'include') state=9;
+                        if(include == '#include') state=9;
                         else {
                             state = 0;
                             temp += include + c;

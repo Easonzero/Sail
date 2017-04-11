@@ -17,15 +17,20 @@ class Tracer {
     update(source,modelviewProjection,eye){
         let data = new Float32Array(source);
 
+        let n = parseInt(source.length/ShaderProgram.DATA_LENGTH);
+
         this.source_texture = WebglHelper.createTexture();
         WebglHelper.setTexture(
             this.source_texture,1,
-            3, source.length/3,gl.LUMINANCE,gl.FLOAT,data
+            ShaderProgram.DATA_LENGTH, n,
+            gl.LUMINANCE,gl.FLOAT,data,true
         );
+
         this.shader.uniforms.eye = eye;
         this.shader.uniforms.matrix = Matrix.Translation(
             Vector.create([Math.random() * 2 - 1, Math.random() * 2 - 1, 0]
         ).multiply(1 / 512)).multiply(modelviewProjection).inverse();
+        this.shader.uniforms.n = ['int',n];
     }
 
     render(){
