@@ -1,6 +1,5 @@
+#version 300 es
 precision highp float;
-
-#define MAX_NUM_OBJECTS 100000000
 
 #include "../lib/face.glsl"
 #include "../lib/cube.glsl"
@@ -8,23 +7,22 @@ precision highp float;
 #include "../lib/ray.glsl"
 #include "../lib/intersect.glsl"
 
-varying vec3 rayd;
 uniform vec3 eye;
 uniform int n;
-uniform sampler2D texture;
+uniform sampler2D tex;
 uniform sampler2D vecs;
 
+in vec3 rayd;
+out vec4 color;
+
 void main() {
-    gl_FragColor = vec4(0.0,0.0,0.0,1.0);
     Ray ray = Ray(eye,rayd);
 
     Intersect intersect;
     intersect.d = MAX_DISTANCE;
 
-    for(int i=0;i<MAX_NUM_OBJECTS;i++){
-        if(i>=n) break;
-
-        int category = int(texture2D(vecs,vec2(0.0,i)).r);
+    for(int i=0;i<n;i++){
+        int category = int(texture(vecs,vec2(0.0,i)).r);
         Intersect tmp;
 
         if(category==0){
@@ -44,8 +42,7 @@ void main() {
     }
 
     if(intersect.d==MAX_DISTANCE)
-        gl_FragColor = vec4(vec3(0,0,0), 1.0);
+        color = vec4(0.0,0.0,0.0,1.0);
     else
-        gl_FragColor = vec4(vec3(0,1,0), 1.0);
-
+        color = vec4(0.0,0.0,1.0,1.0);
 }

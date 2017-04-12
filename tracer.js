@@ -8,7 +8,7 @@ class Tracer {
     constructor(){
         this.shader = new ShaderProgram(vs_trace,fs_trace,true);
 
-        this.shader.textures.texture = 0;
+        this.shader.textures.tex = 0;
         this.shader.textures.vecs = 1;
 
         this.source_texture = {};
@@ -23,7 +23,7 @@ class Tracer {
         WebglHelper.setTexture(
             this.source_texture,1,
             ShaderProgram.DATA_LENGTH, n,
-            gl.LUMINANCE,gl.FLOAT,data,true
+            gl.R32F,gl.RED,gl.FLOAT,data,true
         );
 
         this.shader.uniforms.eye = eye;

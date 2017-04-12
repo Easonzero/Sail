@@ -4,7 +4,6 @@
 class ShaderProgram {
     constructor(vshader,fshader,hasFrameBuffer=false) {
         this.uniforms = {};
-        this.buffer = {};
         this.hasFrameBuffer = hasFrameBuffer;
         this.textures = {};
         this.run = false;
@@ -31,7 +30,7 @@ class ShaderProgram {
                     ShaderProgram.frameCache.push(WebglHelper.createTexture());
                     WebglHelper.setTexture(
                         ShaderProgram.frameCache[i],0,
-                        512,512,gl.RGB,type,null
+                        512,512,gl.RGB,gl.RGB,type,null
                     )
                 }
             }
@@ -112,20 +111,20 @@ class WebglHelper {
         return gl.createTexture();
     }
 
-    static setTexture(texture,unitID,width,height,format,type,data,npot){
+    static setTexture(texture,unitID,width,height,internalFormat,format,type,data,npot){
         gl.activeTexture(gl.TEXTURE0+unitID);
 
         gl.bindTexture(gl.TEXTURE_2D, texture);
         if(npot){
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         }else{
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         }
-        gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, format, type, data);
+        gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, data);
     }
 
     static clearScreen(){
@@ -187,11 +186,11 @@ class WebglHelper {
         window.gl = null;
 
         try {
-            gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+            gl = canvas.getContext("webgl2");
         }
         catch(e) {}
         if (!gl) {
-            alert("WebGL初始化失败，可能是因为您的浏览器不支持。");
+            alert("WebGL2初始化失败，可能是因为您的浏览器不支持。");
             gl = null;
         }
         return gl;
