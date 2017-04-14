@@ -4,7 +4,9 @@
   "description": "a lib of 3d graph by webgl",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "test": "rollup -c && google-chrome test/index.html && rollup -c -w",
+    "build": "rollup -c",
+    "-w": "-w"
   },
   "keywords": [
     "webgl",

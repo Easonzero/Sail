@@ -12,13 +12,17 @@ class Renderer {
         this.shader = new ShaderProgram(vs_render,fs_render);
 
         this.tracer = new Tracer();
+    }
 
-        this.eye = $V([0,0,10]);
-        this.modelview = makeLookAt(this.eye.elements[0], this.eye.elements[1], this.eye.elements[2], 0, 0, 0, 0, 1, 0);
-        this.projection = makePerspective(55, 1, 0.1, 100);
-
-        this.tracer.update([1,-1,-1,-1,1,1,1,0,0,0,0,0,0,0],
-            this.projection.multiply(this.modelview),this.eye);
+    update(scene){
+        let data_objects=[],data_lights=[];
+        for(let object of scene.objects){
+            data_objects.push(...object.gen());
+        }
+        for(let light of scene.lights){
+            data_lights.push(...light.gen());
+        }
+        this.tracer.update(data_objects,data_lights,scene.mat, scene.eye);
     }
 
     render(){

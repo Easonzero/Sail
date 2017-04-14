@@ -1,7 +1,8 @@
 let rf = require('fs');
 let path = require('path');
 
-function glsl() {
+function glsl(shaderurl) {
+    if(shaderurl.charAt(shaderurl.length)=='/') shaderurl = shaderurl.substr(0,shaderurl.length-1);
 
     function compile(code,filelist,current){
         let state = 0,include='',url='',temp='';
@@ -24,7 +25,7 @@ function glsl() {
                         url = path.normalize(current+'/'+url);
                         if(!filelist.includes(url)){
                             filelist.push(url);
-                            temp += compile(rf.readFileSync('shader/'+url,"utf-8"),filelist,path.dirname(url));
+                            temp += compile(rf.readFileSync(shaderurl+'/'+url,"utf-8"),filelist,path.dirname(url));
                         }
 
                         url='';
@@ -52,8 +53,8 @@ function glsl() {
     return {
 
         transform( code, id ) {
-
-            let result = /shader\/(.*?glsl)$/.exec( id );
+            let reg = new RegExp(`${shaderurl}\/(.*?glsl)$`);
+            let result = reg.exec( id );
             if ( !result ) return;
             let url = path.normalize(result[1]);
             code = compile(code,[url],path.dirname(url));
@@ -75,10 +76,10 @@ function glsl() {
 }
 
 export default {
-    entry: 'main.js',
+    entry: 'index.js',
     indent: '\t',
     plugins: [
-        glsl()
+        glsl('src/shader')
     ],
     // sourceMap: true,
     targets: [

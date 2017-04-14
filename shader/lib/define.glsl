@@ -1,2 +1,0 @@
-#define DATA_LENGTH 13.0
-#define MAX_DISTANCE 100000.0

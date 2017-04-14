@@ -105,6 +105,7 @@ class ShaderProgram {
 }
 
 ShaderProgram.DATA_LENGTH = 14;
+ShaderProgram.LIGHT_LENGTH = 11;
 
 class WebglHelper {
     static createTexture(){
