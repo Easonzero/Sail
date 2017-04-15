@@ -3,6 +3,7 @@ precision highp float;
 
 #define BOUNCES 5
 
+#include "../lib/random.glsl"
 #include "../lib/ray.glsl"
 #include "../lib/intersect.glsl"
 #include "../lib/light.glsl"
@@ -10,6 +11,8 @@ precision highp float;
 uniform vec3 eye;
 uniform int on;
 uniform int ln;
+uniform float textureWeight;
+uniform float timeSinceStart;
 uniform sampler2D tex;
 uniform sampler2D objects;
 uniform sampler2D lights;
@@ -21,7 +24,6 @@ void main() {
     Ray ray = Ray(eye,rayd);
 
     vec3 color = BLACK;
-    float refc = 1.0;
 
     for(int depth=0;depth<BOUNCES;depth++){
         Intersect ins = intersectObjects(objects,on,ray);
@@ -33,12 +35,14 @@ void main() {
 
         for(int i=0;i<ln;i++){
             Light light = parseLight(lights,float(i)/float(ln-1));
+            light.pos += uniformlyRandomVector(timeSinceStart-53.0)*0.1;
             if(!testShadow(objects,on,light,ins.hit))
-                color+=refc*calcolor(material,light,ins,rd);
+                color+=calcolor(material,light,ins,rd);
         }
 
-        refc*=material.reflect;
-        ray = Ray(ray.origin+ins.d*ray.dir,rd);
+        ray = Ray(ins.hit,normalize(rd + uniformlyRandomVector(timeSinceStart + float(depth)) * material.glossiness));
     }
-    out_color = vec4(color,1);
+
+    vec3 texture = texture( tex, gl_FragCoord.xy / 512.0 ).rgb;
+    out_color = vec4(mix(color, texture, textureWeight),1.0);
 }

@@ -3,25 +3,25 @@
 struct Material{
     vec3 diffuse;
     vec3 specular;
-    float reflect;
+    float glossiness;
     float roughness;
 };
 
 Material shiny(){
-    return Material(WHITE,GREY,0.7,250.0);
+    return Material(WHITE,GREY,0.4,250.0);
 }
 
 Material checkerboard(vec3 pos){
     vec3 diffuse;
-    float reflect;
+    float glossiness;
     if (int(floor(pos.z) + floor(pos.x)) % 2 != 0) {
         diffuse = WHITE;
-        reflect = 0.1;
+        glossiness = 0.1;
     } else {
         diffuse = BLACK;
-        reflect = 0.7;
+        glossiness = 0.7;
     }
-    return Material(diffuse,WHITE,reflect,150.0);
+    return Material(diffuse,WHITE,glossiness,150.0);
 }
 
 Material queryMaterial(int material,vec3 pos){

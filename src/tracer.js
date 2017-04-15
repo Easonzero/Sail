@@ -7,6 +7,8 @@ import {ShaderProgram,WebglHelper} from './webgl';
 class Tracer {
     constructor(){
         this.shader = new ShaderProgram(vs_trace,fs_trace,true);
+        this.sampleCount = 0;
+        this.timeStart = new Date();
 
         this.shader.textures.tex = 0;
         this.shader.textures.objects = 1;
@@ -17,6 +19,8 @@ class Tracer {
     }
 
     update(objects,lights,modelviewProjection,eye){
+        this.sampleCount++;
+
         let data_objects = new Float32Array(objects);
         let data_lights = new Float32Array(lights);
 
@@ -38,10 +42,12 @@ class Tracer {
 
         this.shader.uniforms.eye = eye;
         this.shader.uniforms.matrix = Matrix.Translation(
-            Vector.create([1, 1, 0]
+            Vector.create([Math.random() * 2 - 1, Math.random() * 2 - 1, 0]
         ).multiply(1 / 512)).multiply(modelviewProjection).inverse();
         this.shader.uniforms.on = ['int',on];
         this.shader.uniforms.ln = ['int',ln];
+        this.shader.uniforms.textureWeight = this.sampleCount / (this.sampleCount + 1);
+        this.shader.uniforms.timeSinceStart = (new Date() - this.timeStart) * 0.001;
     }
 
     render(){

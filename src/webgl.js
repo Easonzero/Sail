@@ -74,7 +74,7 @@ class ShaderProgram {
     _updateUniforms(){
         for(let entry of Object.entries(this.uniforms)) {
             let location = gl.getUniformLocation(this.program, entry[0]);
-            if(location == null) continue;
+            if(location == null||!entry[1]) continue;
             if(entry[1] instanceof Vector) {
                 gl.uniform3fv(location, new Float32Array([entry[1].elements[0], entry[1].elements[1], entry[1].elements[2]]));
             } else if(entry[1] instanceof Matrix) {

@@ -12,7 +12,7 @@ let pointLight3 = new Sail.PointLight([0.07, 0.49, 0.071],1,[1.5, 2.5, -1.5]);
 let pointLight4 = new Sail.PointLight([0, 0.21, 0.35],1,[0.0, 3.5, 0.0]);
 
 scene.add(new Sail.Plane([0,1,0],0,1));
-scene.add(new Sail.Sphere([0.0, 1.0, -0.25],1,0));
+scene.add(new Sail.Sphere([0.0, 1.1, -0.25],1.1,0));
 scene.add(new Sail.Sphere([-1.0, 0.5, 1.5],0.5,0));
 scene.add(camera);
 scene.add(pointLight1);
