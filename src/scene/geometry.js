@@ -1,11 +1,11 @@
 /**
  * Created by eason on 17-4-11.
  */
-import {ShaderProgram} from './webgl';
-class Object{
-    constructor(){
-        this.surfaces = [];
-        this.material = 0;
+import {ShaderProgram} from '../core/webgl';
+class Object3D{
+    constructor(surfaces,material){
+        this.surfaces = surfaces;
+        this.material = material;
     }
 
     gen(){
@@ -16,7 +16,9 @@ class Object{
                 surface.points[0].e(1),surface.points[0].e(2),surface.points[0].e(3),
                 surface.points[1].e(1),surface.points[1].e(2),surface.points[1].e(3),
                 surface.points[2].e(1),surface.points[2].e(2),surface.points[2].e(3),
-                surface.normal.e(1),surface.normal.e(2),surface.normal.e(3),
+                surface.normals[0].e(1),surface.normals[0].e(2),surface.normals[0].e(3),
+                surface.normals[1].e(1),surface.normals[1].e(2),surface.normals[1].e(3),
+                surface.normals[2].e(1),surface.normals[2].e(2),surface.normals[2].e(3),
                 this.material
             );
         }
@@ -80,17 +82,28 @@ class Plane{
 }
 
 class Surface{
-    constructor(points){
+    constructor(points,normals){
         if(points.length!==3) return;
         this.points = [];
         for(let point of points){
             this.points.push($V(point));
         }
+        this.normals = [];
+        if(normals instanceof Array&&normals.length==3){
+            for(let normal of normals){
+                this.normals.push($V(normal));
+            }
+        }else{
+            let n = this.calSurfaceNormal();
+            this.normals.push(n,n,n);
+        }
+    }
 
-        this.normal = this.points[1].subtract(this.points[0])
+    calSurfaceNormal(){
+        return this.points[1].subtract(this.points[0])
             .cross(this.points[2].subtract(this.points[1]))
             .toUnitVector().x(-1);
     }
 }
 
-export {Cube,Sphere,Plane,Object};
+export {Surface,Cube,Sphere,Plane,Object3D};

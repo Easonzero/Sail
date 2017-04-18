@@ -4,7 +4,9 @@ struct Face {
     vec3 vec_1;
     vec3 vec_2;
     vec3 vec_3;
-    vec3 normal;
+    vec3 normal_1;
+    vec3 normal_2;
+    vec3 normal_3;
     int material;
 };
 
@@ -42,10 +44,12 @@ Face parseFace(sampler2D data,float index){
         face.vec_1[i] = texture(data,vec2(float(1+i)/DATA_LENGTH,index)).r;
         face.vec_2[i] = texture(data,vec2(float(4+i)/DATA_LENGTH,index)).r;
         face.vec_3[i] = texture(data,vec2(float(7+i)/DATA_LENGTH,index)).r;
-        face.normal[i] = texture(data,vec2(float(10+i)/DATA_LENGTH,index)).r;
+        face.normal_1[i] = texture(data,vec2(float(10+i)/DATA_LENGTH,index)).r;
+        face.normal_2[i] = texture(data,vec2(float(13+i)/DATA_LENGTH,index)).r;
+        face.normal_3[i] = texture(data,vec2(float(16+i)/DATA_LENGTH,index)).r;
     }
 
-    face.material = int(texture(data,vec2(float(13)/DATA_LENGTH,index)).r);
+    face.material = int(texture(data,vec2(float(19)/DATA_LENGTH,index)).r);
 
     return face;
 }

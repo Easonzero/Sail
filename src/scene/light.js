@@ -1,7 +1,7 @@
 /**
  * Created by eason on 17-4-12.
  */
-import {ShaderProgram} from './webgl';
+import {ShaderProgram} from '../core/webgl';
 
 class Light {
     constructor(color, intensity){

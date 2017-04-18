@@ -95,7 +95,7 @@
 
 	var vs_trace = "#version 300 es\nvec3 ensure3byW(vec4 vec){\n    return vec3(vec.x/vec.w,vec.y/vec.w,vec.z/vec.w);\n}\nfloat modMatrix(mat3 mat){\n    return dot(cross(mat[0],mat[1]),mat[2]);\n}\nstruct Ray{\n    vec3 origin;\n    vec3 dir;\n};\nin vec3 vertex;\nuniform vec3 eye;\nuniform vec3 test;\nuniform mat4 matrix;\nout vec3 rayd;\nvoid main() {\n    gl_Position = vec4(vertex, 1.0);\n    rayd = normalize(ensure3byW(matrix*gl_Position)-eye);\n}";
 
-	var fs_trace = "#version 300 es\nprecision highp float;\n#define BOUNCES 5\nfloat random( vec3 scale, float seed ){\n\treturn(fract( sin( dot( gl_FragCoord.xyz + seed, scale ) ) * 43758.5453 + seed ) );\n}\nvec3 cosineWeightedDirection( float seed, vec3 normal ){\n\tfloat u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n\tfloat v = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat r = sqrt( u );   float angle = 6.283185307179586 * v;\n\tvec3 sdir, tdir;\n\tif ( abs( normal.x ) < .5 )\n\t{\n\t\tsdir = cross( normal, vec3( 1, 0, 0 ) );\n\t} else {\n\t    sdir = cross( normal, vec3( 0, 1, 0 ) );\n\t}\n\ttdir = cross( normal, sdir );\n\treturn r*cos( angle )*sdir + r*sin(angle)*tdir + sqrt(1.-u)*normal;\n}\nvec3 uniformlyRandomDirection( float seed ){\n\tfloat u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n\tfloat v = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat z = 1.0 - 2.0 * u;   float r = sqrt( 1.0 - z * z );\n\tfloat angle = 6.283185307179586 * v;\n\treturn vec3( r * cos( angle ), r * sin( angle ), z );\n}\nvec3 uniformlyRandomVector( float seed ){\n\treturn uniformlyRandomDirection(seed) * sqrt(random(vec3(36.7539, 50.3658, 306.2759), seed));\n}\nstruct Ray{\n    vec3 origin;\n    vec3 dir;\n};\n#define DATA_LENGTH 13.0\n#define LIGHT_LENGTH 10.0\n#define MAX_DISTANCE 100000.0\n#define FACE 0\n#define CUBE 1\n#define SPHERE 2\n#define PLANE 3\n#define POINT_LIGHT 0\n#define RECT_LIGHT 1\n#define SPOT_LIGHT 2\n#define DIRECT_LIGHT 3\n#define AMBIENT_LIGHT 4\n#define SHINY 0\n#define CHECKERBOARD 1\n#define BLACK vec3(0.0,0.0,0.0)\n#define WHITE vec3(1.0,1.0,1.0)\n#define GREY vec3(0.5,0.5,0.5)\nvec3 ensure3byW(vec4 vec){\n    return vec3(vec.x/vec.w,vec.y/vec.w,vec.z/vec.w);\n}\nfloat modMatrix(mat3 mat){\n    return dot(cross(mat[0],mat[1]),mat[2]);\n}\nstruct Face {\n    vec3 vec_1;\n    vec3 vec_2;\n    vec3 vec_3;\n    vec3 normal;\n    int material;\n};\nstruct Cube{\n    vec3 lb;\n    vec3 rt;\n    int material;\n};\nstruct Sphere{\n    vec3 c;\n    float r;\n    int material;\n};\nstruct Plane{\n    vec3 normal;\n    float offset;\n    int material;\n};\nCube parseCube(sampler2D data,float index){\n    Cube cube;\n    for(int i=0;i<3;i++){\n        cube.lb[i] = texture(data,vec2(float(i+1)/DATA_LENGTH,index)).r;\n        cube.rt[i] = texture(data,vec2(float(i+4)/DATA_LENGTH,index)).r;\n    }\n    cube.material = int(texture(data,vec2(float(7)/DATA_LENGTH,index)).r);\n    return cube;\n}\nFace parseFace(sampler2D data,float index){\n    Face face;\n    for(int i=0;i<3;i++){\n        face.vec_1[i] = texture(data,vec2(float(1+i)/DATA_LENGTH,index)).r;\n        face.vec_2[i] = texture(data,vec2(float(4+i)/DATA_LENGTH,index)).r;\n        face.vec_3[i] = texture(data,vec2(float(7+i)/DATA_LENGTH,index)).r;\n        face.normal[i] = texture(data,vec2(float(10+i)/DATA_LENGTH,index)).r;\n    }\n    face.material = int(texture(data,vec2(float(13)/DATA_LENGTH,index)).r);\n    return face;\n}\nSphere parseSphere(sampler2D data,float index){\n    Sphere sphere;\n    for(int i=0;i<3;i++){\n        sphere.c[i] = texture(data,vec2(float(i+1)/DATA_LENGTH,index)).r;\n    }\n    sphere.r = texture(data,vec2(float(4)/DATA_LENGTH,index)).r;\n    sphere.material = int(texture(data,vec2(float(5)/DATA_LENGTH,index)).r);\n    return sphere;\n}\nPlane parsePlane(sampler2D data,float index){\n    Plane plane;\n    for(int i=0;i<3;i++){\n        plane.normal[i] = texture(data,vec2(float(i+1)/DATA_LENGTH,index)).r;\n    }\n    plane.offset = texture(data,vec2(float(4)/DATA_LENGTH,index)).r;\n    plane.material = int(texture(data,vec2(float(5)/DATA_LENGTH,index)).r);\n    return plane;\n}\nvec3 normalForCube( vec3 hit, Cube cube )\n{\n\tif ( hit.x < cube.lb.x + 0.0001 )\n\t\treturn vec3( -1.0, 0.0, 0.0 );\n\telse if ( hit.x > cube.rt.x - 0.0001 )\n\t\treturn vec3( 1.0, 0.0, 0.0 );\n\telse if ( hit.y < cube.lb.y + 0.0001 )\n\t\treturn vec3( 0.0, -1.0, 0.0 );\n\telse if ( hit.y > cube.rt.y - 0.0001 )\n\t\treturn vec3( 0.0, 1.0, 0.0 );\n\telse if ( hit.z < cube.lb.z + 0.0001 )\n\t\treturn vec3( 0.0, 0.0, -1.0 );\n\telse return vec3( 0.0, 0.0, 1.0 );\n}\nvec3 normalForSphere( vec3 hit, Sphere sphere ){\n\treturn (hit - sphere.c) / sphere.r;\n}\nstruct Intersect{\n    float d;\n    vec3 hit;\n    vec3 normal;\n    int material;\n};\nIntersect intersectFace(Ray ray,Face face){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    float Amod = modMatrix(mat3(\n        face.vec_1.x-face.vec_2.x,face.vec_1.y-face.vec_2.y,face.vec_1.z-face.vec_2.z,\n        face.vec_1.x-face.vec_3.x,face.vec_1.y-face.vec_3.y,face.vec_1.z-face.vec_3.z,\n        ray.dir.x,ray.dir.y,ray.dir.z\n    ));\n    float t = modMatrix(mat3(\n        face.vec_1.x-face.vec_2.x,face.vec_1.y-face.vec_2.y,face.vec_1.z-face.vec_2.z,\n        face.vec_1.x-face.vec_3.x,face.vec_1.y-face.vec_3.y,face.vec_1.z-face.vec_3.z,\n        face.vec_1.x-ray.origin.x,face.vec_1.y-ray.origin.y,face.vec_1.z-ray.origin.z\n    ))/Amod;\n    if(t<0.0||t>=MAX_DISTANCE) return result;\n    float c = modMatrix(mat3(\n        face.vec_1.x-face.vec_2.x,face.vec_1.y-face.vec_2.y,face.vec_1.z-face.vec_2.z,\n        face.vec_1.x-ray.origin.x,face.vec_1.y-ray.origin.y,face.vec_1.z-ray.origin.z,\n        ray.dir.x,ray.dir.y,ray.dir.z\n    ))/Amod;\n    if(c>1.0||c<0.0) return result;\n    float b = modMatrix(mat3(\n        face.vec_1.x-ray.origin.x,face.vec_1.y-ray.origin.y,face.vec_1.z-ray.origin.z,\n        face.vec_1.x-face.vec_3.x,face.vec_1.y-face.vec_3.y,face.vec_1.z-face.vec_3.z,\n        ray.dir.x,ray.dir.y,ray.dir.z\n    ))/Amod;\n    if(c+b>1.0||b<0.0) return result;\n    result.d = t;\n    result.hit = ray.origin+t*ray.dir;\n    result.normal = face.normal;\n    result.material = face.material;\n    return result;\n}\nIntersect intersectCube(Ray ray,Cube cube){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 tMin = (cube.lb - ray.origin) / ray.dir;\n    vec3 tMax = (cube.rt- ray.origin) / ray.dir;\n    vec3 t1 = min( tMin, tMax );\n    vec3 t2 = max( tMin, tMax );\n    float tNear = max( max( t1.x, t1.y ), t1.z );\n    float tFar = min( min( t2.x, t2.y ), t2.z );\n    if(tNear>0.0&&tNear<tFar) {\n        result.d = tNear;\n        result.hit = ray.origin+tNear*ray.dir;\n        result.normal = normalForCube(ray.origin+tNear*ray.dir,cube);\n        result.material = cube.material;\n    }\n    return result;\n}\nIntersect intersectSphere(Ray ray,Sphere sphere){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 toSphere = ray.origin - sphere.c;\n\tfloat a = dot( ray.dir, ray.dir );\n\tfloat b = 2.0 * dot( toSphere, ray.dir );\n\tfloat c = dot( toSphere, toSphere ) - sphere.r * sphere.r;\n\tfloat discriminant = b * b - 4.0 * a * c;\n\tif ( discriminant > 0.0 ){\n\t\tfloat t = (-b - sqrt( discriminant ) ) / (2.0 * a);\n\t\tif ( t > 0.0 ){\n\t\t    result.d = t;\n\t\t    result.hit = ray.origin+t*ray.dir;\n\t\t    result.normal = normalForSphere(ray.origin+t*ray.dir,sphere);\n\t\t    result.material = sphere.material;\n\t\t}\n\t}\n    return result;\n}\nIntersect intersectPlane(Ray ray,Plane plane){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    float DN = dot(ray.dir,plane.normal);\n    if(DN==0.0) return result;\n    float t = (plane.offset*dot(plane.normal,plane.normal)-dot(ray.origin,plane.normal))/DN;\n    if(t<0.0001) return result;\n    result.d = t;\n    result.normal = plane.normal;\n    result.hit = ray.origin+result.d*ray.dir;\n    result.material = plane.material;\n    return result;\n}\nIntersect intersectObjects(sampler2D objects,int n,Ray ray){\n    Intersect ins;\n    ins.d = MAX_DISTANCE;\n    for(int i=0;i<n;i++){\n        Intersect tmp;\n        tmp.d = MAX_DISTANCE;\n        int category = int(texture(objects,vec2(0.0,float(i)/float(n-1))).r);\n        if(category==FACE){\n            Face face = parseFace(objects,float(i)/float(n-1));\n            tmp = intersectFace(ray,face);\n        }else if(category==CUBE){\n            Cube cube = parseCube(objects,float(i)/float(n-1));\n            tmp = intersectCube(ray,cube);\n        }else if(category==SPHERE){\n            Sphere sphere = parseSphere(objects,float(i)/float(n-1));\n            tmp = intersectSphere(ray,sphere);\n        }else if(category==PLANE){\n            Plane plane = parsePlane(objects,float(i)/float(n-1));\n            tmp = intersectPlane(ray,plane);\n        }\n        if(tmp.d<ins.d){\n            ins = tmp;\n        }\n    }\n    return ins;\n}\nstruct Material{\n    vec3 diffuse;\n    vec3 specular;\n    float glossiness;\n    float roughness;\n};\nMaterial shiny(){\n    return Material(WHITE,GREY,0.4,250.0);\n}\nMaterial checkerboard(vec3 pos){\n    vec3 diffuse;\n    float glossiness;\n    if (int(floor(pos.z) + floor(pos.x)) % 2 != 0) {\n        diffuse = WHITE;\n        glossiness = 0.1;\n    } else {\n        diffuse = BLACK;\n        glossiness = 0.7;\n    }\n    return Material(diffuse,WHITE,glossiness,150.0);\n}\nMaterial queryMaterial(int material,vec3 pos){\n    Material result;\n    if(material == SHINY){\n        result = shiny();\n    }else if(material == CHECKERBOARD){\n        result = checkerboard(pos);\n    }\n    return result;\n}\nstruct Light {\n    int category;\n    vec3 color;\n    float intensity;\n    vec3 pos;\n    vec3 attrs;\n};\nLight parseLight(sampler2D data,float index){\n    Light light;\n    light.category = int(texture(data,vec2(float(0)/LIGHT_LENGTH,index)).r);\n    light.intensity = texture(data,vec2(float(4)/LIGHT_LENGTH,index)).r;\n    for(int i=0;i<3;i++){\n        light.color[i] = texture(data,vec2(float(1+i)/LIGHT_LENGTH,index)).r;\n        light.pos[i] = texture(data,vec2(float(5+i)/LIGHT_LENGTH,index)).r;\n        light.attrs[i] = texture(data,vec2(float(8+i)/LIGHT_LENGTH,index)).r;\n    }\n    return light;\n}\nbool testShadow(sampler2D data,int n,Light light,vec3 hit){\n    vec3 ld;\n    Intersect ins;\n    if(light.category==DIRECT_LIGHT){\n        ld = -light.pos*MAX_DISTANCE;\n    }else if(light.category==POINT_LIGHT){\n        ld = light.pos-hit;\n    }\n    ins = intersectObjects(data,n,Ray(hit,ld));\n    if(ins.d>0.0&&ins.d<1.0)\n        return true;\n    return false;\n}\nvec3 calcolor(Material material,Light light,Intersect ins,vec3 rd){\n    vec3 result = BLACK;\n    vec3 ld;\n    if(light.category==DIRECT_LIGHT){\n        ld = -light.pos;\n    }else if(light.category==POINT_LIGHT){\n        ld = normalize(light.pos-ins.hit);\n    }\n    result = material.diffuse*light.intensity*light.color*max(dot(ins.normal,ld),0.00001) +\n        material.specular*light.intensity*light.color*pow(clamp(dot(normalize(rd), ld), 0.0, 1.0), material.roughness);\n    return result;\n}\nuniform vec3 eye;\nuniform int on;\nuniform int ln;\nuniform float textureWeight;\nuniform float timeSinceStart;\nuniform sampler2D tex;\nuniform sampler2D objects;\nuniform sampler2D lights;\nin vec3 rayd;\nout vec4 out_color;\nvoid main() {\n    Ray ray = Ray(eye,rayd);\n    vec3 color = BLACK;\n    for(int depth=0;depth<BOUNCES;depth++){\n        Intersect ins = intersectObjects(objects,on,ray);\n        if(ins.d==MAX_DISTANCE) break;\n        Material material = queryMaterial(ins.material,ins.hit);\n        vec3 rd = reflect(ray.dir,ins.normal);\n        for(int i=0;i<ln;i++){\n            Light light = parseLight(lights,float(i)/float(ln-1));\n            light.pos += uniformlyRandomVector(timeSinceStart-53.0)*0.1;\n            if(!testShadow(objects,on,light,ins.hit))\n                color+=calcolor(material,light,ins,rd);\n        }\n        ray = Ray(ins.hit,normalize(rd + uniformlyRandomVector(timeSinceStart + float(depth)) * material.glossiness));\n    }\n    vec3 texture = texture( tex, gl_FragCoord.xy / 512.0 ).rgb;\n    out_color = vec4(mix(color, texture, textureWeight),1.0);\n}";
+	var fs_trace = "#version 300 es\nprecision highp float;\n#define BOUNCES 5\nfloat random( vec3 scale, float seed ){\n\treturn(fract( sin( dot( gl_FragCoord.xyz + seed, scale ) ) * 43758.5453 + seed ) );\n}\nvec3 cosineWeightedDirection( float seed, vec3 normal ){\n\tfloat u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n\tfloat v = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat r = sqrt( u );   float angle = 6.283185307179586 * v;\n\tvec3 sdir, tdir;\n\tif ( abs( normal.x ) < .5 )\n\t{\n\t\tsdir = cross( normal, vec3( 1, 0, 0 ) );\n\t} else {\n\t    sdir = cross( normal, vec3( 0, 1, 0 ) );\n\t}\n\ttdir = cross( normal, sdir );\n\treturn r*cos( angle )*sdir + r*sin(angle)*tdir + sqrt(1.-u)*normal;\n}\nvec3 uniformlyRandomDirection( float seed ){\n\tfloat u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n\tfloat v = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat z = 1.0 - 2.0 * u;   float r = sqrt( 1.0 - z * z );\n\tfloat angle = 6.283185307179586 * v;\n\treturn vec3( r * cos( angle ), r * sin( angle ), z );\n}\nvec3 uniformlyRandomVector( float seed ){\n\treturn uniformlyRandomDirection(seed) * sqrt(random(vec3(36.7539, 50.3658, 306.2759), seed));\n}\nstruct Ray{\n    vec3 origin;\n    vec3 dir;\n};\n#define DATA_LENGTH 19.0\n#define LIGHT_LENGTH 10.0\n#define MAX_DISTANCE 100000.0\n#define FACE 0\n#define CUBE 1\n#define SPHERE 2\n#define PLANE 3\n#define POINT_LIGHT 0\n#define RECT_LIGHT 1\n#define SPOT_LIGHT 2\n#define DIRECT_LIGHT 3\n#define AMBIENT_LIGHT 4\n#define SHINY 0\n#define CHECKERBOARD 1\n#define BLACK vec3(0.0,0.0,0.0)\n#define WHITE vec3(1.0,1.0,1.0)\n#define GREY vec3(0.5,0.5,0.5)\nvec3 ensure3byW(vec4 vec){\n    return vec3(vec.x/vec.w,vec.y/vec.w,vec.z/vec.w);\n}\nfloat modMatrix(mat3 mat){\n    return dot(cross(mat[0],mat[1]),mat[2]);\n}\nstruct Face {\n    vec3 vec_1;\n    vec3 vec_2;\n    vec3 vec_3;\n    vec3 normal_1;\n    vec3 normal_2;\n    vec3 normal_3;\n    int material;\n};\nstruct Cube{\n    vec3 lb;\n    vec3 rt;\n    int material;\n};\nstruct Sphere{\n    vec3 c;\n    float r;\n    int material;\n};\nstruct Plane{\n    vec3 normal;\n    float offset;\n    int material;\n};\nCube parseCube(sampler2D data,float index){\n    Cube cube;\n    for(int i=0;i<3;i++){\n        cube.lb[i] = texture(data,vec2(float(i+1)/DATA_LENGTH,index)).r;\n        cube.rt[i] = texture(data,vec2(float(i+4)/DATA_LENGTH,index)).r;\n    }\n    cube.material = int(texture(data,vec2(float(7)/DATA_LENGTH,index)).r);\n    return cube;\n}\nFace parseFace(sampler2D data,float index){\n    Face face;\n    for(int i=0;i<3;i++){\n        face.vec_1[i] = texture(data,vec2(float(1+i)/DATA_LENGTH,index)).r;\n        face.vec_2[i] = texture(data,vec2(float(4+i)/DATA_LENGTH,index)).r;\n        face.vec_3[i] = texture(data,vec2(float(7+i)/DATA_LENGTH,index)).r;\n        face.normal_1[i] = texture(data,vec2(float(10+i)/DATA_LENGTH,index)).r;\n        face.normal_2[i] = texture(data,vec2(float(13+i)/DATA_LENGTH,index)).r;\n        face.normal_3[i] = texture(data,vec2(float(16+i)/DATA_LENGTH,index)).r;\n    }\n    face.material = int(texture(data,vec2(float(19)/DATA_LENGTH,index)).r);\n    return face;\n}\nSphere parseSphere(sampler2D data,float index){\n    Sphere sphere;\n    for(int i=0;i<3;i++){\n        sphere.c[i] = texture(data,vec2(float(i+1)/DATA_LENGTH,index)).r;\n    }\n    sphere.r = texture(data,vec2(float(4)/DATA_LENGTH,index)).r;\n    sphere.material = int(texture(data,vec2(float(5)/DATA_LENGTH,index)).r);\n    return sphere;\n}\nPlane parsePlane(sampler2D data,float index){\n    Plane plane;\n    for(int i=0;i<3;i++){\n        plane.normal[i] = texture(data,vec2(float(i+1)/DATA_LENGTH,index)).r;\n    }\n    plane.offset = texture(data,vec2(float(4)/DATA_LENGTH,index)).r;\n    plane.material = int(texture(data,vec2(float(5)/DATA_LENGTH,index)).r);\n    return plane;\n}\nvec3 normalForCube( vec3 hit, Cube cube )\n{\n\tif ( hit.x < cube.lb.x + 0.0001 )\n\t\treturn vec3( -1.0, 0.0, 0.0 );\n\telse if ( hit.x > cube.rt.x - 0.0001 )\n\t\treturn vec3( 1.0, 0.0, 0.0 );\n\telse if ( hit.y < cube.lb.y + 0.0001 )\n\t\treturn vec3( 0.0, -1.0, 0.0 );\n\telse if ( hit.y > cube.rt.y - 0.0001 )\n\t\treturn vec3( 0.0, 1.0, 0.0 );\n\telse if ( hit.z < cube.lb.z + 0.0001 )\n\t\treturn vec3( 0.0, 0.0, -1.0 );\n\telse return vec3( 0.0, 0.0, 1.0 );\n}\nvec3 normalForSphere( vec3 hit, Sphere sphere ){\n\treturn (hit - sphere.c) / sphere.r;\n}\nstruct Intersect{\n    float d;\n    vec3 hit;\n    vec3 normal;\n    int material;\n};\nIntersect intersectFace(Ray ray,Face face){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    float Amod = modMatrix(mat3(\n        face.vec_1.x-face.vec_2.x,face.vec_1.y-face.vec_2.y,face.vec_1.z-face.vec_2.z,\n        face.vec_1.x-face.vec_3.x,face.vec_1.y-face.vec_3.y,face.vec_1.z-face.vec_3.z,\n        ray.dir.x,ray.dir.y,ray.dir.z\n    ));\n    float t = modMatrix(mat3(\n        face.vec_1.x-face.vec_2.x,face.vec_1.y-face.vec_2.y,face.vec_1.z-face.vec_2.z,\n        face.vec_1.x-face.vec_3.x,face.vec_1.y-face.vec_3.y,face.vec_1.z-face.vec_3.z,\n        face.vec_1.x-ray.origin.x,face.vec_1.y-ray.origin.y,face.vec_1.z-ray.origin.z\n    ))/Amod;\n    if(t<0.0||t>=MAX_DISTANCE) return result;\n    float c = modMatrix(mat3(\n        face.vec_1.x-face.vec_2.x,face.vec_1.y-face.vec_2.y,face.vec_1.z-face.vec_2.z,\n        face.vec_1.x-ray.origin.x,face.vec_1.y-ray.origin.y,face.vec_1.z-ray.origin.z,\n        ray.dir.x,ray.dir.y,ray.dir.z\n    ))/Amod;\n    if(c>1.0||c<0.0) return result;\n    float b = modMatrix(mat3(\n        face.vec_1.x-ray.origin.x,face.vec_1.y-ray.origin.y,face.vec_1.z-ray.origin.z,\n        face.vec_1.x-face.vec_3.x,face.vec_1.y-face.vec_3.y,face.vec_1.z-face.vec_3.z,\n        ray.dir.x,ray.dir.y,ray.dir.z\n    ))/Amod;\n    if(c+b>1.0||b<0.0) return result;\n    result.d = t;\n    result.hit = ray.origin+t*ray.dir;\n    result.normal = face.normal_1+b*(face.normal_2-face.normal_1)+c*(face.normal_3-face.normal_1);\n    result.material = face.material;\n    return result;\n}\nIntersect intersectCube(Ray ray,Cube cube){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 tMin = (cube.lb - ray.origin) / ray.dir;\n    vec3 tMax = (cube.rt- ray.origin) / ray.dir;\n    vec3 t1 = min( tMin, tMax );\n    vec3 t2 = max( tMin, tMax );\n    float tNear = max( max( t1.x, t1.y ), t1.z );\n    float tFar = min( min( t2.x, t2.y ), t2.z );\n    if(tNear>0.0&&tNear<tFar) {\n        result.d = tNear;\n        result.hit = ray.origin+tNear*ray.dir;\n        result.normal = normalForCube(ray.origin+tNear*ray.dir,cube);\n        result.material = cube.material;\n    }\n    return result;\n}\nIntersect intersectSphere(Ray ray,Sphere sphere){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 toSphere = ray.origin - sphere.c;\n\tfloat a = dot( ray.dir, ray.dir );\n\tfloat b = 2.0 * dot( toSphere, ray.dir );\n\tfloat c = dot( toSphere, toSphere ) - sphere.r * sphere.r;\n\tfloat discriminant = b * b - 4.0 * a * c;\n\tif ( discriminant > 0.0 ){\n\t\tfloat t = (-b - sqrt( discriminant ) ) / (2.0 * a);\n\t\tif ( t > 0.0 ){\n\t\t    result.d = t;\n\t\t    result.hit = ray.origin+t*ray.dir;\n\t\t    result.normal = normalForSphere(ray.origin+t*ray.dir,sphere);\n\t\t    result.material = sphere.material;\n\t\t}\n\t}\n    return result;\n}\nIntersect intersectPlane(Ray ray,Plane plane){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    float DN = dot(ray.dir,plane.normal);\n    if(DN==0.0) return result;\n    float t = (plane.offset*dot(plane.normal,plane.normal)-dot(ray.origin,plane.normal))/DN;\n    if(t<0.0001) return result;\n    result.d = t;\n    result.normal = plane.normal;\n    result.hit = ray.origin+result.d*ray.dir;\n    result.material = plane.material;\n    return result;\n}\nIntersect intersectObjects(sampler2D objects,int n,Ray ray){\n    Intersect ins;\n    ins.d = MAX_DISTANCE;\n    for(int i=0;i<n;i++){\n        Intersect tmp;\n        tmp.d = MAX_DISTANCE;\n        int category = int(texture(objects,vec2(0.0,float(i)/float(n-1))).r);\n        if(category==FACE){\n            Face face = parseFace(objects,float(i)/float(n-1));\n            tmp = intersectFace(ray,face);\n        }else if(category==CUBE){\n            Cube cube = parseCube(objects,float(i)/float(n-1));\n            tmp = intersectCube(ray,cube);\n        }else if(category==SPHERE){\n            Sphere sphere = parseSphere(objects,float(i)/float(n-1));\n            tmp = intersectSphere(ray,sphere);\n        }else if(category==PLANE){\n            Plane plane = parsePlane(objects,float(i)/float(n-1));\n            tmp = intersectPlane(ray,plane);\n        }\n        if(tmp.d<ins.d){\n            ins = tmp;\n        }\n    }\n    return ins;\n}\nstruct Material{\n    vec3 diffuse;\n    vec3 specular;\n    float glossiness;\n    float roughness;\n};\nMaterial shiny(){\n    return Material(WHITE,GREY,0.4,250.0);\n}\nMaterial checkerboard(vec3 pos){\n    vec3 diffuse;\n    float glossiness;\n    if (int(floor(pos.z)+floor(pos.x)) % 2 != 0) {\n        diffuse = WHITE;\n        glossiness = 0.1;\n    } else {\n        diffuse = BLACK;\n        glossiness = 0.7;\n    }\n    return Material(diffuse,WHITE,glossiness,150.0);\n}\nMaterial queryMaterial(int material,vec3 pos){\n    Material result;\n    if(material == SHINY){\n        result = shiny();\n    }else if(material == CHECKERBOARD){\n        result = checkerboard(pos);\n    }\n    return result;\n}\nstruct Light {\n    int category;\n    vec3 color;\n    float intensity;\n    vec3 pos;\n    vec3 attrs;\n};\nLight parseLight(sampler2D data,float index){\n    Light light;\n    light.category = int(texture(data,vec2(float(0)/LIGHT_LENGTH,index)).r);\n    light.intensity = texture(data,vec2(float(4)/LIGHT_LENGTH,index)).r;\n    for(int i=0;i<3;i++){\n        light.color[i] = texture(data,vec2(float(1+i)/LIGHT_LENGTH,index)).r;\n        light.pos[i] = texture(data,vec2(float(5+i)/LIGHT_LENGTH,index)).r;\n        light.attrs[i] = texture(data,vec2(float(8+i)/LIGHT_LENGTH,index)).r;\n    }\n    return light;\n}\nbool testShadow(sampler2D data,int n,Light light,vec3 hit){\n    vec3 ld;\n    Intersect ins;\n    if(light.category==DIRECT_LIGHT){\n        ld = -light.pos*MAX_DISTANCE;\n    }else if(light.category==POINT_LIGHT){\n        ld = light.pos-hit;\n    }\n    ins = intersectObjects(data,n,Ray(hit,ld));\n    if(ins.d>0.0&&ins.d<1.0)\n        return true;\n    return false;\n}\nvec3 calcolor(Material material,Light light,Intersect ins,vec3 rd){\n    vec3 result = BLACK;\n    vec3 ld;\n    if(light.category==DIRECT_LIGHT){\n        ld = -light.pos;\n    }else if(light.category==POINT_LIGHT){\n        ld = normalize(light.pos-ins.hit);\n    }\n    result = material.diffuse*light.intensity*light.color*max(dot(ins.normal,ld),0.00001) +\n        material.specular*light.intensity*light.color*pow(clamp(dot(normalize(rd), ld), 0.0, 1.0), material.roughness);\n    return result;\n}\nuniform vec3 eye;\nuniform int on;\nuniform int ln;\nuniform float textureWeight;\nuniform float timeSinceStart;\nuniform sampler2D tex;\nuniform sampler2D objects;\nuniform sampler2D lights;\nin vec3 rayd;\nout vec4 out_color;\nvoid main() {\n    Ray ray = Ray(eye,rayd);\n    vec3 color = BLACK;\n    for(int depth=0;depth<BOUNCES;depth++){\n        Intersect ins = intersectObjects(objects,on,ray);\n        if(ins.d==MAX_DISTANCE) break;\n        Material material = queryMaterial(ins.material,ins.hit);\n        vec3 rd = reflect(ray.dir,ins.normal);\n        for(int i=0;i<ln;i++){\n            Light light = parseLight(lights,float(i)/float(ln-1));\n            light.pos += uniformlyRandomVector(timeSinceStart-53.0)*0.1;\n            if(!testShadow(objects,on,light,ins.hit))\n                color+=calcolor(material,light,ins,rd);\n        }\n        ray = Ray(ins.hit,normalize(rd + uniformlyRandomVector(timeSinceStart + float(depth)) * material.glossiness));\n    }\n    vec3 texture = texture( tex, gl_FragCoord.xy / 512.0 ).rgb;\n    out_color = vec4(mix(color, texture, textureWeight),1.0);\n}";
 
 	/**
 	 * Created by eason on 17-3-21.
@@ -207,7 +207,7 @@
 	    }
 	}
 
-	ShaderProgram.DATA_LENGTH = 14;
+	ShaderProgram.DATA_LENGTH = 20;
 	ShaderProgram.LIGHT_LENGTH = 11;
 
 	class WebglHelper {
@@ -307,7 +307,6 @@
 	class Tracer {
 	    constructor(){
 	        this.shader = new ShaderProgram(vs_trace,fs_trace,true);
-	        this.sampleCount = 0;
 	        this.timeStart = new Date();
 
 	        this.shader.textures.tex = 0;
@@ -318,35 +317,36 @@
 	        this.data_lights_tex = {};
 	    }
 
-	    update(objects,lights,modelviewProjection,eye){
-	        this.sampleCount++;
+	    update(objects,lights,modelviewProjection,eye,sampleCount){
+	        if(sampleCount<5){
+	            let data_objects = new Float32Array(objects);
+	            let data_lights = new Float32Array(lights);
 
-	        let data_objects = new Float32Array(objects);
-	        let data_lights = new Float32Array(lights);
+	            let on = parseInt(objects.length/ShaderProgram.DATA_LENGTH);
+	            let ln = parseInt(lights.length/ShaderProgram.LIGHT_LENGTH);
 
-	        let on = parseInt(objects.length/ShaderProgram.DATA_LENGTH);
-	        let ln = parseInt(lights.length/ShaderProgram.LIGHT_LENGTH);
+	            this.data_objects_tex = WebglHelper.createTexture();
+	            this.data_lights_tex = WebglHelper.createTexture();
+	            WebglHelper.setTexture(
+	                this.data_objects_tex,1,
+	                ShaderProgram.DATA_LENGTH, on,
+	                gl.R32F,gl.RED,gl.FLOAT,data_objects,true
+	            );
+	            WebglHelper.setTexture(
+	                this.data_lights_tex,2,
+	                ShaderProgram.LIGHT_LENGTH, ln,
+	                gl.R32F,gl.RED,gl.FLOAT,data_lights,true
+	            );
 
-	        this.data_objects_tex = WebglHelper.createTexture();
-	        this.data_lights_tex = WebglHelper.createTexture();
-	        WebglHelper.setTexture(
-	            this.data_objects_tex,1,
-	            ShaderProgram.DATA_LENGTH, on,
-	            gl.R32F,gl.RED,gl.FLOAT,data_objects,true
-	        );
-	        WebglHelper.setTexture(
-	            this.data_lights_tex,2,
-	            ShaderProgram.LIGHT_LENGTH, ln,
-	            gl.R32F,gl.RED,gl.FLOAT,data_lights,true
-	        );
+	            this.shader.uniforms.on = ['int',on];
+	            this.shader.uniforms.ln = ['int',ln];
+	        }
 
 	        this.shader.uniforms.eye = eye;
 	        this.shader.uniforms.matrix = Matrix.Translation(
 	            Vector.create([Math.random() * 2 - 1, Math.random() * 2 - 1, 0]
-	        ).multiply(1 / 512)).multiply(modelviewProjection).inverse();
-	        this.shader.uniforms.on = ['int',on];
-	        this.shader.uniforms.ln = ['int',ln];
-	        this.shader.uniforms.textureWeight = this.sampleCount / (this.sampleCount + 1);
+	            ).multiply(1 / 512)).multiply(modelviewProjection).inverse();
+	        this.shader.uniforms.textureWeight = sampleCount / (sampleCount + 1);
 	        this.shader.uniforms.timeSinceStart = (new Date() - this.timeStart) * 0.001;
 	    }
 
@@ -375,7 +375,8 @@
 	        for(let light of scene.lights){
 	            data_lights.push(...light.gen());
 	        }
-	        this.tracer.update(data_objects,data_lights,scene.mat, scene.eye);
+	        this.tracer.update(data_objects,data_lights,scene.mat, scene.eye,scene.sampleCount);
+	        scene.sampleCount++;
 	    }
 
 	    render(){
@@ -449,10 +450,10 @@
 	/**
 	 * Created by eason on 17-4-11.
 	 */
-	class Object$1{
-	    constructor(){
-	        this.surfaces = [];
-	        this.material = 0;
+	class Object3D{
+	    constructor(surfaces,material){
+	        this.surfaces = surfaces;
+	        this.material = material;
 	    }
 
 	    gen(){
@@ -463,7 +464,9 @@
 	                surface.points[0].e(1),surface.points[0].e(2),surface.points[0].e(3),
 	                surface.points[1].e(1),surface.points[1].e(2),surface.points[1].e(3),
 	                surface.points[2].e(1),surface.points[2].e(2),surface.points[2].e(3),
-	                surface.normal.e(1),surface.normal.e(2),surface.normal.e(3),
+	                surface.normals[0].e(1),surface.normals[0].e(2),surface.normals[0].e(3),
+	                surface.normals[1].e(1),surface.normals[1].e(2),surface.normals[1].e(3),
+	                surface.normals[2].e(1),surface.normals[2].e(2),surface.normals[2].e(3),
 	                this.material
 	            );
 	        }
@@ -526,6 +529,31 @@
 	    }
 	}
 
+	class Surface{
+	    constructor(points,normals){
+	        if(points.length!==3) return;
+	        this.points = [];
+	        for(let point of points){
+	            this.points.push($V(point));
+	        }
+	        this.normals = [];
+	        if(normals instanceof Array&&normals.length==3){
+	            for(let normal of normals){
+	                this.normals.push($V(normal));
+	            }
+	        }else{
+	            let n = this.calSurfaceNormal();
+	            this.normals.push(n,n,n);
+	        }
+	    }
+
+	    calSurfaceNormal(){
+	        return this.points[1].subtract(this.points[0])
+	            .cross(this.points[2].subtract(this.points[1]))
+	            .toUnitVector().x(-1);
+	    }
+	}
+
 	/**
 	 * Created by eason on 17-4-12.
 	 */
@@ -580,6 +608,7 @@
 	        this.camera = {};
 	        this.lights = [];
 	        this.objects = [];
+	        this.sampleCount = 1;
 	    }
 
 	    get mat(){
@@ -596,7 +625,7 @@
 	        }else if(something instanceof Cube||
 	            something instanceof Sphere||
 	            something instanceof Plane||
-	            something instanceof Object$1){
+	            something instanceof Object3D){
 	            this.objects.push(something);
 	        }else if(something instanceof Light){
 	            this.lights.push(something);
@@ -605,6 +634,80 @@
 
 	    update(){
 	        this.camera.update();
+	        scene.sampleCount = 1;
+	    }
+	}
+
+	/**
+	 * Created by eason on 17-4-16.
+	 */
+	class OBJParser{
+	    static getVector(data,s,format='float'){
+	        let v = data.split(s);
+	        for(let i=0;i<v.length;i++){
+	            v[i] = format=='int'?parseInt(v[i]):parseFloat(v[i]);
+	        }
+	        return v;
+	    }
+
+	    static assemble(tmp){
+	        return new Object3D(tmp.f,0);
+	    }
+
+	    static dowithLine(line,tmp){
+	        if(line.startsWith('f')&&line.includes('/')){
+	            let datas = line.substring(2,line.length).split(' ');
+	            for(let i=0;i<datas.length;i++){
+	                datas[i] = OBJParser.getVector(datas[i],'/','int');
+	            }
+	            let surface = new Surface(
+	                [tmp.v[datas[0][0]-1],tmp.v[datas[1][0]-1],tmp.v[datas[2][0]-1]],
+	                [tmp.vn[datas[0][2]-1],tmp.vn[datas[1][2]-1],tmp.vn[datas[2][2]-1]]
+	            );
+	            tmp.f.push(surface);
+	        }else if(line.startsWith('f')){
+	            let data = OBJParser.getVector(line.substring(2,line.length),' ','int');
+	            let surface = new Surface(
+	                [tmp.v[data[0]-1],tmp.v[data[1]-1],tmp.v[data[2]-1]]
+	            );
+	            tmp.f.push(surface);
+	        }else if(line.startsWith('vn')){
+	            tmp.vn.push(OBJParser.getVector(line.substring(3,line.length),' '));
+	        }else if(line.startsWith('vt')){
+	            tmp.vt.push(OBJParser.getVector(line.substring(3,line.length),' '));
+	        }else if(line.startsWith('v')){
+	            tmp.v.push(OBJParser.getVector(line.substring(2,line.length),' '));
+	        }
+	    }
+
+	    static initTmp(){
+	        return {v:[],vt:[],vn:[],f:[]}
+	    }
+	}
+
+	/**
+	 * Created by eason on 17-4-16.
+	 */
+	let ParserMap = {
+	  'OBJ':  OBJParser
+	};
+
+	class Parser{
+	    static parse(name,data){
+	        name = name.toUpperCase();
+	        let tmp = ParserMap[name].initTmp();
+	        let line = '';
+
+	        for(let c of data){
+	            if(c=='\n'){
+	                line = line.replace(/(^\s*)|(\s*$)/g,'');
+	                ParserMap[name].dowithLine(line,tmp);
+	                line = '';
+	            }else
+	                line+=c;
+	        }
+
+	        return ParserMap[name].assemble(tmp);
 	    }
 	}
 
@@ -618,10 +721,11 @@
 	    Cube:Cube,
 	    Sphere:Sphere,
 	    Plane:Plane,
-	    Object:Object$1,
+	    Object:Object3D,
 	    Camera:Camera,
 	    DirectionalLight:DirectionalLight,
-	    PointLight:PointLight
+	    PointLight:PointLight,
+	    Parser:Parser
 	};
 
 })));

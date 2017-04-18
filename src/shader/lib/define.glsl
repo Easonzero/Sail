@@ -1,4 +1,4 @@
-#define DATA_LENGTH 13.0
+#define DATA_LENGTH 19.0
 #define LIGHT_LENGTH 10.0
 #define MAX_DISTANCE 100000.0
 

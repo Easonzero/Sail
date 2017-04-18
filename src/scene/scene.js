@@ -2,7 +2,7 @@
  * Created by eason on 17-4-12.
  */
 import {Camera} from './camera';
-import {Cube,Sphere,Plane,Object} from './geometry';
+import {Cube,Sphere,Plane,Object3D} from './geometry';
 import {Light} from './light';
 
 class Scene {
@@ -10,6 +10,7 @@ class Scene {
         this.camera = {};
         this.lights = [];
         this.objects = [];
+        this.sampleCount = 1;
     }
 
     get mat(){
@@ -26,7 +27,7 @@ class Scene {
         }else if(something instanceof Cube||
             something instanceof Sphere||
             something instanceof Plane||
-            something instanceof Object){
+            something instanceof Object3D){
             this.objects.push(something);
         }else if(something instanceof Light){
             this.lights.push(something);
@@ -35,6 +36,7 @@ class Scene {
 
     update(){
         this.camera.update();
+        scene.sampleCount = 1;
     }
 }
 

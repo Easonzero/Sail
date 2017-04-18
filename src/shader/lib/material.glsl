@@ -14,7 +14,7 @@ Material shiny(){
 Material checkerboard(vec3 pos){
     vec3 diffuse;
     float glossiness;
-    if (int(floor(pos.z) + floor(pos.x)) % 2 != 0) {
+    if (int(floor(pos.z)+floor(pos.x)) % 2 != 0) {
         diffuse = WHITE;
         glossiness = 0.1;
     } else {

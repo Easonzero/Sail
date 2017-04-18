@@ -46,7 +46,7 @@ Intersect intersectFace(Ray ray,Face face){
 
     result.d = t;
     result.hit = ray.origin+t*ray.dir;
-    result.normal = face.normal;
+    result.normal = face.normal_1+b*(face.normal_2-face.normal_1)+c*(face.normal_3-face.normal_1);
     result.material = face.material;
 
     return result;
