@@ -1,7 +1,7 @@
 /**
  * Created by eason on 17-4-16.
  */
-import {OBJParser} from './parser/parser.obj';
+import {OBJParser} from './parser.obj';
 
 let ParserMap = {
   'OBJ':  OBJParser

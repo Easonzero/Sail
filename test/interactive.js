@@ -39,8 +39,8 @@ document.onmousedown = function(event) {
     if(mouse.x >= 0 && mouse.x < 512 && mouse.y >= 0 && mouse.y < 512) {
         mouseDown = true;
         R = camera.eye.distanceFrom(camera.center);
-        angleX = Math.asin(camera.eye.e(2)/R);
-        angleY = Math.acos(camera.eye.e(3)/(R*Math.cos(angleX)));
+        angleX = Math.asin((camera.eye.e(2)-camera.center.e(2))/R);
+        angleY = Math.acos((camera.eye.e(3)-camera.center.e(3))/(R*Math.cos(angleX)));
         if(camera.eye.e(1)-camera.center.e(1)<0) angleY = -angleY;
     }
 
@@ -60,7 +60,7 @@ document.onmousemove = function(event) {
             R * Math.sin(angleY) * Math.cos(angleX),
             R * Math.sin(angleX),
             R * Math.cos(angleY) * Math.cos(angleX)
-        ]);
+        ]).add(camera.center);
         scene.update();
 
         oldX = mouse.x;

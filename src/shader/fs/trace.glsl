@@ -2,6 +2,7 @@
 precision highp float;
 
 #define BOUNCES 5
+#define RAYTOTALNUM 31
 
 #include "../lib/random.glsl"
 #include "../lib/ray.glsl"
@@ -21,11 +22,14 @@ in vec3 rayd;
 out vec4 out_color;
 
 void main() {
-    Ray ray = Ray(eye,rayd);
-
     vec3 color = BLACK;
+    Ray stack[BOUNCES];
+    int top=0,bottom=BOUNCES;
+    stack[0] = Ray(eye,rayd);
 
-    for(int depth=0;depth<BOUNCES;depth++){
+    for(int num=0;top!=bottom&&num<RAYTOTALNUM;num++){
+        Ray ray = stack[top--];
+
         Intersect ins = intersectObjects(objects,on,ray);
 
         if(ins.d==MAX_DISTANCE) break;
@@ -40,7 +44,8 @@ void main() {
                 color+=calcolor(material,light,ins,rd);
         }
 
-        ray = Ray(ins.hit,normalize(rd + uniformlyRandomVector(timeSinceStart + float(depth)) * material.glossiness));
+        stack[++top] = Ray(ins.hit,normalize(rd + uniformlyRandomVector(timeSinceStart + float(num)) * material.glossiness));
+        stack[++top] = Ray(ins.hit,normalize(rd + uniformlyRandomVector(timeSinceStart + float(num) + 0.5) * material.glossiness));
     }
 
     vec3 texture = texture( tex, gl_FragCoord.xy / 512.0 ).rgb;
