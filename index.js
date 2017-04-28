@@ -2,13 +2,14 @@
  * Created by eason on 17-4-12.
  */
 
-import * as matrix from './src/math/math.matrix';
+import * as matrix from './src/utils/matrix';
 import {Renderer} from './src/core/renderer';
 import {Scene} from './src/scene/scene';
 import {Cube,Sphere,Plane,Object3D} from './src/scene/geometry';
 import {Camera} from './src/scene/camera';
 import {DirectionalLight,PointLight} from './src/scene/light';
 import {Parser} from './src/parser/parser';
+import {Control} from './src/utils/control';
 
 window.Sail = {
     Renderer:Renderer,
@@ -20,5 +21,6 @@ window.Sail = {
     Camera:Camera,
     DirectionalLight:DirectionalLight,
     PointLight:PointLight,
-    Parser:Parser
+    Parser:Parser,
+    Control:Control
 };

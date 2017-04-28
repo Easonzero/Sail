@@ -39,7 +39,7 @@ void main() {
 
         for(int i=0;i<ln;i++){
             Light light = parseLight(lights,float(i)/float(ln-1));
-            light.pos += uniformlyRandomVector(timeSinceStart-53.0)*0.1;
+            light.pos += uniformlyRandomVector(timeSinceStart)*0.1;
             if(!testShadow(objects,on,light,ins.hit))
                 color+=calcolor(material,light,ins,rd);
         }

@@ -6,6 +6,7 @@ let canvas = document.getElementById('canvas');
 let renderer = new Sail.Renderer(canvas);
 let scene = new Sail.Scene();
 let camera = new Sail.Camera([2.0, 2.0, 5.0],[-1.0, 0.0, 0.0]);
+
 let pointLight1 = new Sail.PointLight([0.49, 0.07, 0.07],1,[-2.0, 2.5, 0.0]);
 let pointLight2 = new Sail.PointLight([0.07, 0.07, 0.49],1,[1.5, 2.5, 1.5]);
 let pointLight3 = new Sail.PointLight([0.07, 0.49, 0.071],1,[1.5, 2.5, -1.5]);
@@ -19,6 +20,8 @@ scene.add(pointLight1);
 scene.add(pointLight2);
 scene.add(pointLight3);
 scene.add(pointLight4);
+
+let control = new Sail.Control(canvas,scene);
 
 function tick(){
     requestAnimationFrame(tick);
