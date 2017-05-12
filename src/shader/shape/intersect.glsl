@@ -1,13 +1,16 @@
-#include "define.glsl"
-#include "utility.glsl"
-#include "ray.glsl"
-#include "geometry.glsl"
+#include "../const/define.glsl"
+#include "../util/utility.glsl"
+#include "../const/ray.glsl"
+#include "primitive.glsl"
+#include "../texture/texture.glsl"
 
 struct Intersect{
     float d;
     vec3 hit;
     vec3 normal;
-    int material;
+    float matIndex;
+    vec3 sc;
+    float seed;
 };
 
 Intersect intersectFace(Ray ray,Face face){
@@ -47,7 +50,8 @@ Intersect intersectFace(Ray ray,Face face){
     result.d = t;
     result.hit = ray.origin+t*ray.dir;
     result.normal = face.normal_1+b*(face.normal_2-face.normal_1)+c*(face.normal_3-face.normal_1);
-    result.material = face.material;
+    result.matIndex = face.matIndex;
+    result.sc = getSurfaceColor(result.hit,face.texIndex);
 
     return result;
 }
@@ -65,7 +69,8 @@ Intersect intersectCube(Ray ray,Cube cube){
         result.d = tNear;
         result.hit = ray.origin+tNear*ray.dir;
         result.normal = normalForCube(ray.origin+tNear*ray.dir,cube);
-        result.material = cube.material;
+        result.matIndex = cube.matIndex;
+        result.sc = getSurfaceColor(result.hit,cube.texIndex);
     }
     return result;
 }
@@ -84,7 +89,8 @@ Intersect intersectSphere(Ray ray,Sphere sphere){
 		    result.d = t;
 		    result.hit = ray.origin+t*ray.dir;
 		    result.normal = normalForSphere(ray.origin+t*ray.dir,sphere);
-		    result.material = sphere.material;
+		    result.matIndex = sphere.matIndex;
+		    result.sc = getSurfaceColor(result.hit,sphere.texIndex);
 		}
 	}
     return result;
@@ -100,28 +106,29 @@ Intersect intersectPlane(Ray ray,Plane plane){
     result.d = t;
     result.normal = plane.normal;
     result.hit = ray.origin+result.d*ray.dir;
-    result.material = plane.material;
+    result.matIndex = plane.matIndex;
+    result.sc = getSurfaceColor(result.hit,plane.texIndex);
     return result;
 }
 
-Intersect intersectObjects(sampler2D objects,int n,Ray ray){
+Intersect intersectObjects(Ray ray){
     Intersect ins;
     ins.d = MAX_DISTANCE;
-    for(int i=0;i<n;i++){
+    for(int i=0;i<on;i++){
         Intersect tmp;
         tmp.d = MAX_DISTANCE;
-        int category = int(texture(objects,vec2(0.0,float(i)/float(n-1))).r);
+        int category = int(texture(objects,vec2(0.0,float(i)/float(on+ln-1))).r);
         if(category==FACE){
-            Face face = parseFace(objects,float(i)/float(n-1));
+            Face face = parseFace(float(i)/float(on+ln-1));
             tmp = intersectFace(ray,face);
         }else if(category==CUBE){
-            Cube cube = parseCube(objects,float(i)/float(n-1));
+            Cube cube = parseCube(float(i)/float(on+ln-1));
             tmp = intersectCube(ray,cube);
         }else if(category==SPHERE){
-            Sphere sphere = parseSphere(objects,float(i)/float(n-1));
+            Sphere sphere = parseSphere(float(i)/float(on+ln-1));
             tmp = intersectSphere(ray,sphere);
         }else if(category==PLANE){
-            Plane plane = parsePlane(objects,float(i)/float(n-1));
+            Plane plane = parsePlane(float(i)/float(on+ln-1));
             tmp = intersectPlane(ray,plane);
         }
 
@@ -130,4 +137,11 @@ Intersect intersectObjects(sampler2D objects,int n,Ray ray){
         }
     }
     return ins;
+}
+
+bool testShadow(Ray ray){
+    Intersect ins = intersectObjects(ray);
+    if(ins.d>0.0&&ins.d<1.0)
+        return true;
+    return false;
 }

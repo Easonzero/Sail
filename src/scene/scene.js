@@ -10,7 +10,7 @@ class Scene {
         this.camera = {};
         this.lights = [];
         this.objects = [];
-        this.sampleCount = 1;
+        this.sampleCount = 0;
     }
 
     get mat(){
@@ -36,7 +36,7 @@ class Scene {
 
     update(){
         this.camera.update();
-        scene.sampleCount = 1;
+        scene.sampleCount = 0;
     }
 }
 

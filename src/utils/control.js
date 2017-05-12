@@ -41,9 +41,10 @@ class Control{
         this.canvas = canvas;
 
         this.mouseDown = false;
-        this.angleX = 0;
-        this.angleY = 0;
         this.R = this.scene.camera.eye.distanceFrom(this.scene.camera.center);
+        this.angleX = Math.asin((this.scene.camera.eye.e(2)-this.scene.camera.center.e(2))/this.R);
+        this.angleY = Math.acos((this.scene.camera.eye.e(3)-this.scene.camera.center.e(3))/(this.R*Math.cos(this.angleX)));
+        if(this.scene.camera.eye.e(1)-this.scene.camera.center.e(1)<0) this.angleY = -this.angleY;
 
         this.onmousedown();
         this.onmousemove();
@@ -58,9 +59,6 @@ class Control{
             this.oldY = mouse.y;
             if(mouse.x >= 0 && mouse.x < 512 && mouse.y >= 0 && mouse.y < 512) {
                 this.mouseDown = true;
-                this.angleX = Math.asin((this.scene.camera.eye.e(2)-this.scene.camera.center.e(2))/this.R);
-                this.angleY = Math.acos((this.scene.camera.eye.e(3)-this.scene.camera.center.e(3))/(this.R*Math.cos(this.angleX)));
-                if(this.scene.camera.eye.e(1)-this.scene.camera.center.e(1)<0) this.angleY = -this.angleY;
                 fn();
                 this.scene.update();
             }

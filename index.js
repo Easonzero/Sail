@@ -8,6 +8,8 @@ import {Scene} from './src/scene/scene';
 import {Cube,Sphere,Plane,Object3D} from './src/scene/geometry';
 import {Camera} from './src/scene/camera';
 import {DirectionalLight,PointLight} from './src/scene/light';
+import {Matte} from './src/scene/material';
+import {UniformColor,Checkerboard} from './src/scene/texture';
 import {Parser} from './src/parser/parser';
 import {Control} from './src/utils/control';
 
@@ -22,5 +24,8 @@ window.Sail = {
     DirectionalLight:DirectionalLight,
     PointLight:PointLight,
     Parser:Parser,
-    Control:Control
+    Control:Control,
+    Matte:Matte,
+    UniformColor:UniformColor,
+    Checkerboard:Checkerboard
 };

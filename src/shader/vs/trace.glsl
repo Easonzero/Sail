@@ -1,7 +1,7 @@
 #version 300 es
 
-#include "../lib/utility.glsl"
-#include "../lib/ray.glsl"
+#include "../util/utility.glsl"
+#include "../const/ray.glsl"
 
 in vec3 vertex;
 uniform vec3 eye;

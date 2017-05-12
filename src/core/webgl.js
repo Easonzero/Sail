@@ -104,8 +104,9 @@ class ShaderProgram {
     }
 }
 
-ShaderProgram.DATA_LENGTH = 20;
-ShaderProgram.LIGHT_LENGTH = 11;
+ShaderProgram.OBJECTS_LENGTH = 11;
+ShaderProgram.PCATCH_LENGTH = 3;
+ShaderProgram.TEXPARAMS_LENGTH = 6;
 
 class WebglHelper {
     static createTexture(){
@@ -129,7 +130,7 @@ class WebglHelper {
     }
 
     static clearScreen(){
-        gl.clearColor(0.0,0.0,1.0,1.0);
+        gl.clearColor(0.0,0.0,0.0,1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
     }
 

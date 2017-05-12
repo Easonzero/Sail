@@ -12,24 +12,28 @@ class Renderer {
         this.shader = new ShaderProgram(vs_render,fs_render);
 
         this.tracer = new Tracer();
+
+        this.data={objects:[],pcache:[],texparams:[],ln:0};
     }
 
-    update(scene){
-        let data_objects=[],data_lights=[];
+    update(scene,pcache=[]){
+        this.data.pcache = pcache;
+        this.data.ln=scene.lights.length;
         for(let object of scene.objects){
-            data_objects.push(...object.gen());
+            this.data.objects.push(...object.gen(this.data.texparams.length/ShaderProgram.TEXPARAMS_LENGTH));
+            this.data.texparams.push(...object.genTexparams());
         }
         for(let light of scene.lights){
-            data_lights.push(...light.gen());
+            this.data.objects.push(...light.gen());
         }
-        this.tracer.update(data_objects,data_lights,scene.mat, scene.eye,scene.sampleCount);
-        scene.sampleCount++;
+        this.tracer.update(this.data);
     }
 
-    render(){
+    render(scene){
         WebglHelper.clearScreen();
-        this.tracer.render();
+        this.tracer.render(scene.mat,scene.eye,scene.sampleCount);
         this.shader.render();
+        scene.sampleCount++;
     }
 }
 

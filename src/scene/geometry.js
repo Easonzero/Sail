@@ -2,14 +2,24 @@
  * Created by eason on 17-4-11.
  */
 import {ShaderProgram} from '../core/webgl';
+
 class Object3D{
-    constructor(surfaces,material){
+    constructor(surfaces,material,texture){
         this.surfaces = surfaces;
         this.material = material;
+        this.texture = texture;
     }
 
-    gen(){
+    genTexparams(){
+        let tmp = [];
+        tmp.push(...this.material.gen());
+        tmp.push(...this.texture.gen());
+        return tmp;
+    }
+
+    gen(texparamID){
         let tmp=[];
+        let i=1;
         for(let surface of this.surfaces){
             tmp.push(
                 0,
@@ -19,65 +29,90 @@ class Object3D{
                 surface.normals[0].e(1),surface.normals[0].e(2),surface.normals[0].e(3),
                 surface.normals[1].e(1),surface.normals[1].e(2),surface.normals[1].e(3),
                 surface.normals[2].e(1),surface.normals[2].e(2),surface.normals[2].e(3),
-                this.material
+                texparamID,texparamID+i
             );
+            i++;
         }
         return tmp;
     }
 }
 
 class Cube{
-    constructor(min,max,material){
+    constructor(min,max,material,texture){
         this.min = $V(min);
         this.max = $V(max);
         this.material = material;
+        this.texture = texture;
     }
 
-    gen(){
+    genTexparams(){
+        let tmp = [];
+        tmp.push(...this.material.gen());
+        tmp.push(...this.texture.gen());
+        return tmp;
+    }
+
+    gen(texparamID){
         let tmp = [
             1,
             this.min.e(1),this.min.e(2),this.min.e(3),
             this.max.e(1),this.max.e(2),this.max.e(3),
-            this.material
+            texparamID,texparamID+1
         ];
-        tmp.length = ShaderProgram.DATA_LENGTH;
-        return tmp.fill(this.material,8,tmp.length);
+        tmp.length = ShaderProgram.OBJECTS_LENGTH;
+        return tmp.fill(0,9,tmp.length);
     }
 }
 
 class Sphere{
-    constructor(c,r,material){
+    constructor(c,r,material,texture){
         this.c = $V(c);
         this.r = r;
         this.material = material;
+        this.texture = texture;
     }
 
-    gen(){
+    genTexparams(){
+        let tmp = [];
+        tmp.push(...this.material.gen());
+        tmp.push(...this.texture.gen());
+        return tmp;
+    }
+
+    gen(texparamID){
         let tmp = [
             2,
             this.c.e(1),this.c.e(2),this.c.e(3),
-            this.r,this.material
+            this.r,texparamID,texparamID+1
         ];
-        tmp.length = ShaderProgram.DATA_LENGTH;
-        return tmp.fill(this.material,6,tmp.length);
+        tmp.length = ShaderProgram.OBJECTS_LENGTH;
+        return tmp.fill(0,7,tmp.length);
     }
 }
 
 class Plane{
-    constructor(normal,offset,material){
+    constructor(normal,offset,material,texture){
         this.normal = $V(normal).toUnitVector();
         this.offset = offset;
         this.material = material;
+        this.texture = texture;
     }
 
-    gen(){
+    genTexparams(){
+        let tmp = [];
+        tmp.push(...this.material.gen());
+        tmp.push(...this.texture.gen());
+        return tmp;
+    }
+
+    gen(texparamID){
         let tmp = [
             3,
             this.normal.e(1),this.normal.e(2),this.normal.e(3),
-            this.offset, this.material
+            this.offset,texparamID,texparamID+1
         ];
-        tmp.length = ShaderProgram.DATA_LENGTH;
-        return tmp.fill(this.material,6,tmp.length);
+        tmp.length = ShaderProgram.OBJECTS_LENGTH;
+        return tmp.fill(0,7,tmp.length);
     }
 }
 

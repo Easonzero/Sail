@@ -2,52 +2,74 @@
 precision highp float;
 
 #define BOUNCES 5
-#define RAYTOTALNUM 31
-
-#include "../lib/random.glsl"
-#include "../lib/ray.glsl"
-#include "../lib/intersect.glsl"
-#include "../lib/light.glsl"
+#define MAXLIGHTSNUM 16
+#define RR_THRESH 0.5
 
 uniform vec3 eye;
-uniform int on;
-uniform int ln;
-uniform float textureWeight;
-uniform float timeSinceStart;
-uniform sampler2D tex;
-uniform sampler2D objects;
-uniform sampler2D lights;
+uniform int on,ln,tn,pn;
+uniform float textureWeight,timeSinceStart;
+uniform sampler2D objects,pCache,texParams;
+uniform sampler2D cCache;
+uniform sampler2D tex1,tex2,tex3,tex4;
 
 in vec3 rayd;
 out vec4 out_color;
 
-void main() {
-    vec3 color = BLACK;
-    Ray stack[BOUNCES];
-    int top=0,bottom=BOUNCES;
-    stack[0] = Ray(eye,rayd);
+#include "../util/random.glsl"
+#include "../const/ray.glsl"
+#include "../shape/intersect.glsl"
+#include "../material/material.glsl"
 
-    for(int num=0;top!=bottom&&num<RAYTOTALNUM;num++){
-        Ray ray = stack[top--];
+void trace(inout Ray ray,out vec3 fpdf,bool rr){
+    fpdf = WHITE;
+    for(int deepth=0;deepth<BOUNCES;){
+        Intersect ins = intersectObjects(ray);
+        ins.seed = timeSinceStart + float(deepth);
 
-        Intersect ins = intersectObjects(objects,on,ray);
-
-        if(ins.d==MAX_DISTANCE) break;
-
-        Material material = queryMaterial(ins.material,ins.hit);
-        vec3 rd = reflect(ray.dir,ins.normal);
-
-        for(int i=0;i<ln;i++){
-            Light light = parseLight(lights,float(i)/float(ln-1));
-            light.pos += uniformlyRandomVector(timeSinceStart)*0.1;
-            if(!testShadow(objects,on,light,ins.hit))
-                color+=calcolor(material,light,ins,rd);
+        if(ins.d==MAX_DISTANCE) {
+            break;
         }
 
-        stack[++top] = Ray(ins.hit,normalize(rd + uniformlyRandomVector(timeSinceStart + float(num)) * material.glossiness));
-        stack[++top] = Ray(ins.hit,normalize(rd + uniformlyRandomVector(timeSinceStart + float(num) + 0.5) * material.glossiness));
-    }
+        vec3 wi;
+        vec3 _fpdf = shade(ins,ray);
+        if(_fpdf==BLACK) break;
 
-    vec3 texture = texture( tex, gl_FragCoord.xy / 512.0 ).rgb;
+        fpdf *= _fpdf;
+
+        if(rr){
+            float beta = maxComponent(fpdf);
+            if(beta<RR_THRESH&&deepth>3){
+                float p = max(0.05,beta);
+                if(random( vec3( 12.9898, 78.233, 151.7182 ), ins.seed ) < p){
+                    deepth = BOUNCES;
+                    return;
+                }else{
+                    fpdf /= 1.0-p;
+                }
+            }
+        }
+
+        deepth++;
+    }
+}
+
+void main() {
+    vec3 color = BLACK;
+    vec3 lcolor[MAXLIGHTSNUM];
+    vec3 ffpdf,bfpdf;
+    Ray fray = Ray(eye,rayd),bray;
+
+    trace(fray,ffpdf,false);
+    for(int i=0;i<ln&&i<MAXLIGHTSNUM;i++){
+        Light light = parseLight(float(on+i)/float(on+ln-1));
+        bray = sampleLightRay(light,timeSinceStart + float(i));
+        trace(bray,bfpdf,false);
+        if(!testShadow(Ray(fray.origin,bray.origin-fray.origin)))
+            color+=bfpdf*light.color*light.intensity;
+    }
+    color *= ffpdf;
+
+    vec3 texture = texture( cCache, gl_FragCoord.xy / 512.0 ).rgb;
     out_color = vec4(mix(color, texture, textureWeight),1.0);
 }
+

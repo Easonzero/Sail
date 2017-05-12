@@ -9,48 +9,61 @@ class Tracer {
         this.shader = new ShaderProgram(vs_trace,fs_trace,true);
         this.timeStart = new Date();
 
-        this.shader.textures.tex = 0;
+        this.shader.textures.cCache = 0;
         this.shader.textures.objects = 1;
-        this.shader.textures.lights = 2;
+        this.shader.textures.texParams = 2;
 
-        this.data_objects_tex = {};
-        this.data_lights_tex = {};
+        this.objects_tex = {};
+        this.params_tex = {};
+        this.pcache_tex = {};
     }
 
-    update(objects,lights,modelviewProjection,eye,sampleCount){
-        if(sampleCount<5){
-            let data_objects = new Float32Array(objects);
-            let data_lights = new Float32Array(lights);
+    update(data){
+        let data_objects = new Float32Array(data.objects);
+        let data_texparams = new Float32Array(data.texparams);
 
-            let on = parseInt(objects.length/ShaderProgram.DATA_LENGTH);
-            let ln = parseInt(lights.length/ShaderProgram.LIGHT_LENGTH);
+        let on = parseInt(data.objects.length/ShaderProgram.OBJECTS_LENGTH-data.ln);
+        let tn = parseInt(data.texparams.length/ShaderProgram.TEXPARAMS_LENGTH);
 
-            this.data_objects_tex = WebglHelper.createTexture();
-            this.data_lights_tex = WebglHelper.createTexture();
+        this.objects_tex = WebglHelper.createTexture();
+        this.params_tex = WebglHelper.createTexture();
+        WebglHelper.setTexture(
+            this.objects_tex,1,
+            ShaderProgram.OBJECTS_LENGTH, on+data.ln,
+            gl.R32F,gl.RED,gl.FLOAT,data_objects,true
+        );
+        WebglHelper.setTexture(
+            this.params_tex,2,
+            ShaderProgram.TEXPARAMS_LENGTH, tn,
+            gl.R32F,gl.RED,gl.FLOAT,data_texparams,true
+        );
+
+        this.shader.uniforms.on = ['int',on];
+        this.shader.uniforms.ln = ['int',data.ln];
+        this.shader.uniforms.tn = ['int',tn];
+
+        if(data.pcache.length!=0){
+            this.shader.textures.pCatch = 3;
+            let data_pcache = new Float32Array(data.pcache);
+            let pn = parseInt(data.pcache.length/ShaderProgram.PCATCH_LENGTH);
+            this.pcache_tex = WebglHelper.createTexture();
             WebglHelper.setTexture(
-                this.data_objects_tex,1,
-                ShaderProgram.DATA_LENGTH, on,
-                gl.R32F,gl.RED,gl.FLOAT,data_objects,true
+                this.pcache_tex,3,
+                ShaderProgram.TEXPARAMS_LENGTH, pn,
+                gl.R32F,gl.RED,gl.FLOAT,data_pcache,true
             );
-            WebglHelper.setTexture(
-                this.data_lights_tex,2,
-                ShaderProgram.LIGHT_LENGTH, ln,
-                gl.R32F,gl.RED,gl.FLOAT,data_lights,true
-            );
-
-            this.shader.uniforms.on = ['int',on];
-            this.shader.uniforms.ln = ['int',ln];
+            this.shader.uniforms.tn = ['int',pn];
         }
+    }
 
+    render(modelviewProjection,eye,sampleCount){
         this.shader.uniforms.eye = eye;
         this.shader.uniforms.matrix = Matrix.Translation(
             Vector.create([Math.random() * 2 - 1, Math.random() * 2 - 1, 0]
             ).multiply(1 / 512)).multiply(modelviewProjection).inverse();
-        this.shader.uniforms.textureWeight = sampleCount / (sampleCount + 1);
+        this.shader.uniforms.textureWeight = sampleCount===0?0.0001:sampleCount / (sampleCount + 1);
         this.shader.uniforms.timeSinceStart = (new Date() - this.timeStart) * 0.001;
-    }
 
-    render(){
         this.shader.render();
     }
 }
