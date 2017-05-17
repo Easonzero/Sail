@@ -17,11 +17,11 @@ vec3 reflective(Intersect ins,inout Ray ray){
     wo = toLocalityCoordinate(sdir,tdir,ins.normal,wo);
 
     Reflective specular_brdf = Reflective(kr,ins.sc);
-    fr = reflective_sample_f(specular_brdf,wi,wo,pdf);
-    Lambertian diffuse_brdf = Lambertian(kd,ins.sc);
-    fd = lambertian_f(diffuse_brdf,wi,wo);
+    fr = reflective_sample_f(specular_brdf,ins.normal,wi,wo,pdf);
+    //Lambertian diffuse_brdf = Lambertian(kd,ins.sc);
+    //fd = lambertian_f(diffuse_brdf,wi,wo);
 
-    vec3 f = fd+fr;
+    vec3 f = fr;
 
     if(pdf<0.0001) return vec3(0.0);
 

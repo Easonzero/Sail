@@ -93,9 +93,10 @@ class Sphere{
 }
 
 class Plane{
-    constructor(normal,offset,material,texture){
+    constructor(normal,offset,dface=false,material,texture){
         this.normal = $V(normal).toUnitVector();
         this.offset = offset;
+        this.dface = dface?1:0;
         this.material = material;
         this.texture = texture;
     }
@@ -111,7 +112,7 @@ class Plane{
         let tmp = [
             3,
             this.normal.e(1),this.normal.e(2),this.normal.e(3),
-            this.offset,texparamID,texparamID+1
+            this.offset,this.dface,texparamID,texparamID+1
         ];
         let l = tmp.length;
         tmp.length = ShaderProgram.OBJECTS_LENGTH;

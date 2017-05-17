@@ -29,6 +29,7 @@ struct Sphere{
 struct Plane{
     vec3 normal;
     float offset;
+    bool dface;
     float matIndex;
     float texIndex;
 };
@@ -71,8 +72,9 @@ Plane parsePlane(float index){
     Plane plane;
     plane.normal = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);
     plane.offset = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);
-    plane.matIndex = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH)/float(tn-1);
-    plane.texIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);
+    plane.dface = readBool(objects,vec2(5.0,index),OBJECTS_LENGTH);
+    plane.matIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);
+    plane.texIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);
     return plane;
 }
 

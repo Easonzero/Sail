@@ -6,15 +6,6 @@ float modMatrix(mat3 mat){
     return dot(cross(mat[0],mat[1]),mat[2]);
 }
 
-void getCoordinate(vec3 normal,out vec3 sdir,out vec3 tdir){
-	if ( abs( normal.x ) < .5 ){
-		sdir = cross( normal, vec3( 1, 0, 0 ) );
-	} else {
-	    sdir = cross( normal, vec3( 0, 1, 0 ) );
-	}
-	tdir = cross( normal, sdir );
-}
-
 vec3 ortho(vec3 d) {
 	if (abs(d.x)>0.00001 || abs(d.y)>0.00001) {
 		return vec3(d.y,-d.x,0.0);

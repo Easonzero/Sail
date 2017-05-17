@@ -60,7 +60,6 @@ class Control{
             if(mouse.x >= 0 && mouse.x < 512 && mouse.y >= 0 && mouse.y < 512) {
                 this.mouseDown = true;
                 fn();
-                this.scene.update();
             }
 
             return true;
@@ -96,7 +95,6 @@ class Control{
         return (event)=>{
             this.mouseDown = false;
             fn();
-            this.scene.update();
         }
     }
 

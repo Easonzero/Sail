@@ -1,11 +1,20 @@
 #include "random.glsl"
 
+void getCoordinate(vec3 normal,out vec3 sdir,out vec3 tdir){
+	if ( abs( normal.x ) < 0.00001 ){
+		sdir = cross( normal, vec3( 1, 0, 0 ) );
+	} else {
+	    sdir = cross( normal, vec3( 0, 1, 0 ) );
+	}
+	tdir = cross( normal, sdir );
+}
+
 vec3 toLocalityCoordinate(vec3 sdir,vec3 tdir,vec3 normal,vec3 w){
-    return normalize(vec3(dot(w,sdir),dot(w,tdir),dot(w,normal)));
+    return vec3(dot(w,sdir),dot(w,tdir),dot(w,normal));
 }
 
 vec3 toWorldCoordinate(vec3 sdir,vec3 tdir,vec3 normal,vec3 w){
-    return normalize(w.x*sdir+w.y*tdir+w.z*normal);
+    return w.x*sdir+w.y*tdir+w.z*normal;
 }
 
 vec3 uniformlyRandomDirection( float seed ){

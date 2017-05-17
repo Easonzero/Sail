@@ -11,6 +11,10 @@ float readFloat(sampler2D tex,vec2 pos,float width){
     return texture(tex,convert(pos,width)).r;
 }
 
+bool readBool(sampler2D tex,vec2 pos,float width){
+    return readInt(tex,pos,width)==1;
+}
+
 vec2 readVec2(sampler2D tex,vec2 pos,float width){
     vec2 result;
     pos = convert(pos,width);

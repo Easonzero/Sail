@@ -100,7 +100,7 @@ Intersect intersectPlane(Ray ray,Plane plane){
     Intersect result;
     result.d = MAX_DISTANCE;
     float DN = dot(ray.dir,plane.normal);
-    if(DN==0.0) return result;
+    if(DN==0.0||(!plane.dface&&DN>0.0)) return result;
     float t = (plane.offset*dot(plane.normal,plane.normal)-dot(ray.origin,plane.normal))/DN;
     if(t<0.0001) return result;
     result.d = t;
