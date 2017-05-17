@@ -59,8 +59,9 @@ class Cube{
             this.max.e(1),this.max.e(2),this.max.e(3),
             texparamID,texparamID+1
         ];
+        let l = tmp.length;
         tmp.length = ShaderProgram.OBJECTS_LENGTH;
-        return tmp.fill(0,9,tmp.length);
+        return tmp.fill(0,l,tmp.length);
     }
 }
 
@@ -85,8 +86,9 @@ class Sphere{
             this.c.e(1),this.c.e(2),this.c.e(3),
             this.r,texparamID,texparamID+1
         ];
+        let l = tmp.length;
         tmp.length = ShaderProgram.OBJECTS_LENGTH;
-        return tmp.fill(0,7,tmp.length);
+        return tmp.fill(0,l,tmp.length);
     }
 }
 
@@ -111,8 +113,9 @@ class Plane{
             this.normal.e(1),this.normal.e(2),this.normal.e(3),
             this.offset,texparamID,texparamID+1
         ];
+        let l = tmp.length;
         tmp.length = ShaderProgram.OBJECTS_LENGTH;
-        return tmp.fill(0,7,tmp.length);
+        return tmp.fill(0,l,tmp.length);
     }
 }
 

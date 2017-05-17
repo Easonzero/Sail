@@ -4,7 +4,8 @@ import {ShaderProgram} from '../core/webgl';
  */
 
 class Matte{
-    constructor(kd){
+    constructor(kd=1){
+        if(kd<=0) kd=1;
         this.kd = kd;
     }
 
@@ -12,9 +13,28 @@ class Matte{
         let tmp = [
             1,this.kd
         ];
+        let l = tmp.length;
         tmp.length = ShaderProgram.TEXPARAMS_LENGTH;
-        return tmp.fill(0,2,tmp.length);
+        return tmp.fill(0,l,tmp.length);
     }
 }
 
-export {Matte};
+class Reflective{
+    constructor(kd=0.5,kr=0.5){
+        if(kd<=0) kd=0.5;
+        if(kr<=0) kr=0.5;
+        this.kd = kd;
+        this.kr = kr;
+    }
+
+    gen(){
+        let tmp = [
+            2,this.kd,this.kr
+        ];
+        let l = tmp.length;
+        tmp.length = ShaderProgram.TEXPARAMS_LENGTH;
+        return tmp.fill(0,l,tmp.length);
+    }
+}
+
+export {Matte,Reflective};

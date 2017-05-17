@@ -14,8 +14,24 @@ vec3 lambertian_f(Lambertian l,vec3 wi,vec3 wo){
 }
 
 vec3 lambertian_sample_f(Lambertian l,float seed,out vec3 wi, vec3 wo, out float pdf){
-    vec3 normal = vec3(0,0,1);
 	wi = cosWeightHemisphere(seed);
-	pdf = dot(normal,wi) * INVPI;
+	pdf = wi.z * INVPI;
 	return lambertian_f(l,wi,wo);
+}
+
+//reflective
+
+struct Reflective{
+    float kr;
+    vec3 cr;
+};
+
+vec3 reflective_f(Reflective r,vec3 wi,vec3 wo){
+    return r.kr*r.cr / abs(wi.z);
+}
+
+vec3 reflective_sample_f(Reflective r,out vec3 wi, vec3 wo, out float pdf){
+	wi = vec3(-wo.x,-wo.y,wo.z);
+	pdf = 1.0;
+	return reflective_f(r,wi,wo);
 }

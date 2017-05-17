@@ -23,8 +23,9 @@ class DirectionalLight extends Light{
             this.color.e(1),this.color.e(2),this.color.e(3),
             this.direction.e(1),this.direction.e(2),this.direction.e(3)
         ];
+        let l = tmp.length;
         tmp.length = ShaderProgram.OBJECTS_LENGTH;
-        return tmp.fill(this.intensity,8,tmp.length);
+        return tmp.fill(0,l,tmp.length);
     }
 }
 
@@ -41,8 +42,9 @@ class PointLight extends Light{
             this.color.e(1),this.color.e(2),this.color.e(3),
             this.pos.e(1),this.pos.e(2),this.pos.e(3)
         ];
+        let l = tmp.length;
         tmp.length = ShaderProgram.OBJECTS_LENGTH;
-        return tmp.fill(this.intensity,8,tmp.length);
+        return tmp.fill(0,l,tmp.length);
     }
 }
 

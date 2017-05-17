@@ -18,6 +18,7 @@
 #define AMBIENT_LIGHT 4
 
 #define MATTE 1
+#define REFLECTIVE 2
 
 #define UNIFORM_COLOR 0
 #define CHECKERBOARD 5

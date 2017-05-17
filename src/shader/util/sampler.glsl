@@ -1,11 +1,11 @@
 #include "random.glsl"
 
 vec3 toLocalityCoordinate(vec3 sdir,vec3 tdir,vec3 normal,vec3 w){
-    return vec3(dot(w,sdir),dot(w,tdir),dot(w,normal));
+    return normalize(vec3(dot(w,sdir),dot(w,tdir),dot(w,normal)));
 }
 
 vec3 toWorldCoordinate(vec3 sdir,vec3 tdir,vec3 normal,vec3 w){
-    return w.x*sdir+w.y*tdir+w.z*normal;
+    return normalize(w.x*sdir+w.y*tdir+w.z*normal);
 }
 
 vec3 uniformlyRandomDirection( float seed ){

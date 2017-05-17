@@ -29,7 +29,7 @@ Ray sampleLightRay(Light light,float seed){
 
 vec3 sampleLightPos(Light light,float seed){
     if(light.category==POINT_LIGHT){
-        return light.pos+uniformlyRandomVector(seed)*0.1;
+        return light.pos+uniformlyRandomVector(seed)*0.5;
     }
     return light.pos;
 }
