@@ -70,7 +70,7 @@ class Control{
         return (event)=>{
             let mouse = canvasMousePos(event,this.canvas);
             if(this.mouseDown) {
-                this.angleY += (this.oldX-mouse.x) * 0.01;
+                this.angleY += -(this.oldX-mouse.x) * 0.01;
                 this.angleX += -(this.oldY-mouse.y) * 0.01;
 
                 this.angleX = Math.max(this.angleX, -Math.PI / 2 + 0.01);

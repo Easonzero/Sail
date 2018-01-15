@@ -104,9 +104,8 @@ class ShaderProgram {
     }
 }
 
-ShaderProgram.OBJECTS_LENGTH = 11;
-ShaderProgram.PCATCH_LENGTH = 3;
-ShaderProgram.TEXPARAMS_LENGTH = 6;
+ShaderProgram.OBJECTS_LENGTH = 12;
+ShaderProgram.TEXPARAMS_LENGTH = 7;
 
 class WebglHelper {
     static createTexture(){

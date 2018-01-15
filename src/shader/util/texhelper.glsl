@@ -34,14 +34,3 @@ vec3 readVec3(sampler2D tex,vec2 pos,float width){
     result.z = texture(tex,pos).r;
     return result;
 }
-
-vec3 readTexture(sampler2D tex,vec2 pos){
-    float index = readFloat(texParams,pos,TEX_PARAMS_LENGTH)/float(pn-1);
-    vec2 tv = readVec2(pCache,vec2(0.0,index),PCACHE_LENGTH);
-    return texture(tex,tv).rgb;
-}
-
-vec3 readCacheVec3(vec2 pos){
-    float index = readFloat(texParams,pos,TEX_PARAMS_LENGTH)/float(pn-1);
-    return readVec3(pCache,vec2(0.0,index),PCACHE_LENGTH);
-}

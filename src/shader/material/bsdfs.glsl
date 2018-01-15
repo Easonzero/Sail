@@ -1,5 +1,4 @@
 #include "../const/define.glsl"
-#include "../light/light.glsl"
 #include "../util/sampler.glsl"
 
 //lambertian
@@ -9,13 +8,13 @@ struct Lambertian{
     vec3 cd;
 };
 
-vec3 lambertian_f(Lambertian l,vec3 wi,vec3 wo){
+vec3 lambertian_f(Lambertian l,const vec3 wi,const vec3 wo){
     return l.kd * l.cd * INVPI;
 }
 
 vec3 lambertian_sample_f(Lambertian l,float seed,out vec3 wi, vec3 wo, out float pdf){
 	wi = cosWeightHemisphere(seed);
-	pdf = wi.z * INVPI;
+	pdf = INVPI;
 	return lambertian_f(l,wi,wo);
 }
 
@@ -26,13 +25,92 @@ struct Reflective{
     vec3 cr;
 };
 
-vec3 reflective_f(Reflective r,vec3 normal,vec3 wi,vec3 wo){
-    return r.kr*r.cr / abs(wi.z);
+vec3 reflective_f(Reflective r,const vec3 wi,const vec3 wo){
+    return r.kr*r.cr;
 }
 
-vec3 reflective_sample_f(Reflective r,vec3 normal,out vec3 wi, vec3 wo, out float pdf){
+vec3 reflective_sample_f(Reflective r,out vec3 wi, vec3 wo, out float pdf){
 	wi = vec3(-wo.x,-wo.y,wo.z);
-	wi = normalize(wi);
 	pdf = 1.0;
-	return reflective_f(r,normal,wi,wo);
+	return reflective_f(r,wi,wo);
 }
+
+//ward
+
+struct Ward{
+    float ax, ay;
+    float invax2, invay2;
+    float const2;
+    vec3 rs;
+};
+
+vec3 ward_f(Ward w,const vec3 wi,const vec3 wo){
+//    vec3 specular = BLACK;
+//	if(H.z <= 0.f) return specular;
+//	float const1 = wi.z*wo.z;
+//	if(const1 <= 0.f) return specular;
+//	const1 = inversesqrt(const1);
+//	float const3 = exp(-1.f * (H.x*H.x*w.invax2 + H.y*H.y*w.invay2)/(H.z*H.z));
+//	specular = w.rs * const3 * const1 / w.const2;
+    return w.rs;
+}
+
+vec3 ward_sample_f(Ward w,float seed,out vec3 wi, vec3 wo, out float pdf){
+    vec3 h;
+    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), seed );
+    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), seed );
+	float phi = atan(w.ay*tan(2.0*PI*u2)/w.ax);
+	float cosPhi = cos(phi);
+	float sinPhi = sqrt(1.0-cosPhi*cosPhi);
+	float theta = atan(sqrt(-log(u1)/(cosPhi*cosPhi*w.invax2 + sinPhi*sinPhi*w.invay2)));
+
+	h.z = cos(theta);
+	float cosTheta2 = h.z*h.z;
+	float sinTheta = sqrt(1.0-cosTheta2);
+	float tanTheta2 = (1.0-cosTheta2)/cosTheta2;
+	h.x = cosPhi*sinTheta;
+	h.y = sinPhi*sinTheta;
+	if(dot(wo,h)<EPSLION) h=-h;
+	wi = reflect(-wo,h);
+	if(wi.z<=0.f) wi.z = -wi.z;
+	pdf = 1.0;//exp(-tanTheta2*(cosPhi*cosPhi*w.invax2 + sinPhi*sinPhi*w.invay2))/(w.const2*dot(h,wo)*cosTheta2*h.z);
+	return ward_f(w,wi,wo);
+}
+
+//refractive
+
+struct Refractive{
+    vec3 rc;
+    float nnt;
+    float F0;
+    bool into;
+};
+
+vec3 Refractive_sample_f(Refractive r,float seed,out vec3 wi, vec3 wo, out float pdf){
+
+    float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );
+    vec3 n = vec3(0,0,1.0);
+    float ddn = dot(wo,n);
+	float sin2t = (1.0 - ddn * ddn) * r.nnt * r.nnt;
+	float sint = sqrt(sin2t);
+	float cost = sqrt(1.0 - sin2t);
+
+	vec3 refr = n * (-1.0 * cost) + normalize(-wo + n * ddn) * sint;
+
+	float c = 1.0 - (r.into ? ddn : dot(refr,n) * -1.0);
+    float Fe = r.F0 + (1.0 - r.F0) * c * c * c * c * c;
+    float Fr = 1.0 - Fe;
+
+    pdf = 0.25 + 0.5 * Fe;
+    if (u < pdf){
+        wi = vec3(-wo.x,-wo.y,wo.z);
+        return Fe * r.rc;
+    }
+    else{
+        wi = refr;
+        pdf = 1.0-pdf;
+        return Fr * r.rc;
+    }
+}
+
+

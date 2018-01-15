@@ -5,12 +5,10 @@
 import * as matrix from './src/utils/matrix';
 import {Renderer} from './src/core/renderer';
 import {Scene} from './src/scene/scene';
-import {Cube,Sphere,Plane,Object3D} from './src/scene/geometry';
+import {Cube,Sphere,Plane} from './src/scene/geometry';
 import {Camera} from './src/scene/camera';
-import {DirectionalLight,PointLight} from './src/scene/light';
-import {Matte,Reflective} from './src/scene/material';
-import {Color,Checkerboard} from './src/scene/texture';
-import {Parser} from './src/parser/parser';
+import {Matte,Mirror,Metal} from './src/scene/material';
+import {Color,Checkerboard,CornellBox} from './src/scene/texture';
 import {Control} from './src/utils/control';
 
 window.Sail = {
@@ -19,14 +17,12 @@ window.Sail = {
     Cube:Cube,
     Sphere:Sphere,
     Plane:Plane,
-    Object:Object3D,
     Camera:Camera,
-    DirectionalLight:DirectionalLight,
-    PointLight:PointLight,
-    Parser:Parser,
     Control:Control,
     Matte:Matte,
-    Reflective:Reflective,
+    Mirror:Mirror,
+    Metal:Metal,
     Color:Color,
-    Checkerboard:Checkerboard
+    Checkerboard:Checkerboard,
+    CornellBox:CornellBox
 };

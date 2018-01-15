@@ -36,6 +36,7 @@ class Camera {
         let z = this.eye.subtract(this.center).toUnitVector();
         let x = this.up.cross(z).toUnitVector();
         let y = z.cross(x).toUnitVector();
+        x = x.x(-1);
 
         let m = $M([
             [x.e(1), x.e(2), x.e(3), 0],

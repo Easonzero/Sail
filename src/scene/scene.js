@@ -2,8 +2,7 @@
  * Created by eason on 17-4-12.
  */
 import {Camera} from './camera';
-import {Cube,Sphere,Plane,Object3D} from './geometry';
-import {Light} from './light';
+import {Cube,Sphere,Plane} from './geometry';
 
 class Scene {
     constructor(){
@@ -26,11 +25,9 @@ class Scene {
             this.camera = something;
         }else if(something instanceof Cube||
             something instanceof Sphere||
-            something instanceof Plane||
-            something instanceof Object3D){
-            this.objects.push(something);
-        }else if(something instanceof Light){
-            this.lights.push(something);
+            something instanceof Plane){
+            if(something.light) this.lights.push(something);
+            else this.objects.push(something);
         }
     }
 

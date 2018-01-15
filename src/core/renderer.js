@@ -13,19 +13,20 @@ class Renderer {
 
         this.tracer = new Tracer();
 
-        this.data={objects:[],pcache:[],texparams:[],ln:0};
+        this.data={objects:[],texparams:[],ln:0,n:0};
     }
 
-    update(scene,pcache=[]){
-        this.data.pcache = pcache;
-        this.data.ln=scene.lights.length;
+    update(scene){
+        for(let light of scene.lights){
+            this.data.objects.push(...light.gen(this.data.texparams.length/ShaderProgram.TEXPARAMS_LENGTH));
+            this.data.texparams.push(...light.genTexparams());
+        }
         for(let object of scene.objects){
             this.data.objects.push(...object.gen(this.data.texparams.length/ShaderProgram.TEXPARAMS_LENGTH));
             this.data.texparams.push(...object.genTexparams());
         }
-        for(let light of scene.lights){
-            this.data.objects.push(...light.gen());
-        }
+        this.data.ln = scene.lights.length;
+        this.data.n = scene.objects.length;
         this.tracer.update(this.data);
     }
 

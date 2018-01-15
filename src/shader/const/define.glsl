@@ -1,28 +1,26 @@
-#define OBJECTS_LENGTH 10.0
-#define PCACHE_LENGTH 2.0
-#define TEX_PARAMS_LENGTH 5.0
+#define OBJECTS_LENGTH 11.0
+#define TEX_PARAMS_LENGTH 6.0
 
-#define MAX_DISTANCE 100000.0
+#define MAX_DISTANCE 1e5
+#define EPSLION 1e-4
 #define PI 3.141592653589793
 #define INVPI 0.3183098861837907
 
-#define FACE 0
 #define CUBE 1
 #define SPHERE 2
 #define PLANE 3
 
-#define POINT_LIGHT 0
-#define RECT_LIGHT 1
-#define SPOT_LIGHT 2
-#define DIRECT_LIGHT 3
-#define AMBIENT_LIGHT 4
-
 #define MATTE 1
-#define REFLECTIVE 2
-
+#define MIRROR 2
+#define METAL 3
+//纹理1-4空出来用于图片纹理索引
 #define UNIFORM_COLOR 0
 #define CHECKERBOARD 5
+#define CORNELLBOX 6
 
 #define BLACK vec3(0.0,0.0,0.0)
 #define WHITE vec3(1.0,1.0,1.0)
 #define GREY vec3(0.5,0.5,0.5)
+#define RED vec3(0.75,0.25,0.25)
+#define BLUE vec3(0.1, 0.5, 1.0)
+#define YELLOW vec3(1.0, 0.9, 0.1)

@@ -1,7 +1,7 @@
 #include "random.glsl"
 
 void getCoordinate(vec3 normal,out vec3 sdir,out vec3 tdir){
-	if ( abs( normal.x ) < 0.00001 ){
+	if ( abs( normal.x ) == 0.0 ){
 		sdir = cross( normal, vec3( 1, 0, 0 ) );
 	} else {
 	    sdir = cross( normal, vec3( 0, 1, 0 ) );
@@ -32,18 +32,8 @@ vec3 uniformlyRandomVector( float seed ){
 vec3 cosWeightHemisphere(float seed){
     float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );
 	float v = random( vec3( 63.7264, 10.873, 623.6736 ), seed );
+	float r = sqrt(u);
 	float angle = 2.0 * PI * v;
 
-	return vec3(u*cos(angle),u*sin(angle),cos(asin(u)));
-}
-
-vec3 cone(vec3 dir, float extent,float seed) {
-	dir = normalize(dir);
-	vec3 o1 = normalize(ortho(dir));
-	vec3 o2 = normalize(cross(dir, o1));
-	vec2 r =  random2( seed );
-	r.x=r.x*2.*PI;
-	r.y=1.0-r.y*extent;
-	float oneminus = sqrt(1.0-r.y*r.y);
-	return cos(r.x)*oneminus*o1+sin(r.x)*oneminus*o2+r.y*dir;
+	return vec3(r*cos(angle),r*sin(angle),sqrt(1.-u));
 }

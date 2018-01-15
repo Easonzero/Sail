@@ -1,26 +1,26 @@
 #include "bsdfs.glsl"
-#include "../const/ray.glsl"
 
-void matte_attr(float matIndex,out float kd){
-    kd = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);
+void matte_attr(float matIndex,out Lambertian l){
+    l.kd = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);
 }
 
-vec3 matte(Intersect ins,inout Ray ray){
-    vec3 wo = -ray.dir;
-    vec3 wi,f;
+vec3 matte(Intersect ins,vec3 wo,out vec3 wi){
+    vec3 f;
     float pdf;
-    vec3 sdir,tdir;
-    float kd;
-    matte_attr(ins.matIndex,kd);
-    getCoordinate(ins.normal,sdir,tdir);
-    wo = toLocalityCoordinate(sdir,tdir,ins.normal,wo);
 
-    Lambertian diffuse_brdf = Lambertian(kd,ins.sc);
+    Lambertian diffuse_brdf;
+    matte_attr(ins.matIndex,diffuse_brdf);
+    diffuse_brdf.cd = ins.sc;
+
     f = lambertian_sample_f(diffuse_brdf,ins.seed,wi,wo,pdf);
 
-    wi = toWorldCoordinate(sdir,tdir,ins.normal,wi);
+    return f/pdf;
+}
 
-    ray = Ray(ins.hit,wi);
-    float ndotwi = max(dot(ins.normal,wi),0.0);
-    return f*ndotwi/pdf;
+vec3 matte_f(Intersect ins,vec3 wo,vec3 wi){
+    Lambertian diffuse_brdf;
+    matte_attr(ins.matIndex,diffuse_brdf);
+    diffuse_brdf.cd = ins.sc;
+
+    return lambertian_f(diffuse_brdf,wi,wo);
 }

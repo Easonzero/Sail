@@ -42,4 +42,21 @@ class Checkerboard{
     }
 }
 
-export {Color,Checkerboard};
+class CornellBox{
+    constructor(min,max){
+        this.min = $V(min);
+        this.max = $V(max);
+    }
+
+    gen(){
+        let tmp = [
+            6,this.min.e(1),this.min.e(2),this.min.e(3),
+            this.max.e(1),this.max.e(2),this.max.e(3)
+        ];
+        let l = tmp.length;
+        tmp.length = ShaderProgram.TEXPARAMS_LENGTH;
+        return tmp.fill(0,l,tmp.length);
+    }
+}
+
+export {Color,Checkerboard,CornellBox};

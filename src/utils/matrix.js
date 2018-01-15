@@ -1,6 +1,27 @@
 /**
  * Created by eason on 17-4-13.
  */
+
+Matrix.Scale = function (v)
+{
+    if (v.elements.length == 2) {
+        let r = Matrix.I(3);
+        r.elements[0][0] = v.elements[0];
+        r.elements[1][1] = v.elements[1];
+        return r;
+    }
+
+    if (v.elements.length == 3) {
+        let r = Matrix.I(4);
+        r.elements[0][0] = v.elements[0];
+        r.elements[1][1] = v.elements[1];
+        r.elements[2][2] = v.elements[2];
+        return r;
+    }
+
+    throw "Invalid length for Scale";
+};
+
 Matrix.Translation = function (v)
 {
     if (v.elements.length == 2) {
@@ -81,4 +102,9 @@ Matrix.prototype.make3x3 = function()
 Vector.prototype.flatten = function ()
 {
     return this.elements;
+};
+
+Vector.prototype.equal = function (v)
+{
+    return this.e(1)==v.e(1)&&this.e(2)==v.e(2)&&this.e(3)==v.e(3);
 };
