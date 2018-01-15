@@ -9,12 +9,12 @@ struct Lambertian{
 };
 
 vec3 lambertian_f(Lambertian l,const vec3 wi,const vec3 wo){
-    return l.kd * l.cd * INVPI;
+    return l.kd * l.cd * PI;
 }
 
 vec3 lambertian_sample_f(Lambertian l,float seed,out vec3 wi, vec3 wo, out float pdf){
 	wi = cosWeightHemisphere(seed);
-	pdf = INVPI;
+	pdf = PI;
 	return lambertian_f(l,wi,wo);
 }
 
@@ -34,6 +34,7 @@ vec3 reflective_sample_f(Reflective r,out vec3 wi, vec3 wo, out float pdf){
 	pdf = 1.0;
 	return reflective_f(r,wi,wo);
 }
+
 
 //ward
 
@@ -81,34 +82,34 @@ vec3 ward_sample_f(Ward w,float seed,out vec3 wi, vec3 wo, out float pdf){
 
 struct Refractive{
     vec3 rc;
-    float nnt;
     float F0;
-    bool into;
+    float nt;
 };
 
-vec3 Refractive_sample_f(Refractive r,float seed,out vec3 wi, vec3 wo, out float pdf){
-
+vec3 refractive_sample_f(Refractive r,float seed,out vec3 wi, vec3 wo, out float pdf){
+    bool into = wo.z < EPSLION;
+    float nnt = into ? NC / r.nt : r.nt / NC;
     float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );
     vec3 n = vec3(0,0,1.0);
     float ddn = dot(wo,n);
-	float sin2t = (1.0 - ddn * ddn) * r.nnt * r.nnt;
+	float sin2t = (1.0 - ddn * ddn) * nnt * nnt;
 	float sint = sqrt(sin2t);
 	float cost = sqrt(1.0 - sin2t);
 
 	vec3 refr = n * (-1.0 * cost) + normalize(-wo + n * ddn) * sint;
 
-	float c = 1.0 - (r.into ? ddn : dot(refr,n) * -1.0);
+	float c = 1.0 - (into ? ddn : dot(refr,n) * -1.0);
     float Fe = r.F0 + (1.0 - r.F0) * c * c * c * c * c;
     float Fr = 1.0 - Fe;
 
-    pdf = 0.25 + 0.5 * Fe;
-    if (u < pdf){
+    if (u < Fe){
         wi = vec3(-wo.x,-wo.y,wo.z);
+        pdf = Fe;
         return Fe * r.rc;
     }
     else{
         wi = refr;
-        pdf = 1.0-pdf;
+        pdf = Fr;
         return Fr * r.rc;
     }
 }

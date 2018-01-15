@@ -10,9 +10,10 @@ let camera = new Sail.Camera([2.78,2.73,-6],[2.78,2.73,2.79]);
 let matte = new Sail.Matte(1.0);
 let metal = new Sail.Metal(0.1,0.01);
 let mirror = new Sail.Mirror(1.0);
+let transparent = new Sail.Transparent(1.14);
 let cornellbox = new Sail.CornellBox([0,0,0],[5.560,5.488,5.592]);
 
-scene.add(new Sail.Cube([2.13,5.487,2.27],[3.43,5.488,3.32],matte,Sail.Color.create([0,0,0]),[8,8,8]));
+scene.add(new Sail.Cube([2.13,5.487,2.27],[3.43,5.488,3.32],matte,Sail.Color.create([0,0,0]),[1,1,1]));
 scene.add(new Sail.Cube([0,0,-7],[5.560,5.488,5.592],matte,cornellbox));
 
 scene.add(new Sail.Sphere([2,1.25,2.70],1.2,mirror,Sail.Color.create([1,1,1])));

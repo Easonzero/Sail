@@ -13,6 +13,7 @@
 #define MATTE 1
 #define MIRROR 2
 #define METAL 3
+#define TRANSPARENT 4
 //纹理1-4空出来用于图片纹理索引
 #define UNIFORM_COLOR 0
 #define CHECKERBOARD 5
@@ -24,3 +25,5 @@
 #define RED vec3(0.75,0.25,0.25)
 #define BLUE vec3(0.1, 0.5, 1.0)
 #define YELLOW vec3(1.0, 0.9, 0.1)
+
+#define NC 1.0

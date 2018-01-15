@@ -54,14 +54,20 @@ class Metal{
     }
 }
 
-class Plastic{
-    constructor(){
-
+class Transparent{
+    constructor(nt){
+        this.nt = nt;
+        this.F0 = (1.0 - nt) * (1.0 - nt) / ((1.0 + nt) * (1.0 + nt));
     }
 
     gen(){
-
+        let tmp = [
+            4,this.nt,this.F0
+        ];
+        let l = tmp.length;
+        tmp.length = ShaderProgram.TEXPARAMS_LENGTH;
+        return tmp.fill(0,l,tmp.length);
     }
 }
 
-export {Matte,Mirror,Metal,Plastic};
+export {Matte,Mirror,Metal,Transparent};
