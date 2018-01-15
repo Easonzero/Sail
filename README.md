@@ -6,8 +6,11 @@ a path tracer using WebGL for realtime performance
 ## 渲染结果展示
 
 1. 康奈尔盒子
+
 ![cornellbox](./img/cornellbox.png)
+
 2. 金属、镜面、漫反射表面材质
+
 ![meterial](./img/meterial.png)
 
 ## 特性
