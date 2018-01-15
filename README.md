@@ -3,14 +3,14 @@ a path tracer using WebGL for realtime performance
 
 *Sail*是一个基于Webgl技术实现的具有实时表现的路径追踪器
 
-### 渲染结果展示
+## 渲染结果展示
 
 1. 康奈尔盒子
 ![cornellbox](./img/cornellbox.png)
 2. 金属、镜面、漫反射表面材质
 ![meterial](./img/meterial.png)
 
-### 特性
+## 特性
 
 1. 使用基本视线路径追踪方法
 2. 无偏性
@@ -21,7 +21,7 @@ a path tracer using WebGL for realtime performance
 7. 面积光源
 8. 支持球体、立方体、平面三种几何形状
 
-### 运行
+## 运行
 
 可以直接执行/test/index.html查看预设测试渲染结果。以下是测试代码及注释
 
