@@ -7,6 +7,8 @@
 vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){
     int matCategory = readInt(texParams,vec2(0.0,ins.matIndex),TEX_PARAMS_LENGTH);
     vec3 f,direct = BLACK,_fpdf;
+    bool into = dot(ins.normal,-wo) < 0.0;
+    ins.normal = into ? ins.normal : ins.normal * -1.0;
     if(matCategory == MATTE){
         fpdf = matte(ins,wo,wi);
         f = matte_f(ins,wo,wi);
@@ -16,7 +18,7 @@ vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){
         fpdf = metal(ins,wo,wi);
         f = metal_f(ins,wo,wi);
     }else if(matCategory == TRANSMISSION){
-        fpdf = transmission(ins,wo,wi);
+        fpdf = transmission(ins,wo,wi,into);
     }
     //direct
     if(ins.index>=ln&&matCategory!=MIRROR&&matCategory!=TRANSMISSION)

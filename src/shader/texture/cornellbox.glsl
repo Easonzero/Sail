@@ -15,15 +15,15 @@ vec3 cornellbox(vec3 hit,float texIndex){
     else if(hit.y==max.y) return WHITE;
 
     if ( hit.x < min.x + 0.0001 )
-    	return YELLOW;
+    	return YELLOW * 0.7;
     else if ( hit.x > max.x - 0.0001 )
-    	return BLUE;
+    	return BLUE * 0.7;
     else if ( hit.y < min.y + 0.0001 )
-    	return WHITE;
+    	return WHITE * 0.7;
     else if ( hit.y > max.y - 0.0001 )
-    	return WHITE;
+    	return WHITE * 0.7;
     else if ( hit.z > min.z - 0.0001 )
-    	return WHITE;
+    	return WHITE * 0.7;
 
     return BLACK;
 }

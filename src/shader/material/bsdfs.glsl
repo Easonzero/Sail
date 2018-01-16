@@ -46,6 +46,7 @@ struct Ward{
 };
 
 vec3 ward_f(Ward w,const vec3 wi,const vec3 wo){
+//    vec3 H = normalize(wi+wo);
 //    vec3 specular = BLACK;
 //	if(H.z <= 0.f) return specular;
 //	float const1 = wi.z*wo.z;
@@ -71,9 +72,21 @@ vec3 ward_sample_f(Ward w,float seed,vec3 n,out vec3 wi, vec3 wo, out float pdf)
 	float tanTheta2 = (1.0-cosTheta2)/cosTheta2;
 	h.x = cosPhi*sinTheta;
 	h.y = sinPhi*sinTheta;
+
+	pdf = 1.0;//exp(-tanTheta2*(cosPhi*cosPhi*w.invax2 + sinPhi*sinPhi*w.invay2))/(w.const2*dot(h,wo)*cosTheta2*h.z);
+
+    vec3 sdir, tdir;
+    if (abs(n.x)<0.0) {
+        sdir = cross(n, vec3(1,0,0));
+    }
+    else {
+        sdir = cross(n, vec3(0,1,0));
+    }
+    tdir = cross(n, sdir);
+    h = h.x*sdir + h.y*tdir + h.z*n;
+
 	if(dot(wo,h)<-EPSILON) h=-h;
 	wi = reflect(-wo,h);
-	pdf = 1.0;//exp(-tanTheta2*(cosPhi*cosPhi*w.invax2 + sinPhi*sinPhi*w.invay2))/(w.const2*dot(h,wo)*cosTheta2*h.z);
 	return ward_f(w,wi,wo);
 }
 
@@ -85,36 +98,33 @@ struct Refractive{
     float nt;
 };
 
-vec3 refractive_sample_f(Refractive r,float seed,vec3 n,out vec3 wi, vec3 wo, out float pdf){
+vec3 refractive_sample_f(Refractive r,float seed,vec3 n,bool into,out vec3 wi, vec3 wo, out float pdf){
     float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );
-    vec3 realn = dot(n,-wo) < 0.0 ? n : n * -1.0;
-    bool into = dot(n,realn) > 0.0;
     float nnt = into ? NC / r.nt : r.nt / NC;
-    float ddn = dot(-wo,realn);
+    float ddn = dot(-wo,n);
 
 	float cos2t = 1.0-nnt*nnt*(1.0-ddn*ddn);
 
 	if (cos2t < 0.0){
 	    pdf = 1.0;
-	    wi = -wo - realn * 2.0 * dot(-wo,realn);
+	    wi = -wo - n * 2.0 * dot(-wo,n);
 	    return r.rc;
 	}
 
-	vec3 refr = normalize(-wo*nnt - n*((into?1.0:-1.0)*(ddn*nnt+sqrt(cos2t))));
+	vec3 refr = normalize(-wo*nnt - n*(ddn*nnt+sqrt(cos2t)));
 
-	float c = 1.0-(into?-ddn:dot(n,refr));
+	float c = 1.0-(into?-ddn:dot(-n,refr));
     float Fe = r.F0 + (1.0 - r.F0) * c * c * c * c * c;
     float Fr = 1.0 - Fe;
-    //放大fpdf倍数，抵消折射光线有效路径较短的问题
     pdf = 0.25 + 0.5 * Fe;
     if (u < pdf){
-        wi = -wo - realn * 2.0 * dot(-wo,realn);
-        return r.rc * Fe * 1.5;
+        wi = -wo - n * 2.0 * dot(-wo,n);
+        return r.rc * Fe;
     }
     else{
         wi = refr;
         pdf = 1.0-pdf;
-        return r.rc * Fr * 1.2;
+        return r.rc * Fr;
     }
 }
 

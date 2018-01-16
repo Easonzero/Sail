@@ -24,15 +24,12 @@ Intersect intersectCube(Ray ray,Cube cube){
     float tNear = max( max( t1.x, t1.y ), t1.z );
     float tFar = min( min( t2.x, t2.y ), t2.z );
     float t=-1.0,f;
-    if(tNear>EPSILON&&tNear<tFar) {
-        t = tNear;f = 1.0;
-    }else if(tNear<tFar) {
-        t = tFar;f = -1.0;
-    }
+    if(tNear>EPSILON&&tNear<tFar) t = tNear;
+    else if(tNear<tFar) t = tFar;
     if(t > EPSILON){
         result.d = t;
         result.hit = ray.origin+t*ray.dir;
-        result.normal = normalForCube(ray.origin+t*ray.dir,cube,f);
+        result.normal = normalForCube(ray.origin+t*ray.dir,cube);
         result.matIndex = cube.matIndex;
         result.sc = getSurfaceColor(result.hit,cube.texIndex);
         result.emission = cube.emission;

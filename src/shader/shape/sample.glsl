@@ -19,7 +19,7 @@ vec3 sampleGeometry(Intersect ins,int i,out vec3 fpdf){
         vec3 x = vec3(cube.rt.x-cube.lb.x,0.0,0.0);
         vec3 y = vec3(0.0,0.0,cube.rt.z-cube.lb.z);
         result = sampleRectangle(ins,cube.lb,x,y,pdf);
-        vec3 normal = normalForCube(result,cube,1.0);
+        vec3 normal = normalForCube(result,cube);
         fpdf = cube.emission*max(0.0,dot(normal,ins.hit-result))/pdf;//放大直接光照
     }else if(category==SPHERE){
         //todo

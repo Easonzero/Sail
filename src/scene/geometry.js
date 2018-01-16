@@ -11,9 +11,7 @@ class Cube{
         this.texture = texture;
         this.emission = $V(emission);
 
-        if(this.emission.equal($V([0,0,0]))){
-            this.light = false;
-        }else this.light = true;
+        this.light = !this.emission.equal($V([0,0,0]));
     }
 
     genTexparams(){
@@ -45,9 +43,7 @@ class Sphere{
         this.texture = texture;
         this.emission = $V(emission);
 
-        if(this.emission.equal($V([0,0,0]))){
-            this.light = false;
-        }else this.light = true;
+        this.light = !this.emission.equal($V([0,0,0]));
     }
 
     genTexparams(){
@@ -79,9 +75,7 @@ class Plane{
         this.texture = texture;
         this.emission = $V(emission);
 
-        if(this.emission.equal($V([0,0,0]))){
-            this.light = false;
-        }else this.light = true;
+        this.light = !this.emission.equal($V([0,0,0]));
     }
 
     genTexparams(){

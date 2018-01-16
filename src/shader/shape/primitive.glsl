@@ -57,19 +57,19 @@ Plane parsePlane(float index){
     return plane;
 }
 
-vec3 normalForCube( vec3 hit, Cube cube , float f)
+vec3 normalForCube( vec3 hit, Cube cube)
 {
 	if ( hit.x < cube.lb.x + 0.0001 )
-		return vec3( -1.0, 0.0, 0.0 ) * f;
+		return vec3( -1.0, 0.0, 0.0 );
 	else if ( hit.x > cube.rt.x - 0.0001 )
-		return vec3( 1.0, 0.0, 0.0 ) * f;
+		return vec3( 1.0, 0.0, 0.0 );
 	else if ( hit.y < cube.lb.y + 0.0001 )
-		return vec3( 0.0, -1.0, 0.0 ) * f;
+		return vec3( 0.0, -1.0, 0.0 );
 	else if ( hit.y > cube.rt.y - 0.0001 )
-		return vec3( 0.0, 1.0, 0.0 ) * f;
+		return vec3( 0.0, 1.0, 0.0 );
 	else if ( hit.z < cube.lb.z + 0.0001 )
-		return vec3( 0.0, 0.0, -1.0 ) * f;
-	else return vec3( 0.0, 0.0, 1.0 ) * f;
+		return vec3( 0.0, 0.0, -1.0 );
+	else return vec3( 0.0, 0.0, 1.0 );
 }
 
 vec3 normalForSphere( vec3 hit, Sphere sphere ){
