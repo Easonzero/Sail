@@ -12,7 +12,7 @@ vec3 matte(Intersect ins,vec3 wo,out vec3 wi){
     matte_attr(ins.matIndex,diffuse_brdf);
     diffuse_brdf.cd = ins.sc;
 
-    f = lambertian_sample_f(diffuse_brdf,ins.seed,wi,wo,pdf);
+    f = lambertian_sample_f(diffuse_brdf,ins.seed,ins.normal,wi,wo,pdf);
 
     return f/pdf;
 }

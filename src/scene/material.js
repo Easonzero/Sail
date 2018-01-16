@@ -54,7 +54,7 @@ class Metal{
     }
 }
 
-class Transparent{
+class Transmission{
     constructor(nt){
         this.nt = nt;
         this.F0 = (1.0 - nt) * (1.0 - nt) / ((1.0 + nt) * (1.0 + nt));
@@ -70,4 +70,4 @@ class Transparent{
     }
 }
 
-export {Matte,Mirror,Metal,Transparent};
+export {Matte,Mirror,Metal,Transmission};

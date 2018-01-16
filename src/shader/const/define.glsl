@@ -2,7 +2,7 @@
 #define TEX_PARAMS_LENGTH 6.0
 
 #define MAX_DISTANCE 1e5
-#define EPSLION 1e-4
+#define EPSILON 1e-4
 #define PI 3.141592653589793
 #define INVPI 0.3183098861837907
 
@@ -13,7 +13,7 @@
 #define MATTE 1
 #define MIRROR 2
 #define METAL 3
-#define TRANSPARENT 4
+#define TRANSMISSION 4
 //纹理1-4空出来用于图片纹理索引
 #define UNIFORM_COLOR 0
 #define CHECKERBOARD 5

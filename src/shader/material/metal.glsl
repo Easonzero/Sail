@@ -16,7 +16,7 @@ vec3 metal(Intersect ins,vec3 wo,out vec3 wi){
     metal_attr(ins.matIndex,ward_brdf);
     ward_brdf.rs = ins.sc;
 
-    f = ward_sample_f(ward_brdf,ins.seed,wi,wo,pdf);
+    f = ward_sample_f(ward_brdf,ins.seed,ins.normal,wi,wo,pdf);
 
     return f/pdf;
 }

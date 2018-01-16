@@ -24,12 +24,12 @@ Intersect intersectCube(Ray ray,Cube cube){
     float tNear = max( max( t1.x, t1.y ), t1.z );
     float tFar = min( min( t2.x, t2.y ), t2.z );
     float t=-1.0,f;
-    if(tNear>EPSLION&&tNear<tFar) {
+    if(tNear>EPSILON&&tNear<tFar) {
         t = tNear;f = 1.0;
     }else if(tNear<tFar) {
         t = tFar;f = -1.0;
     }
-    if(t > EPSLION){
+    if(t > EPSILON){
         result.d = t;
         result.hit = ray.origin+t*ray.dir;
         result.normal = normalForCube(ray.origin+t*ray.dir,cube,f);
@@ -48,12 +48,12 @@ Intersect intersectSphere(Ray ray,Sphere sphere){
 	float b = 2.0 * dot( toSphere, ray.dir );
 	float c = dot( toSphere, toSphere ) - sphere.r * sphere.r;
 	float det = b * b - 4.0 * a * c;
-	if ( det > EPSLION ){
+	if ( det > EPSILON ){
 	    det = sqrt( det );
 		float t = (-b - det);
-		if(t < EPSLION) t = (-b + det);
+		if(t < EPSILON) t = (-b + det);
 		t /= 2.0*a;
-		if(t > EPSLION){
+		if(t > EPSILON){
 	        result.d = t;
     		result.hit = ray.origin+t*ray.dir;
     		result.normal = normalForSphere(ray.origin+t*ray.dir,sphere);
@@ -69,9 +69,9 @@ Intersect intersectPlane(Ray ray,Plane plane){
     Intersect result;
     result.d = MAX_DISTANCE;
     float DN = dot(ray.dir,plane.normal);
-    if(DN==0.0||(!plane.dface&&DN>EPSLION)) return result;
+    if(DN==0.0||(!plane.dface&&DN>EPSILON)) return result;
     float t = (plane.offset*dot(plane.normal,plane.normal)-dot(ray.origin,plane.normal))/DN;
-    if(t<EPSLION) return result;
+    if(t<EPSILON) return result;
     result.d = t;
     result.normal = plane.normal;
     result.hit = ray.origin+result.d*ray.dir;
@@ -111,7 +111,7 @@ Intersect intersectObjects(Ray ray){
 
 bool testShadow(Ray ray){
     Intersect ins = intersectObjects(ray);
-    if(ins.index>=ln&&ins.d>EPSLION&&ins.d<1.0)
+    if(ins.index>=ln&&ins.d>EPSILON&&ins.d<1.0)
         return true;
     return false;
 }

@@ -7,7 +7,7 @@ import {Renderer} from './src/core/renderer';
 import {Scene} from './src/scene/scene';
 import {Cube,Sphere,Plane} from './src/scene/geometry';
 import {Camera} from './src/scene/camera';
-import {Matte,Mirror,Metal,Transparent} from './src/scene/material';
+import {Matte,Mirror,Metal,Transmission} from './src/scene/material';
 import {Color,Checkerboard,CornellBox} from './src/scene/texture';
 import {Control} from './src/utils/control';
 
@@ -22,7 +22,7 @@ window.Sail = {
     Matte:Matte,
     Mirror:Mirror,
     Metal:Metal,
-    Transparent:Transparent,
+    Transmission:Transmission,
     Color:Color,
     Checkerboard:Checkerboard,
     CornellBox:CornellBox

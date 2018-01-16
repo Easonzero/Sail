@@ -24,21 +24,10 @@ struct Ray{
 void trace(inout Ray ray,out vec3 e,int maxDeepth){
     vec3 fpdf = WHITE;e = BLACK;
     int deepth=0;
-    while(deepth<maxDeepth){
-        ++deepth;
+    while(++deepth<=maxDeepth){
         Intersect ins = intersectObjects(ray);
         ins.seed = timeSinceStart + float(deepth);
         if(ins.d==MAX_DISTANCE) break;
-
-        //r.r
-        float p = maxComponent(fpdf);
-        if(++deepth>maxDeepth){
-            if(random( vec3( 12.9898, 78.233, 151.7182 ), ins.seed )<p) fpdf/=p;
-            else{
-                e += ins.emission*fpdf;
-                break;
-            }
-        }
 
         vec3 wi;
         vec3 _fpdf;

@@ -7,11 +7,15 @@ a path tracer using WebGL for realtime performance
 
 1. 康奈尔盒子
 
-![cornellbox](./img/cornellbox.png)
+![cornellbox](./img/ex_cornellbox.png)
 
 2. 金属、镜面、漫反射表面材质
 
-![meterial](./img/meterial.png)
+![meterial](./img/ex_meterial.png)
+
+3. 只使用直接光照渲染
+
+![direct](./img/ex_direct)
 
 ## 特性
 
@@ -20,7 +24,7 @@ a path tracer using WebGL for realtime performance
 3. 使用直接光照、间接光照混合渲染
 4. 实时可交互
 5. 支持康奈尔盒子、棋盘、颜色三种纹理
-6. 支持金属、镜面、漫反射三种材质
+6. 支持金属、镜面、透射、漫反射四种材质
 7. 面积光源
 8. 支持球体、立方体、平面三种几何形状
 

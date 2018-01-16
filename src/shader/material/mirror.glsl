@@ -12,7 +12,7 @@ vec3 mirror(Intersect ins,vec3 wo,out vec3 wi){
     mirror_attr(ins.matIndex,specular_brdf);
     specular_brdf.cr = ins.sc;
 
-    f = reflective_sample_f(specular_brdf,wi,wo,pdf);
+    f = reflective_sample_f(specular_brdf,ins.normal,wi,wo,pdf);
 
     return f/pdf;
 }

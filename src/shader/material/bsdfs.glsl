@@ -9,12 +9,12 @@ struct Lambertian{
 };
 
 vec3 lambertian_f(Lambertian l,const vec3 wi,const vec3 wo){
-    return l.kd * l.cd * PI;
+    return l.kd * l.cd * INVPI;
 }
 
-vec3 lambertian_sample_f(Lambertian l,float seed,out vec3 wi, vec3 wo, out float pdf){
-	wi = cosWeightHemisphere(seed);
-	pdf = PI;
+vec3 lambertian_sample_f(Lambertian l,float seed,vec3 n,out vec3 wi, vec3 wo, out float pdf){
+	wi = cosineWeightedDirection(seed,n);
+	pdf = INVPI;
 	return lambertian_f(l,wi,wo);
 }
 
@@ -29,8 +29,8 @@ vec3 reflective_f(Reflective r,const vec3 wi,const vec3 wo){
     return r.kr*r.cr;
 }
 
-vec3 reflective_sample_f(Reflective r,out vec3 wi, vec3 wo, out float pdf){
-	wi = vec3(-wo.x,-wo.y,wo.z);
+vec3 reflective_sample_f(Reflective r,vec3 n,out vec3 wi, vec3 wo, out float pdf){
+	wi = reflect(-wo,n);
 	pdf = 1.0;
 	return reflective_f(r,wi,wo);
 }
@@ -56,7 +56,7 @@ vec3 ward_f(Ward w,const vec3 wi,const vec3 wo){
     return w.rs;
 }
 
-vec3 ward_sample_f(Ward w,float seed,out vec3 wi, vec3 wo, out float pdf){
+vec3 ward_sample_f(Ward w,float seed,vec3 n,out vec3 wi, vec3 wo, out float pdf){
     vec3 h;
     float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), seed );
     float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), seed );
@@ -71,9 +71,8 @@ vec3 ward_sample_f(Ward w,float seed,out vec3 wi, vec3 wo, out float pdf){
 	float tanTheta2 = (1.0-cosTheta2)/cosTheta2;
 	h.x = cosPhi*sinTheta;
 	h.y = sinPhi*sinTheta;
-	if(dot(wo,h)<EPSLION) h=-h;
+	if(dot(wo,h)<-EPSILON) h=-h;
 	wi = reflect(-wo,h);
-	if(wi.z<=0.f) wi.z = -wi.z;
 	pdf = 1.0;//exp(-tanTheta2*(cosPhi*cosPhi*w.invax2 + sinPhi*sinPhi*w.invay2))/(w.const2*dot(h,wo)*cosTheta2*h.z);
 	return ward_f(w,wi,wo);
 }
@@ -86,31 +85,36 @@ struct Refractive{
     float nt;
 };
 
-vec3 refractive_sample_f(Refractive r,float seed,out vec3 wi, vec3 wo, out float pdf){
-    bool into = wo.z < EPSLION;
-    float nnt = into ? NC / r.nt : r.nt / NC;
+vec3 refractive_sample_f(Refractive r,float seed,vec3 n,out vec3 wi, vec3 wo, out float pdf){
     float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );
-    vec3 n = vec3(0,0,1.0);
-    float ddn = dot(wo,n);
-	float sin2t = (1.0 - ddn * ddn) * nnt * nnt;
-	float sint = sqrt(sin2t);
-	float cost = sqrt(1.0 - sin2t);
+    vec3 realn = dot(n,-wo) < 0.0 ? n : n * -1.0;
+    bool into = dot(n,realn) > 0.0;
+    float nnt = into ? NC / r.nt : r.nt / NC;
+    float ddn = dot(-wo,realn);
 
-	vec3 refr = n * (-1.0 * cost) + normalize(-wo + n * ddn) * sint;
+	float cos2t = 1.0-nnt*nnt*(1.0-ddn*ddn);
 
-	float c = 1.0 - (into ? ddn : dot(refr,n) * -1.0);
+	if (cos2t < 0.0){
+	    pdf = 1.0;
+	    wi = -wo - realn * 2.0 * dot(-wo,realn);
+	    return r.rc;
+	}
+
+	vec3 refr = normalize(-wo*nnt - n*((into?1.0:-1.0)*(ddn*nnt+sqrt(cos2t))));
+
+	float c = 1.0-(into?-ddn:dot(n,refr));
     float Fe = r.F0 + (1.0 - r.F0) * c * c * c * c * c;
     float Fr = 1.0 - Fe;
-
-    if (u < Fe){
-        wi = vec3(-wo.x,-wo.y,wo.z);
-        pdf = Fe;
-        return Fe * r.rc;
+    //放大fpdf倍数，抵消折射光线有效路径较短的问题
+    pdf = 0.25 + 0.5 * Fe;
+    if (u < pdf){
+        wi = -wo - realn * 2.0 * dot(-wo,realn);
+        return r.rc * Fe * 1.5;
     }
     else{
         wi = refr;
-        pdf = Fr;
-        return Fr * r.rc;
+        pdf = 1.0-pdf;
+        return r.rc * Fr * 1.2;
     }
 }
 
