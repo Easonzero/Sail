@@ -15,7 +15,7 @@ a path tracer using WebGL for realtime performance
 
 3. 只使用直接光照渲染
 
-![direct](./img/ex_direct)
+![direct](./img/ex_direct.png)
 
 ## 特性
 
