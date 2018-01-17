@@ -1,3 +1,13 @@
+vec3 worldToLocal(vec3 v,vec3 ns,vec3 ss,vec3 ts){
+    return vec3(dot(v,ss),dot(v,ts),dot(v,ns));
+}
+
+vec3 localToWorld(vec3 v,vec3 ns,vec3 ss,vec3 ts){
+    return vec3(ss.x * v.x + ts.x * v.y + ns.x * v.z,
+        ss.y * v.x + ts.y * v.y + ns.y * v.z,
+        ss.z * v.x + ts.z * v.y + ns.z * v.z);
+}
+
 vec3 ensure3byW(vec4 vec){
     return vec3(vec.x/vec.w,vec.y/vec.w,vec.z/vec.w);
 }

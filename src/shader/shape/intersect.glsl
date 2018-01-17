@@ -7,6 +7,7 @@ struct Intersect{
     float d;
     vec3 hit;
     vec3 normal;
+    vec3 dpdu,dpdv;
     float matIndex;//材质索引
     vec3 sc;//表面颜色
     vec3 emission;
@@ -30,6 +31,7 @@ Intersect intersectCube(Ray ray,Cube cube){
         result.d = t;
         result.hit = ray.origin+t*ray.dir;
         result.normal = normalForCube(ray.origin+t*ray.dir,cube);
+        computeDpDForPlane(result.normal,result.dpdu,result.dpdv);
         result.matIndex = cube.matIndex;
         result.sc = getSurfaceColor(result.hit,cube.texIndex);
         result.emission = cube.emission;
@@ -54,6 +56,7 @@ Intersect intersectSphere(Ray ray,Sphere sphere){
 	        result.d = t;
     		result.hit = ray.origin+t*ray.dir;
     		result.normal = normalForSphere(ray.origin+t*ray.dir,sphere);
+    		computeDpDForSphere(result.normal,result.dpdu,result.dpdv);
     		result.matIndex = sphere.matIndex;
     		result.sc = getSurfaceColor(result.hit,sphere.texIndex);
     		result.emission = sphere.emission;
@@ -72,6 +75,7 @@ Intersect intersectPlane(Ray ray,Plane plane){
     result.d = t;
     result.normal = plane.normal;
     result.hit = ray.origin+result.d*ray.dir;
+    computeDpDForPlane(result.normal,result.dpdu,result.dpdv);
     result.matIndex = plane.matIndex;
     result.sc = getSurfaceColor(result.hit,plane.texIndex);
     result.emission = plane.emission;

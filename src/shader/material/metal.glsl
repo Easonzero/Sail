@@ -8,23 +8,23 @@ void metal_attr(float matIndex,out Ward w){
     w.const2 = readFloat(texParams,vec2(5.0,matIndex),TEX_PARAMS_LENGTH);
 }
 
-vec3 metal(Intersect ins,vec3 wo,out vec3 wi){
+vec3 metal(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi){
     vec3 f;
     float pdf;
 
     Ward ward_brdf;
-    metal_attr(ins.matIndex,ward_brdf);
-    ward_brdf.rs = ins.sc;
+    metal_attr(matIndex,ward_brdf);
+    ward_brdf.rs = sc;
 
-    f = ward_sample_f(ward_brdf,ins.seed,ins.normal,wi,wo,pdf);
+    f = ward_sample_f(ward_brdf,seed,wi,wo,pdf);
 
     return f/pdf;
 }
 
-vec3 metal_f(Intersect ins,vec3 wo,vec3 wi){
+vec3 metal_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){
     Ward ward_brdf;
-    metal_attr(ins.matIndex,ward_brdf);
-    ward_brdf.rs = ins.sc;
+    metal_attr(matIndex,ward_brdf);
+    ward_brdf.rs = sc;
 
     return ward_f(ward_brdf,wi,wo);
 }

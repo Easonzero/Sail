@@ -75,3 +75,24 @@ vec3 normalForCube( vec3 hit, Cube cube)
 vec3 normalForSphere( vec3 hit, Sphere sphere ){
 	return (hit - sphere.c) / sphere.r;
 }
+
+void computeDpDForSphere(vec3 normal,out vec3 dpdu,out vec3 dpdv){
+    if (normal.x>=0.0&&normal.x<1.0) {
+        dpdu = cross(normal, vec3(1,0,0));
+    }else if(normal.x<0.0&&normal.x>-1.0){
+        dpdu = cross(normal, vec3(-1,0,0));
+    }else{
+        dpdu = cross(normal, vec3(0,1,0));
+    }
+    dpdv = cross(normal,dpdu);
+}
+
+void computeDpDForPlane( vec3 normal,out vec3 dpdu,out vec3 dpdv){
+    if (abs(normal.x)<0.5) {
+        dpdu = cross(normal, vec3(1,0,0));
+    }else {
+        dpdu = cross(normal, vec3(0,1,0));
+    }
+
+    dpdv = cross(normal,dpdu);
+}
