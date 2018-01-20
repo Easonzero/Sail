@@ -7,12 +7,14 @@ struct Intersect{
     float d;
     vec3 hit;
     vec3 normal;
+    vec3 ns;
     vec3 dpdu,dpdv;
     float matIndex;//材质索引
     vec3 sc;//表面颜色
     vec3 emission;
     float seed;//随机种子
     int index;
+    int matCategory;
 };
 
 Intersect intersectCube(Ray ray,Cube cube){
@@ -35,6 +37,7 @@ Intersect intersectCube(Ray ray,Cube cube){
         result.matIndex = cube.matIndex;
         result.sc = getSurfaceColor(result.hit,cube.texIndex);
         result.emission = cube.emission;
+        result.matCategory = readInt(texParams,vec2(0.0,cube.matIndex),TEX_PARAMS_LENGTH);
     }
     return result;
 }
@@ -60,6 +63,7 @@ Intersect intersectSphere(Ray ray,Sphere sphere){
     		result.matIndex = sphere.matIndex;
     		result.sc = getSurfaceColor(result.hit,sphere.texIndex);
     		result.emission = sphere.emission;
+    		result.matCategory = readInt(texParams,vec2(0.0,sphere.matIndex),TEX_PARAMS_LENGTH);
 		}
 	}
     return result;
@@ -79,6 +83,7 @@ Intersect intersectPlane(Ray ray,Plane plane){
     result.matIndex = plane.matIndex;
     result.sc = getSurfaceColor(result.hit,plane.texIndex);
     result.emission = plane.emission;
+    result.matCategory = readInt(texParams,vec2(0.0,plane.matIndex),TEX_PARAMS_LENGTH);
     return result;
 }
 

@@ -26,11 +26,11 @@ struct Reflective{
 };
 
 vec3 reflective_f(Reflective r,const vec3 wi,const vec3 wo){
-    return r.kr*r.cr;
+    return r.cr;
 }
 
-vec3 reflective_sample_f(Reflective r,out vec3 wi, vec3 wo, out float pdf){
-	wi = vec3(-wo.x,-wo.y,wo.z);
+vec3 reflective_sample_f(Reflective r,float seed,out vec3 wi, vec3 wo, out float pdf){
+	wi = vec3(-wo.x,-wo.y,wo.z) + uniformlyRandomVector(seed) * (1.0-r.kr);
 	pdf = 1.0;
 	return reflective_f(r,wi,wo);
 }
@@ -46,14 +46,14 @@ struct Ward{
 };
 
 vec3 ward_f(Ward w,const vec3 wi,const vec3 wo){
-    vec3 H = wi+wo;
-    vec3 specular = w.rs;
-	float const1 = wi.z*wo.z;
-	if(const1 <= 0.f) return specular;
-	const1 = 1.0;//inversesqrt(const1);
-	float const3 = exp(-1.f * (H.x*H.x*w.invax2 + H.y*H.y*w.invay2)/(H.z*H.z));
-	specular = w.rs * const3 * const1 / w.const2;
-    return w.rs;//specular;
+//  vec3 H = wi+wo;
+//  vec3 specular = w.rs;
+//	float const1 = wi.z*wo.z;
+//	if(const1 <= 0.f) return specular;
+//	const1 = inversesqrt(const1);
+//	float const3 = exp(-1.f * (H.x*H.x*w.invax2 + H.y*H.y*w.invay2)/(H.z*H.z));
+//	specular = w.rs * const3 * const1 / w.const2;
+    return w.rs;
 }
 
 vec3 ward_sample_f(Ward w,float seed,out vec3 wi, vec3 wo, out float pdf){
@@ -74,8 +74,7 @@ vec3 ward_sample_f(Ward w,float seed,out vec3 wi, vec3 wo, out float pdf){
 
 	if(dot(wo,h)<-EPSILON) h=-h;
 	wi = -wo + 2.f * dot(wo, h) * h;
-	pdf = exp(-tanTheta2*(cosPhi*cosPhi*w.invax2 + sinPhi*sinPhi*w.invay2))/(w.const2*dot(h,wo)*cosTheta2*h.z);
-	if(pdf<EPSILON) pdf = 1.0;
+	pdf = 1.0;//exp(-tanTheta2*(cosPhi*cosPhi*w.invax2 + sinPhi*sinPhi*w.invay2))/(w.const2*dot(h,wo)*cosTheta2*h.z);
 	return ward_f(w,wi,wo);
 }
 

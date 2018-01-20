@@ -4,8 +4,7 @@
 #include "metal.glsl"
 #include "transmission.glsl"
 
-vec3 material(float seed,float matIndex,vec3 sc,bool into,vec3 wo,out vec3 wi,out vec3 f){
-    int matCategory = readInt(texParams,vec2(0.0,matIndex),TEX_PARAMS_LENGTH);
+vec3 material(float seed,int matCategory,float matIndex,vec3 sc,bool into,vec3 wo,out vec3 wi,out vec3 f){
     f = BLACK;
     vec3 fpdf;
     if(matCategory == MATTE){

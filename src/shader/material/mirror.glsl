@@ -12,7 +12,7 @@ vec3 mirror(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi){
     mirror_attr(matIndex,specular_brdf);
     specular_brdf.cr = sc;
 
-    f = reflective_sample_f(specular_brdf,wi,wo,pdf);
+    f = reflective_sample_f(specular_brdf,seed,wi,wo,pdf);
 
     return f/pdf;
 }

@@ -15,6 +15,8 @@ class Tracer {
 
         this.objects_tex = {};
         this.params_tex = {};
+
+        this.shader.uniforms.light = $V([2,2,2]);
     }
 
     update(data){

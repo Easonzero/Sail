@@ -24,14 +24,13 @@ struct Ray{
 vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){
     vec3 f,direct = BLACK,_fpdf;
     bool into = dot(ins.normal,-wo) < 0.0;
-    if(!into) ins.normal = -ins.normal;
+    if(!into) {ins.normal = -ins.normal;}
 
     wo = worldToLocal(wo,ins.normal,ins.dpdu,ins.dpdv);
-    fpdf = material(ins.seed,ins.matIndex,ins.sc,into,wo,wi,f);
+    fpdf = material(ins.seed,ins.matCategory,ins.matIndex,ins.sc,into,wo,wi,f);
     wi = localToWorld(wi,ins.normal,ins.dpdu,ins.dpdv);
 
-    int matCategory = readInt(texParams,vec2(0.0,ins.matIndex),TEX_PARAMS_LENGTH);
-    if(ins.index>=ln&&matCategory!=MIRROR&&matCategory!=TRANSMISSION)
+    if(ins.index>=ln&&ins.matCategory==MATTE)
         for(int i=0;i<ln;i++){
             vec3 light = sampleGeometry(ins,i,_fpdf);
             vec3 toLight = light - ins.hit;
@@ -43,9 +42,9 @@ vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){
     return ins.emission+direct;
 }
 
-void trace(inout Ray ray,out vec3 e,int maxDeepth){
+void trace(Ray ray,out vec3 e,int maxDeepth){
     vec3 fpdf = WHITE;e = BLACK;
-    int deepth=0;
+    int deepth=1;
     while(++deepth<=maxDeepth){
         Intersect ins = intersectObjects(ray);
         ins.seed = timeSinceStart + float(deepth);
@@ -60,6 +59,7 @@ void trace(inout Ray ray,out vec3 e,int maxDeepth){
         ray.origin = ins.hit;
         ray.dir = wi;
     }
+
 }
 
 void main() {
