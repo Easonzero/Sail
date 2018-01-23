@@ -1,11 +1,13 @@
 /**
  * Created by eason on 17-4-12.
  */
+import {Matrix,Vector} from '../utils/matrix';
+
 class Camera {
     constructor(eye, center, up=[0,1,0]){
-        this.eye = $V(eye);
-        this.center = $V(center);
-        this.up = $V(up);
+        this.eye = new Vector(eye);
+        this.center = new Vector(center);
+        this.up = new Vector(up);
 
         this.makePerspective();
         this.makeLookAt();
@@ -24,7 +26,7 @@ class Camera {
         let C = -(zfar+znear)/(zfar-znear);
         let D = -2*zfar*znear/(zfar-znear);
 
-        this.projection = $M([
+        this.projection = new Matrix([
             [X, 0, A, 0],
             [0, Y, B, 0],
             [0, 0, C, D],
@@ -38,14 +40,14 @@ class Camera {
         let y = z.cross(x).toUnitVector();
         x = x.x(-1);
 
-        let m = $M([
+        let m = new Matrix([
             [x.e(1), x.e(2), x.e(3), 0],
             [y.e(1), y.e(2), y.e(3), 0],
             [z.e(1), z.e(2), z.e(3), 0],
             [0, 0, 0, 1]
         ]);
 
-        let t = $M([
+        let t = new Matrix([
             [1, 0, 0, -this.eye.e(1)],
             [0, 1, 0, -this.eye.e(2)],
             [0, 0, 1, -this.eye.e(3)],

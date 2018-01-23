@@ -1,6 +1,8 @@
 /**
  * Created by eason on 17-4-26.
  */
+import {Vector} from './matrix'
+
 function addEvent(obj,xEvent,fn) {
     if(obj.attachEvent){
         obj.attachEvent('on'+xEvent,fn);
@@ -76,7 +78,7 @@ class Control{
                 this.angleX = Math.max(this.angleX, -Math.PI / 2 + 0.01);
                 this.angleX = Math.min(this.angleX, Math.PI / 2 - 0.01);
 
-                this.scene.camera.eye = $V([
+                this.scene.camera.eye = new Vector([
                     this.R * Math.sin(this.angleY) * Math.cos(this.angleX),
                     this.R * Math.sin(this.angleX),
                     this.R * Math.cos(this.angleY) * Math.cos(this.angleX)
@@ -105,14 +107,14 @@ class Control{
             down = ev.wheelDelta?ev.wheelDelta<0:ev.detail>0;
             if(!down){
                 this.R*=0.9;
-                this.scene.camera.eye = $V([
+                this.scene.camera.eye = new Vector([
                     this.R * Math.sin(this.angleY) * Math.cos(this.angleX),
                     this.R * Math.sin(this.angleX),
                     this.R * Math.cos(this.angleY) * Math.cos(this.angleX)
                 ]).add(this.scene.camera.center);
             }else{
                 this.R*=1.1;
-                this.scene.camera.eye = $V([
+                this.scene.camera.eye = new Vector([
                     this.R * Math.sin(this.angleY) * Math.cos(this.angleX),
                     this.R * Math.sin(this.angleX),
                     this.R * Math.cos(this.angleY) * Math.cos(this.angleX)

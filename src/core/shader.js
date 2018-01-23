@@ -1,6 +1,7 @@
 /**
  * Created by eason on 1/20/18.
  */
+import {Vector,Matrix} from '../utils/matrix';
 import c from '../shader/const/shader.const'
 import filter from '../shader/filter/shader.filter'
 import main from '../shader/main/shader.main'

@@ -3,6 +3,7 @@
  */
 import {ShaderProgram,WebglHelper} from './webgl'
 import {TraceShader} from './shader'
+import {Matrix,Vector} from '../utils/matrix';
 
 class Tracer {
     constructor(){
@@ -49,7 +50,7 @@ class Tracer {
     render(modelviewProjection,eye,sampleCount){
         this.shader.uniform.eye.value = eye;
         this.shader.uniform.matrix.value = Matrix.Translation(
-            Vector.create([(Math.random() * 2 - 1), (Math.random() * 2 - 1), 0]).multiply(1/512)
+            new Vector([(Math.random() * 2 - 1), (Math.random() * 2 - 1), 0]).multiply(1/512)
         ).multiply(modelviewProjection).inverse();
         this.shader.uniform.textureWeight.value = sampleCount===0?0.0001:sampleCount / (sampleCount + 1);
         this.shader.uniform.timeSinceStart.value = (new Date() - this.timeStart) * 0.001;

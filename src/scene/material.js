@@ -1,7 +1,7 @@
-import {ShaderProgram} from '../core/webgl';
 /**
  * Created by eason on 17-5-12.
  */
+import {ShaderProgram} from '../core/webgl';
 
 class Matte{
     constructor(kd=1){

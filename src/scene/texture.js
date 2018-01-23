@@ -1,7 +1,9 @@
-import {ShaderProgram} from '../core/webgl';
 /**
  * Created by eason on 17-5-12.
  */
+import {ShaderProgram} from '../core/webgl';
+import {Vector} from '../utils/matrix';
+
 class Color{
     static create(color){
         return new UniformColor(color);
@@ -10,7 +12,7 @@ class Color{
 
 class UniformColor{
     constructor(color){
-        this.color = $V(color);
+        this.color = new Vector(color);
     }
 
     get pluginName(){
@@ -56,8 +58,8 @@ class Checkerboard{
 
 class CornellBox{
     constructor(min,max){
-        this.min = $V(min);
-        this.max = $V(max);
+        this.min = new Vector(min);
+        this.max = new Vector(max);
     }
 
     get pluginName(){

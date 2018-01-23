@@ -2,16 +2,17 @@
  * Created by eason on 17-4-11.
  */
 import {ShaderProgram} from '../core/webgl';
+import {Vector} from '../utils/matrix';
 
 class Cube{
     constructor(min,max,material,texture,emission=[0,0,0]){
-        this.min = $V(min);
-        this.max = $V(max);
+        this.min = new Vector(min);
+        this.max = new Vector(max);
         this.material = material;
         this.texture = texture;
-        this.emission = $V(emission);
+        this.emission = new Vector(emission);
 
-        this.light = !this.emission.equal($V([0,0,0]));
+        this.light = !this.emission.eql(new Vector([0,0,0]));
     }
 
     get pluginName(){
@@ -43,13 +44,13 @@ class Cube{
 
 class Sphere{
     constructor(c,r,material,texture,emission=[0,0,0]){
-        this.c = $V(c);
+        this.c = new Vector(c);
         this.r = r;
         this.material = material;
         this.texture = texture;
-        this.emission = $V(emission);
+        this.emission = new Vector(emission);
 
-        this.light = !this.emission.equal($V([0,0,0]));
+        this.light = !this.emission.eql(new Vector([0,0,0]));
     }
 
     get pluginName(){
@@ -80,14 +81,14 @@ class Sphere{
 
 class Plane{
     constructor(normal,offset,dface=false,material,texture,emission=[0,0,0]){
-        this.normal = $V(normal).toUnitVector();
+        this.normal = new Vector(normal).toUnitVector();
         this.offset = offset;
         this.dface = dface?1:0;
         this.material = material;
         this.texture = texture;
-        this.emission = $V(emission);
+        this.emission = new Vector(emission);
 
-        this.light = !this.emission.equal($V([0,0,0]));
+        this.light = !this.emission.eql(new Vector([0,0,0]));
     }
 
     get pluginName(){
