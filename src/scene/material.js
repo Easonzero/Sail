@@ -9,6 +9,12 @@ class Matte{
         this.kd = kd;
     }
 
+    get pluginName(){
+        return "matte";
+    }
+
+    set pluginName(name){}
+
     gen(){
         let tmp = [
             1,this.kd
@@ -24,6 +30,12 @@ class Mirror{
         if(kr<=0) kr=0.5;
         this.kr = kr;
     }
+
+    get pluginName(){
+        return "mirror";
+    }
+
+    set pluginName(name){}
 
     gen(){
         let tmp = [
@@ -44,6 +56,12 @@ class Metal{
         this.const2 = 4*Math.PI*ax*ay;
     }
 
+    get pluginName(){
+        return "metal";
+    }
+
+    set pluginName(name){}
+
     gen(){
         let tmp = [
             3,this.ax,this.ay,this.invax2,this.invay2,this.const2
@@ -59,6 +77,12 @@ class Transmission{
         this.nt = nt;
         this.F0 = (1.0 - nt) * (1.0 - nt) / ((1.0 + nt) * (1.0 + nt));
     }
+
+    get pluginName(){
+        return "transmission";
+    }
+
+    set pluginName(name){}
 
     gen(){
         let tmp = [

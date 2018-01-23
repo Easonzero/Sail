@@ -13,6 +13,12 @@ class UniformColor{
         this.color = $V(color);
     }
 
+    get pluginName(){
+        return undefined;
+    }
+
+    set pluginName(name){}
+
     gen(){
         let tmp = [
             0,this.color.e(1),this.color.e(2),this.color.e(3)
@@ -32,6 +38,12 @@ class Checkerboard{
         this.lineWidth = lineWidth;
     }
 
+    get pluginName(){
+        return "checkerboard";
+    }
+
+    set pluginName(name){}
+
     gen(){
         let tmp = [
             5,this.size,this.lineWidth
@@ -47,6 +59,12 @@ class CornellBox{
         this.min = $V(min);
         this.max = $V(max);
     }
+
+    get pluginName(){
+        return "cornellbox";
+    }
+
+    set pluginName(name){}
 
     gen(){
         let tmp = [

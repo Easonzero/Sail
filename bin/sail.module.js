@@ -109,26 +109,12 @@ Vector.prototype.equal = function (v)
     return this.e(1)==v.e(1)&&this.e(2)==v.e(2)&&this.e(3)==v.e(3);
 };
 
-var vs_render = "#version 300 es\nin vec3 vertex;\nout vec2 texCoord;\nvoid main() {\n    texCoord = vertex.xy * 0.5 + 0.5;\n    gl_Position = vec4(vertex, 1.0);\n}";
-
-var fs_render = "#version 300 es\nprecision highp float;\nuniform sampler2D tex;\nin vec2 texCoord;\nout vec4 color;\nvoid main() {\n    color = texture(tex, texCoord);\n}";
-
-var vs_trace = "#version 300 es\nvec3 worldToLocal(vec3 v,vec3 ns,vec3 ss,vec3 ts){\n    return vec3(dot(v,ss),dot(v,ts),dot(v,ns));\n}\nvec3 localToWorld(vec3 v,vec3 ns,vec3 ss,vec3 ts){\n    return vec3(ss.x * v.x + ts.x * v.y + ns.x * v.z,\n        ss.y * v.x + ts.y * v.y + ns.y * v.z,\n        ss.z * v.x + ts.z * v.y + ns.z * v.z);\n}\nvec3 ensure3byW(vec4 vec){\n    return vec3(vec.x/vec.w,vec.y/vec.w,vec.z/vec.w);\n}\nfloat modMatrix(mat3 mat){\n    return dot(cross(mat[0],mat[1]),mat[2]);\n}\nvec3 ortho(vec3 d) {\n\tif (abs(d.x)>0.00001 || abs(d.y)>0.00001) {\n\t\treturn vec3(d.y,-d.x,0.0);\n\t} else  {\n\t\treturn vec3(0.0,d.z,-d.y);\n\t}\n}\nfloat maxComponent(vec3 v){\n    return max(max(v.x,v.y),v.z);\n}\nvoid swap(inout float f1,inout float f2){\n    float tmp = f1;\n    f1 = f2;\n    f2 = tmp;\n}\nin vec3 vertex;\nuniform vec3 eye;\nuniform mat4 matrix;\nout vec3 raydir;\nvoid main() {\n    gl_Position = vec4(vertex, 1.0);\n    raydir = normalize(ensure3byW(matrix*gl_Position)-eye);\n}";
-
-var fs_trace = "#version 300 es\nprecision highp float;\n#define MAXBOUNCES 5\nuniform vec3 eye;\nuniform int n,ln,tn;\nuniform float textureWeight,timeSinceStart;\nuniform sampler2D objects,texParams;\nuniform sampler2D cache;\nin vec3 raydir;\nout vec4 out_color;\nstruct Ray{\n    vec3 origin;\n    vec3 dir;\n};\n#define OBJECTS_LENGTH 11.0\n#define TEX_PARAMS_LENGTH 6.0\n#define MAX_DISTANCE 1e5\n#define EPSILON 1e-4\n#define PI 3.141592653589793\n#define INVPI 0.3183098861837907\n#define CUBE 1\n#define SPHERE 2\n#define PLANE 3\n#define MATTE 1\n#define MIRROR 2\n#define METAL 3\n#define TRANSMISSION 4\n#define UNIFORM_COLOR 0\n#define CHECKERBOARD 5\n#define CORNELLBOX 6\n#define BLACK vec3(0.0,0.0,0.0)\n#define WHITE vec3(1.0,1.0,1.0)\n#define GREY vec3(0.5,0.5,0.5)\n#define RED vec3(0.75,0.25,0.25)\n#define BLUE vec3(0.1, 0.5, 1.0)\n#define YELLOW vec3(1.0, 0.9, 0.1)\n#define NC 1.0\nfloat random( vec3 scale, float seed ){\n\treturn(fract( sin( dot( gl_FragCoord.xyz + seed, scale ) ) * 43758.5453 + seed ) );\n}\nvec2 random2(float seed){\n\treturn vec2(fract(sin(dot(gl_FragCoord.xy ,vec2(12.9898,78.233))) * 43758.5453 + seed),\n\t\tfract(cos(dot(gl_FragCoord.xy ,vec2(4.898,7.23))) * 23421.631 + seed));\n}\nvec2 convert(vec2 pos,float width){\n    pos.x = pos.x/width;\n    return pos;\n}\nint readInt(sampler2D tex,vec2 pos,float width){\n    return int(texture(tex,convert(pos,width)).r);\n}\nfloat readFloat(sampler2D tex,vec2 pos,float width){\n    return texture(tex,convert(pos,width)).r;\n}\nbool readBool(sampler2D tex,vec2 pos,float width){\n    return readInt(tex,pos,width)==1;\n}\nvec2 readVec2(sampler2D tex,vec2 pos,float width){\n    vec2 result;\n    pos = convert(pos,width);\n    result.x = texture(tex,pos).r;\n    pos.x += 1.0/width;\n    result.y = texture(tex,pos).r;\n    return result;\n}\nvec3 readVec3(sampler2D tex,vec2 pos,float width){\n    vec3 result;\n    pos = convert(pos,width);\n    result.x = texture(tex,pos).r;\n    pos.x += 1.0/width;\n    result.y = texture(tex,pos).r;\n    pos.x += 1.0/width;\n    result.z = texture(tex,pos).r;\n    return result;\n}\nstruct Cube{\n    vec3 lb;\n    vec3 rt;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n};\nstruct Sphere{\n    vec3 c;\n    float r;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n};\nstruct Plane{\n    vec3 normal;\n    float offset;\n    bool dface;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n};\nCube parseCube(float index){\n    Cube cube;\n    cube.lb = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    cube.rt = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    cube.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cube.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cube.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);\n    return cube;\n}\nSphere parseSphere(float index){\n    Sphere sphere;\n    sphere.c = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    sphere.r = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    sphere.matIndex = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH)/float(tn-1);\n    sphere.texIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);\n    sphere.emission = readVec3(objects,vec2(7.0,index),OBJECTS_LENGTH);\n    return sphere;\n}\nPlane parsePlane(float index){\n    Plane plane;\n    plane.normal = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    plane.offset = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    plane.dface = readBool(objects,vec2(5.0,index),OBJECTS_LENGTH);\n    plane.matIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);\n    plane.texIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    plane.emission = readVec3(objects,vec2(8.0,index),OBJECTS_LENGTH);\n    return plane;\n}\nvec3 normalForCube( vec3 hit, Cube cube)\n{\n\tif ( hit.x < cube.lb.x + 0.0001 )\n\t\treturn vec3( -1.0, 0.0, 0.0 );\n\telse if ( hit.x > cube.rt.x - 0.0001 )\n\t\treturn vec3( 1.0, 0.0, 0.0 );\n\telse if ( hit.y < cube.lb.y + 0.0001 )\n\t\treturn vec3( 0.0, -1.0, 0.0 );\n\telse if ( hit.y > cube.rt.y - 0.0001 )\n\t\treturn vec3( 0.0, 1.0, 0.0 );\n\telse if ( hit.z < cube.lb.z + 0.0001 )\n\t\treturn vec3( 0.0, 0.0, -1.0 );\n\telse return vec3( 0.0, 0.0, 1.0 );\n}\nvec3 normalForSphere( vec3 hit, Sphere sphere ){\n\treturn (hit - sphere.c) / sphere.r;\n}\nvoid computeDpDForSphere(vec3 normal,out vec3 dpdu,out vec3 dpdv){\n    dpdu = normalize(vec3(-2.0*PI * normal.y, 2.0*PI * normal.x, 0.0));\n    dpdv = cross(normal,dpdu);\n}\nvoid computeDpDForPlane( vec3 normal,out vec3 dpdu,out vec3 dpdv){\n    if (abs(normal.x)<0.5) {\n        dpdu = cross(normal, vec3(1,0,0));\n    }else {\n        dpdu = cross(normal, vec3(0,1,0));\n    }\n    dpdv = cross(normal,dpdu);\n}\nvec3 worldToLocal(vec3 v,vec3 ns,vec3 ss,vec3 ts){\n    return vec3(dot(v,ss),dot(v,ts),dot(v,ns));\n}\nvec3 localToWorld(vec3 v,vec3 ns,vec3 ss,vec3 ts){\n    return vec3(ss.x * v.x + ts.x * v.y + ns.x * v.z,\n        ss.y * v.x + ts.y * v.y + ns.y * v.z,\n        ss.z * v.x + ts.z * v.y + ns.z * v.z);\n}\nvec3 ensure3byW(vec4 vec){\n    return vec3(vec.x/vec.w,vec.y/vec.w,vec.z/vec.w);\n}\nfloat modMatrix(mat3 mat){\n    return dot(cross(mat[0],mat[1]),mat[2]);\n}\nvec3 ortho(vec3 d) {\n\tif (abs(d.x)>0.00001 || abs(d.y)>0.00001) {\n\t\treturn vec3(d.y,-d.x,0.0);\n\t} else  {\n\t\treturn vec3(0.0,d.z,-d.y);\n\t}\n}\nfloat maxComponent(vec3 v){\n    return max(max(v.x,v.y),v.z);\n}\nvoid swap(inout float f1,inout float f2){\n    float tmp = f1;\n    f1 = f2;\n    f2 = tmp;\n}\nvoid checkerboard_attr(float texIndex,out float size,out float lineWidth){\n    size = readFloat(texParams,vec2(1.0,texIndex),TEX_PARAMS_LENGTH);\n    lineWidth = readFloat(texParams,vec2(2.0,texIndex),TEX_PARAMS_LENGTH);\n}\nvec3 checkerboard(vec3 hit,float texIndex){\n    float size,lineWidth;\n    checkerboard_attr(texIndex,size,lineWidth);\n    float width = 0.5 * lineWidth / size;\n    float fx = hit.x/size-floor(hit.x/size),\n    fy = hit.y/size-floor(hit.y/size),\n    fz = hit.z/size-floor(hit.z/size);\n    bool in_outline = (fx<width||fx>1.0-width)||(fy<width||fy>1.0-width)||(fz<width||fz>1.0-width);\n    if (!in_outline) {\n        return WHITE;\n    } else {\n        return GREY;\n    }\n}\nvoid cornellbox_attr(float texIndex,out vec3 min,out vec3 max){\n    min = readVec3(texParams,vec2(1.0,texIndex),TEX_PARAMS_LENGTH);\n    max = readVec3(texParams,vec2(4.0,texIndex),TEX_PARAMS_LENGTH);\n}\nvec3 cornellbox(vec3 hit,float texIndex){\n    vec3 min,max;\n    cornellbox_attr(texIndex,min,max);\n    if ( hit.x < min.x + 0.0001 )\n    \treturn YELLOW*0.8;\n    else if ( hit.x > max.x - 0.0001 )\n    \treturn BLUE*0.8;\n    else if ( hit.y < min.y + 0.0001 )\n    \treturn WHITE;\n    else if ( hit.y > max.y - 0.0001 )\n    \treturn WHITE;\n    else if ( hit.z > min.z - 0.0001 )\n    \treturn WHITE;\n    return BLACK;\n}\nvec3 getSurfaceColor(vec3 hit,float texIndex){\n    int texCategory = readInt(texParams,vec2(0.0,texIndex),TEX_PARAMS_LENGTH);\n    if(texCategory==CHECKERBOARD) return checkerboard(hit,texIndex);\n    else if(texCategory==CORNELLBOX) return cornellbox(hit,texIndex);\n    else if(texCategory==UNIFORM_COLOR) return readVec3(texParams,vec2(1.0,texIndex),TEX_PARAMS_LENGTH);\n    return BLACK;\n}\nstruct Intersect{\n    float d;\n    vec3 hit;\n    vec3 normal;\n    vec3 ns;\n    vec3 dpdu,dpdv;\n    float matIndex;    vec3 sc;    vec3 emission;\n    float seed;    int index;\n    int matCategory;\n};\nIntersect intersectCube(Ray ray,Cube cube){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 tMin = (cube.lb - ray.origin) / ray.dir;\n    vec3 tMax = (cube.rt- ray.origin) / ray.dir;\n    vec3 t1 = min( tMin, tMax );\n    vec3 t2 = max( tMin, tMax );\n    float tNear = max( max( t1.x, t1.y ), t1.z );\n    float tFar = min( min( t2.x, t2.y ), t2.z );\n    float t=-1.0,f;\n    if(tNear>EPSILON&&tNear<tFar) t = tNear;\n    else if(tNear<tFar) t = tFar;\n    if(t > EPSILON){\n        result.d = t;\n        result.hit = ray.origin+t*ray.dir;\n        result.normal = normalForCube(ray.origin+t*ray.dir,cube);\n        computeDpDForPlane(result.normal,result.dpdu,result.dpdv);\n        result.matIndex = cube.matIndex;\n        result.sc = getSurfaceColor(result.hit,cube.texIndex);\n        result.emission = cube.emission;\n        result.matCategory = readInt(texParams,vec2(0.0,cube.matIndex),TEX_PARAMS_LENGTH);\n    }\n    return result;\n}\nIntersect intersectSphere(Ray ray,Sphere sphere){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 toSphere = ray.origin - sphere.c;\n\tfloat a = dot( ray.dir, ray.dir );\n\tfloat b = 2.0 * dot( toSphere, ray.dir );\n\tfloat c = dot( toSphere, toSphere ) - sphere.r * sphere.r;\n\tfloat det = b * b - 4.0 * a * c;\n\tif ( det > EPSILON ){\n\t    det = sqrt( det );\n\t\tfloat t = (-b - det);\n\t\tif(t < EPSILON) t = (-b + det);\n\t\tt /= 2.0*a;\n\t\tif(t > EPSILON){\n\t        result.d = t;\n    \t\tresult.hit = ray.origin+t*ray.dir;\n    \t\tresult.normal = normalForSphere(ray.origin+t*ray.dir,sphere);\n    \t\tcomputeDpDForSphere(result.normal,result.dpdu,result.dpdv);\n    \t\tresult.matIndex = sphere.matIndex;\n    \t\tresult.sc = getSurfaceColor(result.hit,sphere.texIndex);\n    \t\tresult.emission = sphere.emission;\n    \t\tresult.matCategory = readInt(texParams,vec2(0.0,sphere.matIndex),TEX_PARAMS_LENGTH);\n\t\t}\n\t}\n    return result;\n}\nIntersect intersectPlane(Ray ray,Plane plane){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    float DN = dot(ray.dir,plane.normal);\n    if(DN==0.0||(!plane.dface&&DN>EPSILON)) return result;\n    float t = (plane.offset*dot(plane.normal,plane.normal)-dot(ray.origin,plane.normal))/DN;\n    if(t<EPSILON) return result;\n    result.d = t;\n    result.normal = plane.normal;\n    result.hit = ray.origin+result.d*ray.dir;\n    computeDpDForPlane(result.normal,result.dpdu,result.dpdv);\n    result.matIndex = plane.matIndex;\n    result.sc = getSurfaceColor(result.hit,plane.texIndex);\n    result.emission = plane.emission;\n    result.matCategory = readInt(texParams,vec2(0.0,plane.matIndex),TEX_PARAMS_LENGTH);\n    return result;\n}\nIntersect intersectObjects(Ray ray){\n    Intersect ins;\n    ins.d = MAX_DISTANCE;\n    for(int i=0;i<ln+n;i++){\n        Intersect tmp;\n        tmp.d = MAX_DISTANCE;\n        int category = int(texture(objects,vec2(0.0,float(i)/float(ln+n-1))).r);\n        if(category==CUBE){\n            Cube cube = parseCube(float(i)/float(ln+n-1));\n            tmp = intersectCube(ray,cube);\n            tmp.index = i;\n        }else if(category==SPHERE){\n            Sphere sphere = parseSphere(float(i)/float(ln+n-1));\n            tmp = intersectSphere(ray,sphere);\n            tmp.index = i;\n        }else if(category==PLANE){\n            Plane plane = parsePlane(float(i)/float(ln+n-1));\n            tmp = intersectPlane(ray,plane);\n            tmp.index = i;\n        }\n        if(tmp.d<ins.d){\n            ins = tmp;\n        }\n    }\n    return ins;\n}\nbool testShadow(Ray ray){\n    Intersect ins = intersectObjects(ray);\n    if(ins.index>=ln&&ins.d>EPSILON&&ins.d<1.0)\n        return true;\n    return false;\n}\nvec3 uniformlyRandomDirection( float seed ){\n\tfloat u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n\tfloat v = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat z = 1.0 - 2.0 * u;   float r = sqrt( 1.0 - z * z );\n\tfloat angle = 2.0 * PI * v;\n\treturn vec3( r * cos( angle ), r * sin( angle ), z );\n}\nvec3 uniformlyRandomVector( float seed ){\n\treturn uniformlyRandomDirection(seed) * sqrt(random(vec3(36.7539, 50.3658, 306.2759), seed));\n}\nvec3 cosWeightHemisphere(float seed){\n    float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n\tfloat v = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat r = sqrt(u);\n\tfloat angle = 2.0 * PI * v;\n\treturn vec3(r*cos(angle),r*sin(angle),sqrt(1.-u));\n}\nvec3 cosWeightHemisphere2(float seed){\n    float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n\tfloat v = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat angle = 2.0 * PI * v;\n\treturn vec3(u*cos(angle),u*sin(angle),cos(asin(u)));\n}\nvec3 sampleRectangle(Intersect ins,vec3 min,vec3 x,vec3 y,out float pdf){\n     float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), ins.seed );\n     float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), ins.seed );\n     pdf = 1.0/(length(x)*length(y));\n     return min+u1*x+u2*y;\n}\nvec3 sampleGeometry(Intersect ins,int i,out vec3 fpdf){\n    fpdf = BLACK;\n    int category = int(texture(objects,vec2(0.0,float(i)/float(ln+n-1))).r);\n    vec3 result = BLACK;\n    if(category==CUBE){\n        float pdf;\n        Cube cube = parseCube(float(i)/float(ln+n-1));\n        vec3 x = vec3(cube.rt.x-cube.lb.x,0.0,0.0);\n        vec3 y = vec3(0.0,0.0,cube.rt.z-cube.lb.z);\n        result = sampleRectangle(ins,cube.lb,x,y,pdf);\n        vec3 normal = normalForCube(result,cube);\n        fpdf = cube.emission*max(0.0,dot(normal,ins.hit-result))/pdf;\n    }else if(category==SPHERE){\n    }\n    else if(category==PLANE){\n    }\n    return result;\n}\nstruct Lambertian{\n    float kd;\n    vec3 cd;\n};\nvec3 lambertian_f(Lambertian l,const vec3 wi,const vec3 wo){\n    return l.kd * l.cd * INVPI;\n}\nvec3 lambertian_sample_f(Lambertian l,float seed,out vec3 wi, vec3 wo, out float pdf){\n\twi = cosWeightHemisphere(seed);\n\tpdf = INVPI;\n\treturn lambertian_f(l,wi,wo);\n}\nstruct Reflective{\n    float kr;\n    vec3 cr;\n};\nvec3 reflective_f(Reflective r,const vec3 wi,const vec3 wo){\n    return r.cr;\n}\nvec3 reflective_sample_f(Reflective r,float seed,out vec3 wi, vec3 wo, out float pdf){\n\twi = vec3(-wo.x,-wo.y,wo.z) + uniformlyRandomVector(seed) * (1.0-r.kr);\n\tpdf = 1.0;\n\treturn reflective_f(r,wi,wo);\n}\nstruct Ward{\n    float ax, ay;\n    float invax2, invay2;\n    float const2;\n    vec3 rs;\n};\nvec3 ward_f(Ward w,const vec3 wi,const vec3 wo){\n    return w.rs;\n}\nvec3 ward_sample_f(Ward w,float seed,out vec3 wi, vec3 wo, out float pdf){\n    vec3 h;\n    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat phi = atan(w.ay*tan(2.0*PI*u2),w.ax);\n\tfloat cosPhi = cos(phi);\n\tfloat sinPhi = sqrt(1.0-cosPhi*cosPhi);\n\tfloat theta = atan(sqrt(-log(u1)/(cosPhi*cosPhi*w.invax2 + sinPhi*sinPhi*w.invay2)));\n\th.z = cos(theta);\n\tfloat cosTheta2 = h.z*h.z;\n\tfloat sinTheta = sqrt(1.0-cosTheta2);\n\tfloat tanTheta2 = (1.0-cosTheta2)/cosTheta2;\n\th.x = cosPhi*sinTheta;\n\th.y = sinPhi*sinTheta;\n\tif(dot(wo,h)<-EPSILON) h=-h;\n\twi = -wo + 2.f * dot(wo, h) * h;\n\tpdf = 1.0;\treturn ward_f(w,wi,wo);\n}\nstruct Refractive{\n    vec3 rc;\n    float F0;\n    float nt;\n};\nvec3 refractive_sample_f(Refractive r,float seed,bool into,out vec3 wi, vec3 wo, out float pdf){\n    float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n    vec3 n = vec3(0.0,0.0,1.0);\n    float nnt = into ? NC / r.nt : r.nt / NC;\n    float ddn = dot(-wo,n);\n\tfloat cos2t = 1.0-nnt*nnt*(1.0-ddn*ddn);\n\tif (cos2t < 0.0){\n\t    pdf = 1.0;\n\t    wi = vec3(-wo.x,-wo.y,wo.z);\n\t    return r.rc;\n\t}\n\tvec3 refr = normalize(-wo*nnt - n*(ddn*nnt+sqrt(cos2t)));\n\tfloat c = 1.0-(into?-ddn:dot(-n,refr));\n    float Fe = r.F0 + (1.0 - r.F0) * c * c * c * c * c;\n    float Fr = 1.0 - Fe;\n    pdf = 0.25 + 0.5 * Fe;\n    if (u < pdf){\n        wi = vec3(-wo.x,-wo.y,wo.z);\n        return r.rc * Fe;\n    }\n    else{\n        wi = refr;\n        pdf = 1.0-pdf;\n        return r.rc * Fr;\n    }\n}\nvoid matte_attr(float matIndex,out Lambertian l){\n    l.kd = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 matte(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi){\n    vec3 f;\n    float pdf;\n    Lambertian diffuse_brdf;\n    matte_attr(matIndex,diffuse_brdf);\n    diffuse_brdf.cd = sc;\n    f = lambertian_sample_f(diffuse_brdf,seed,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 matte_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){\n    Lambertian diffuse_brdf;\n    matte_attr(matIndex,diffuse_brdf);\n    diffuse_brdf.cd = sc;\n    return lambertian_f(diffuse_brdf,wi,wo);\n}\nvoid mirror_attr(float matIndex,out Reflective r){\n    r.kr = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 mirror(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi){\n    vec3 f;\n    float pdf;\n    Reflective specular_brdf;\n    mirror_attr(matIndex,specular_brdf);\n    specular_brdf.cr = sc;\n    f = reflective_sample_f(specular_brdf,seed,wi,wo,pdf);\n    return f/pdf;\n}\nvoid metal_attr(float matIndex,out Ward w){\n    w.ax = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n    w.ay = readFloat(texParams,vec2(2.0,matIndex),TEX_PARAMS_LENGTH);\n    w.invax2 = readFloat(texParams,vec2(3.0,matIndex),TEX_PARAMS_LENGTH);\n    w.invay2 = readFloat(texParams,vec2(4.0,matIndex),TEX_PARAMS_LENGTH);\n    w.const2 = readFloat(texParams,vec2(5.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 metal(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi){\n    vec3 f;\n    float pdf;\n    Ward ward_brdf;\n    metal_attr(matIndex,ward_brdf);\n    ward_brdf.rs = sc;\n    f = ward_sample_f(ward_brdf,seed,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 metal_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){\n    Ward ward_brdf;\n    metal_attr(matIndex,ward_brdf);\n    ward_brdf.rs = sc;\n    return ward_f(ward_brdf,wi,wo);\n}\nvoid transmission_attr(float matIndex,out Refractive r){\n    r.nt = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n    r.F0 = readFloat(texParams,vec2(2.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 transmission(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    Refractive refractive_brdf;\n    transmission_attr(matIndex,refractive_brdf);\n    refractive_brdf.rc = sc;\n    f = refractive_sample_f(refractive_brdf,seed,into,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 material(float seed,int matCategory,float matIndex,vec3 sc,bool into,vec3 wo,out vec3 wi,out vec3 f){\n    f = BLACK;\n    vec3 fpdf;\n    if(matCategory == MATTE){\n        fpdf = matte(seed,matIndex,sc,wo,wi);\n        f = matte_f(matIndex,sc,wo,wi);\n    }else if(matCategory == MIRROR)\n        fpdf = mirror(seed,matIndex,sc,wo,wi);\n    else if(matCategory == METAL){\n        fpdf = metal(seed,matIndex,sc,wo,wi);\n        f = metal_f(matIndex,sc,wo,wi);\n    }else if(matCategory == TRANSMISSION){\n        fpdf = transmission(seed,matIndex,sc,wo,wi,into);\n    }\n    return fpdf;\n}\nvec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){\n    vec3 f,direct = BLACK,_fpdf;\n    bool into = dot(ins.normal,-wo) < 0.0;\n    if(!into) {ins.normal = -ins.normal;}\n    wo = worldToLocal(wo,ins.normal,ins.dpdu,ins.dpdv);\n    fpdf = material(ins.seed,ins.matCategory,ins.matIndex,ins.sc,into,wo,wi,f);\n    wi = localToWorld(wi,ins.normal,ins.dpdu,ins.dpdv);\n    if(ins.index>=ln&&ins.matCategory==MATTE)\n        for(int i=0;i<ln;i++){\n            vec3 light = sampleGeometry(ins,i,_fpdf);\n            vec3 toLight = light - ins.hit;\n            float d = length(toLight);\n            if(!testShadow(Ray(ins.hit + ins.normal * 0.0001, toLight)))\n                direct +=  f * max(0.0, dot(normalize(toLight), ins.normal)) * _fpdf/(d * d);\n        }\n    return ins.emission+direct;\n}\nvoid trace(Ray ray,out vec3 e,int maxDeepth){\n    vec3 fpdf = WHITE;e = BLACK;\n    int deepth=1;\n    while(++deepth<=maxDeepth){\n        Intersect ins = intersectObjects(ray);\n        ins.seed = timeSinceStart + float(deepth);\n        if(ins.d==MAX_DISTANCE) break;\n        vec3 wi;\n        vec3 _fpdf;\n        e += shade(ins,-ray.dir,wi,_fpdf)*fpdf;\n        fpdf *= _fpdf;\n        ray.origin = ins.hit;\n        ray.dir = wi;\n    }\n}\nvoid main() {\n    int deepth;\n    vec3 e;\n    Ray ray = Ray(eye,raydir);\n    trace(ray,e,MAXBOUNCES);\n    vec3 texture = texture( cache, gl_FragCoord.xy/512.0 ).rgb;\n    out_color = vec4(mix(e, texture, textureWeight),1.0);\n}\n";
-
-/**
- * Created by eason on 17-3-21.
- */
-
 /**
  * Created by eason on 17-3-15.
  */
 class ShaderProgram {
-    constructor(vshader,fshader,hasFrameBuffer=false) {
-        this.uniforms = {};
+    constructor(hasFrameBuffer=false) {
         this.hasFrameBuffer = hasFrameBuffer;
-        this.textures = {};
         this.run = false;
 
         this.vertexBuffer = gl.createBuffer();
@@ -158,14 +144,20 @@ class ShaderProgram {
                 }
             }
         }
+    }
 
-        this.program = WebglHelper.createProgram(vshader, fshader);
+    setProgram(shader){
+        this.shader = shader;
+
+        this.program = WebglHelper.createProgram(shader.combinevs(), shader.combinefs());
 
         this.vertexAttribute = gl.getAttribLocation(this.program, 'vertex');
         gl.enableVertexAttribArray(this.vertexAttribute);
     }
 
     render(uniforms=true,textures=true){
+        if(!this.program||!this.shader) return;
+
         gl.useProgram(this.program);
 
         if(!this.run) {
@@ -195,25 +187,25 @@ class ShaderProgram {
     }
 
     _updateUniforms(){
-        for(let entry of Object.entries(this.uniforms)) {
+        if(!this.uniform) return;
+        for(let entry of Object.entries(this.uniform)) {
             let location = gl.getUniformLocation(this.program, entry[0]);
             if(location == null||!entry[1]) continue;
-            if(entry[1] instanceof Vector) {
-                gl.uniform3fv(location, new Float32Array([entry[1].elements[0], entry[1].elements[1], entry[1].elements[2]]));
-            } else if(entry[1] instanceof Matrix) {
-                gl.uniformMatrix4fv(location, false, new Float32Array(entry[1].flatten()));
-            } else if(entry[1][0]=='int'){
-                gl.uniform1i(location, entry[1][1]);
-            } else if(entry[1][0]=='float'){
-                gl.uniform1f(location, entry[1][1]);
-            } else {
-                gl.uniform1f(location, entry[1]);
+            if(entry[1].type=='vec3') {
+                gl.uniform3fv(location, new Float32Array([entry[1].value.elements[0], entry[1].value.elements[1], entry[1].value.elements[2]]));
+            } else if(entry[1].type=='mat4') {
+                gl.uniformMatrix4fv(location, false, new Float32Array(entry[1].value.flatten()));
+            } else if(entry[1].type=='int'){
+                gl.uniform1i(location, entry[1].value);
+            } else if(entry[1].type=='float'){
+                gl.uniform1f(location, entry[1].value);
             }
         }
     }
 
     _updateTextures(){
-        for(let entry of Object.entries(this.textures)) {
+        if(!this.texture) return;
+        for(let entry of Object.entries(this.texture)) {
             let location = gl.getUniformLocation(this.program, entry[0]);
             if(location == null) continue;
 
@@ -225,6 +217,14 @@ class ShaderProgram {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
         gl.vertexAttribPointer(this.vertexAttribute, 2, gl.FLOAT, false, 0, 0);
     }
+
+    set uniform(uniform){}
+
+    get uniform(){return this.shader.uniform}
+
+    set texture(texture){}
+
+    get texture(){return this.shader.texture}
 }
 
 ShaderProgram.OBJECTS_LENGTH = 12;
@@ -322,29 +322,380 @@ class WebglHelper {
 }
 
 /**
+ * Created by eason on 1/21/18.
+ */
+class Plugin {
+    constructor(name, fn) {
+        this.name = name;
+        this.fn = fn;
+    }
+
+    capitalName() {
+        let name = "";
+        for(let c of this.name){
+            if(c==this.name[0]) c=this.name[0].toUpperCase();
+            name += c;
+        }
+        return name;
+    }
+
+    defineName() {
+        return this.name.toUpperCase();
+    }
+
+    equal(name){
+        return this.name === name;
+    }
+}
+
+class Export{
+    constructor(name,head,tail,flag,callfn){
+        this.name = name;
+        this.head = head;
+        this.tail = tail;
+        this.flag = flag;
+        this.callfn = callfn;
+    }
+
+    condition(defineName){
+        return `else if(${this.flag}==${defineName}) `;
+    }
+}
+
+class Generator{
+    constructor(name,head,tail,plugins,...exports){
+        this.plugins = plugins;
+        this.name = name;
+        this.exports = exports;
+        this.head = head;
+        this.tail = tail;
+    }
+
+    generate(...names){
+        let result = this.head + '\n';
+        for(let name of names){
+            result += this.plugins[name].fn + '\n';
+        }
+        for(let e of this.exports){
+            result += e.head;
+            for(let name of names){
+                result += e.condition(this.plugins[name].defineName());
+                result += `{${e.callfn(this.plugins[name])}}`;
+            }
+            result += e.tail + '\n';
+        }
+        result += this.tail + '\n';
+        return result;
+    }
+
+    query(plugin){
+        return Object.keys(this.plugins).includes(plugin);
+    }
+}
+
+var define = "#define OBJECTS_LENGTH 11.0\n#define TEX_PARAMS_LENGTH 6.0\n#define MAX_DISTANCE 1e5\n#define MAXBOUNCES 5\n#define EPSILON 1e-4\n#define PI 3.141592653589793\n#define INVPI 0.3183098861837907\n#define CUBE 1\n#define SPHERE 2\n#define PLANE 3\n#define MATTE 1\n#define MIRROR 2\n#define METAL 3\n#define TRANSMISSION 4\n#define UNIFORM_COLOR 0\n#define CHECKERBOARD 5\n#define CORNELLBOX 6\n#define BLACK vec3(0.0,0.0,0.0)\n#define WHITE vec3(1.0,1.0,1.0)\n#define GREY vec3(0.5,0.5,0.5)\n#define RED vec3(0.75,0.25,0.25)\n#define BLUE vec3(0.1, 0.5, 1.0)\n#define YELLOW vec3(1.0, 0.9, 0.1)\n#define NC 1.0";
+
+var struct = "struct Intersect{\n    float d;\n    vec3 hit;\n    vec3 normal;\n    vec3 ns;\n    vec3 dpdu,dpdv;\n    float matIndex;    vec3 sc;    vec3 emission;\n    float seed;    int index;\n    int matCategory;\n};\nstruct Ray{\n    vec3 origin;\n    vec3 dir;\n};";
+
+/**
+ * Created by eason on 1/20/18.
+ */
+var c = new Generator("const",define,struct);
+
+var gamma = "float gamma(float x) {\n    return pow(clamp(x,0.0,1.0), 1.0/2.2) + 0.5/255.0;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(tex, texCoord).rgb;\n    return vec4(gamma(color.r),gamma(color.g),gamma(color.b),1.0);\n}";
+
+/**
+ * Created by eason on 1/23/18.
+ */
+let plugins = {
+    "gamma":new Plugin("gamma",gamma)
+};
+
+var filter = new Generator("filter","","",plugins);
+
+var fsrender = "in vec2 texCoord;\nout vec4 color;\nvoid main() {\n    color = pixelFilter(texCoord);\n}";
+
+var vsrender = "in vec3 vertex;\nout vec2 texCoord;\nvoid main() {\n    texCoord = vertex.xy * 0.5 + 0.5;\n    gl_Position = vec4(vertex, 1.0);\n}";
+
+var fstrace = "in vec3 raydir;\nout vec4 out_color;\nvoid main() {\n    int deepth;\n    vec3 e;\n    Ray ray = Ray(eye,raydir);\n    trace(ray,e,MAXBOUNCES);\n    vec3 texture = texture( cache, gl_FragCoord.xy/512.0 ).rgb;\n    out_color = vec4(mix(e, texture, textureWeight),1.0);\n}\n";
+
+var vstrace = "in vec3 vertex;\nout vec3 raydir;\nvoid main() {\n    gl_Position = vec4(vertex, 1.0);\n    raydir = normalize(ensure3byW(matrix*gl_Position)-eye);\n}";
+
+/**
+ * Created by eason on 1/20/18.
+ */
+let plugins$1 = {
+    "fsrender":new Plugin("fsrender",fsrender),
+    "vsrender":new Plugin("vsrender",vsrender),
+    "fstrace":new Plugin("fstrace",fstrace),
+    "vstrace":new Plugin("vstrace",vstrace)
+};
+
+var main = new Generator("main","","",plugins$1);
+
+var bsdfs = "\nstruct Lambertian{\n    float kd;\n    vec3 cd;\n};\nvec3 lambertian_f(Lambertian l,const vec3 wi,const vec3 wo){\n    return l.kd * l.cd * INVPI;\n}\nvec3 lambertian_sample_f(Lambertian l,float seed,out vec3 wi, vec3 wo, out float pdf){\n\twi = cosWeightHemisphere(seed);\n\tpdf = INVPI;\n\treturn lambertian_f(l,wi,wo);\n}\nstruct Reflective{\n    float kr;\n    vec3 cr;\n};\nvec3 reflective_f(Reflective r,const vec3 wi,const vec3 wo){\n    return r.cr;\n}\nvec3 reflective_sample_f(Reflective r,float seed,out vec3 wi, vec3 wo, out float pdf){\n\twi = vec3(-wo.x,-wo.y,wo.z) + uniformlyRandomVector(seed) * (1.0-r.kr);\n\tpdf = 1.0;\n\treturn reflective_f(r,wi,wo);\n}\nstruct Ward{\n    float ax, ay;\n    float invax2, invay2;\n    float const2;\n    vec3 rs;\n};\nvec3 ward_f(Ward w,const vec3 wi,const vec3 wo){\n    return w.rs;\n}\nvec3 ward_sample_f(Ward w,float seed,out vec3 wi, vec3 wo, out float pdf){\n    vec3 h;\n    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat phi = atan(w.ay*tan(2.0*PI*u2),w.ax);\n\tfloat cosPhi = cos(phi);\n\tfloat sinPhi = sqrt(1.0-cosPhi*cosPhi);\n\tfloat theta = atan(sqrt(-log(u1)/(cosPhi*cosPhi*w.invax2 + sinPhi*sinPhi*w.invay2)));\n\th.z = cos(theta);\n\tfloat cosTheta2 = h.z*h.z;\n\tfloat sinTheta = sqrt(1.0-cosTheta2);\n\tfloat tanTheta2 = (1.0-cosTheta2)/cosTheta2;\n\th.x = cosPhi*sinTheta;\n\th.y = sinPhi*sinTheta;\n\tif(dot(wo,h)<-EPSILON) h=-h;\n\twi = -wo + 2.f * dot(wo, h) * h;\n\tpdf = 1.0;\treturn ward_f(w,wi,wo);\n}\nstruct Refractive{\n    vec3 rc;\n    float F0;\n    float nt;\n};\nvec3 refractive_sample_f(Refractive r,float seed,bool into,out vec3 wi, vec3 wo, out float pdf){\n    float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n    vec3 n = vec3(0.0,0.0,1.0);\n    float nnt = into ? NC / r.nt : r.nt / NC;\n    float ddn = dot(-wo,n);\n\tfloat cos2t = 1.0-nnt*nnt*(1.0-ddn*ddn);\n\tif (cos2t < 0.0){\n\t    pdf = 1.0;\n\t    wi = vec3(-wo.x,-wo.y,wo.z);\n\t    return r.rc;\n\t}\n\tvec3 refr = normalize(-wo*nnt - n*(ddn*nnt+sqrt(cos2t)));\n\tfloat c = 1.0-(into?-ddn:dot(-n,refr));\n    float Fe = r.F0 + (1.0 - r.F0) * c * c * c * c * c;\n    float Fr = 1.0 - Fe;\n    pdf = 0.25 + 0.5 * Fe;\n    if (u < pdf){\n        wi = vec3(-wo.x,-wo.y,wo.z);\n        return r.rc * Fe;\n    }\n    else{\n        wi = refr;\n        pdf = 1.0-pdf;\n        return r.rc * Fr;\n    }\n}\n";
+
+var metal = "void metal_attr(float matIndex,out Ward w){\n    w.ax = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n    w.ay = readFloat(texParams,vec2(2.0,matIndex),TEX_PARAMS_LENGTH);\n    w.invax2 = readFloat(texParams,vec2(3.0,matIndex),TEX_PARAMS_LENGTH);\n    w.invay2 = readFloat(texParams,vec2(4.0,matIndex),TEX_PARAMS_LENGTH);\n    w.const2 = readFloat(texParams,vec2(5.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 metal(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    Ward ward_brdf;\n    metal_attr(matIndex,ward_brdf);\n    ward_brdf.rs = sc;\n    f = ward_sample_f(ward_brdf,seed,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 metal_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){\n    Ward ward_brdf;\n    metal_attr(matIndex,ward_brdf);\n    ward_brdf.rs = sc;\n    return ward_f(ward_brdf,wi,wo);\n}";
+
+var matte = "void matte_attr(float matIndex,out Lambertian l){\n    l.kd = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 matte(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    Lambertian diffuse_brdf;\n    matte_attr(matIndex,diffuse_brdf);\n    diffuse_brdf.cd = sc;\n    f = lambertian_sample_f(diffuse_brdf,seed,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 matte_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){\n    Lambertian diffuse_brdf;\n    matte_attr(matIndex,diffuse_brdf);\n    diffuse_brdf.cd = sc;\n    return lambertian_f(diffuse_brdf,wi,wo);\n}";
+
+var mirror = "void mirror_attr(float matIndex,out Reflective r){\n    r.kr = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 mirror(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    Reflective specular_brdf;\n    mirror_attr(matIndex,specular_brdf);\n    specular_brdf.cr = sc;\n    f = reflective_sample_f(specular_brdf,seed,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 mirror_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){\n    return BLACK;\n}";
+
+var transmission = "void transmission_attr(float matIndex,out Refractive r){\n    r.nt = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n    r.F0 = readFloat(texParams,vec2(2.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 transmission(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    Refractive refractive_brdf;\n    transmission_attr(matIndex,refractive_brdf);\n    refractive_brdf.rc = sc;\n    f = refractive_sample_f(refractive_brdf,seed,into,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 transmission_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){\n    return BLACK;\n}";
+
+/**
+ * Created by eason on 1/20/18.
+ */
+let plugins$2 = {
+    "metal":new Plugin("metal",metal),
+    "matte":new Plugin("matte",matte),
+    "mirror":new Plugin("mirror",mirror),
+    "transmission":new Plugin("transmission",transmission)
+};
+
+let head = `vec3 material(float seed,int matCategory,float matIndex,vec3 sc,bool into,vec3 wo,out vec3 wi,out vec3 f){
+    f = BLACK;
+    vec3 fpdf;if(false){}`;
+let tail = `return fpdf;}`;
+
+let ep = new Export("material",head,tail,"matCategory",function(plugin){
+    return `fpdf = ${plugin.name}(seed,matIndex,sc,wo,wi,into);
+        f = ${plugin.name}_f(matIndex,sc,wo,wi);`
+});
+
+var material = new Generator("material",bsdfs,"",plugins$2,ep);
+
+var shade$1 = "vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){\n    vec3 f,direct = BLACK,_fpdf;\n    bool into = dot(ins.normal,-wo) < 0.0;\n    if(!into) {ins.normal = -ins.normal;}\n    wo = worldToLocal(wo,ins.normal,ins.dpdu,ins.dpdv);\n    fpdf = material(ins.seed,ins.matCategory,ins.matIndex,ins.sc,into,wo,wi,f);\n    wi = localToWorld(wi,ins.normal,ins.dpdu,ins.dpdv);\n    if(ins.index>=ln&&ins.matCategory==MATTE)\n        for(int i=0;i<ln;i++){\n            vec3 light = sampleGeometry(ins,i,_fpdf);\n            vec3 toLight = light - ins.hit;\n            float d = length(toLight);\n            if(!testShadow(Ray(ins.hit + ins.normal * 0.0001, toLight)))\n                direct +=  f * max(0.0, dot(normalize(toLight), ins.normal)) * _fpdf/(d * d);\n        }\n    return ins.emission+direct;\n}";
+
+/**
+ * Created by eason on 1/21/18.
+ */
+var shade = new Generator("shade",shade$1,"");
+
+var cube = "struct Cube{\n    vec3 lb;\n    vec3 rt;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n};\nCube parseCube(float index){\n    Cube cube;\n    cube.lb = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    cube.rt = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    cube.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cube.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cube.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);\n    return cube;\n}\nvec3 normalForCube( vec3 hit, Cube cube){\n\tif ( hit.x < cube.lb.x + 0.0001 )\n\t\treturn vec3( -1.0, 0.0, 0.0 );\n\telse if ( hit.x > cube.rt.x - 0.0001 )\n\t\treturn vec3( 1.0, 0.0, 0.0 );\n\telse if ( hit.y < cube.lb.y + 0.0001 )\n\t\treturn vec3( 0.0, -1.0, 0.0 );\n\telse if ( hit.y > cube.rt.y - 0.0001 )\n\t\treturn vec3( 0.0, 1.0, 0.0 );\n\telse if ( hit.z < cube.lb.z + 0.0001 )\n\t\treturn vec3( 0.0, 0.0, -1.0 );\n\telse return vec3( 0.0, 0.0, 1.0 );\n}\nvoid computeDpDForCube( vec3 normal,out vec3 dpdu,out vec3 dpdv){\n    if (abs(normal.x)<0.5) {\n        dpdu = cross(normal, vec3(1,0,0));\n    }else {\n        dpdu = cross(normal, vec3(0,1,0));\n    }\n    dpdv = cross(normal,dpdu);\n}\nvec3 sampleCube(Intersect ins,Cube cube,out float pdf){\n    vec3 x = vec3(cube.rt.x-cube.lb.x,0.0,0.0);\n    vec3 y = vec3(0.0,0.0,cube.rt.z-cube.lb.z);\n    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), ins.seed );\n    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), ins.seed );\n    pdf = 1.0/(length(x)*length(y));\n    return cube.lb+u1*x+u2*y;\n}\nIntersect intersectCube(Ray ray,Cube cube){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 tMin = (cube.lb - ray.origin) / ray.dir;\n    vec3 tMax = (cube.rt- ray.origin) / ray.dir;\n    vec3 t1 = min( tMin, tMax );\n    vec3 t2 = max( tMin, tMax );\n    float tNear = max( max( t1.x, t1.y ), t1.z );\n    float tFar = min( min( t2.x, t2.y ), t2.z );\n    float t=-1.0,f;\n    if(tNear>EPSILON&&tNear<tFar) t = tNear;\n    else if(tNear<tFar) t = tFar;\n    if(t > EPSILON){\n        result.d = t;\n        result.hit = ray.origin+t*ray.dir;\n        result.normal = normalForCube(ray.origin+t*ray.dir,cube);\n        computeDpDForCube(result.normal,result.dpdu,result.dpdv);\n        result.matIndex = cube.matIndex;\n        result.sc = getSurfaceColor(result.hit,cube.texIndex);\n        result.emission = cube.emission;\n        result.matCategory = readInt(texParams,vec2(0.0,cube.matIndex),TEX_PARAMS_LENGTH);\n    }\n    return result;\n}";
+
+var sphere = "struct Sphere{\n    vec3 c;\n    float r;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n};\nSphere parseSphere(float index){\n    Sphere sphere;\n    sphere.c = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    sphere.r = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    sphere.matIndex = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH)/float(tn-1);\n    sphere.texIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);\n    sphere.emission = readVec3(objects,vec2(7.0,index),OBJECTS_LENGTH);\n    return sphere;\n}\nvec3 normalForSphere( vec3 hit, Sphere sphere ){\n\treturn (hit - sphere.c) / sphere.r;\n}\nvoid computeDpDForSphere(vec3 normal,out vec3 dpdu,out vec3 dpdv){\n    dpdu = normalize(vec3(-2.0*PI * normal.y, 2.0*PI * normal.x, 0.0));\n    dpdv = cross(normal,dpdu);\n}\nIntersect intersectSphere(Ray ray,Sphere sphere){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 toSphere = ray.origin - sphere.c;\n\tfloat a = dot( ray.dir, ray.dir );\n\tfloat b = 2.0 * dot( toSphere, ray.dir );\n\tfloat c = dot( toSphere, toSphere ) - sphere.r * sphere.r;\n\tfloat det = b * b - 4.0 * a * c;\n\tif ( det > EPSILON ){\n\t    det = sqrt( det );\n\t\tfloat t = (-b - det);\n\t\tif(t < EPSILON) t = (-b + det);\n\t\tt /= 2.0*a;\n\t\tif(t > EPSILON){\n\t        result.d = t;\n    \t\tresult.hit = ray.origin+t*ray.dir;\n    \t\tresult.normal = normalForSphere(ray.origin+t*ray.dir,sphere);\n    \t\tcomputeDpDForSphere(result.normal,result.dpdu,result.dpdv);\n    \t\tresult.matIndex = sphere.matIndex;\n    \t\tresult.sc = getSurfaceColor(result.hit,sphere.texIndex);\n    \t\tresult.emission = sphere.emission;\n    \t\tresult.matCategory = readInt(texParams,vec2(0.0,sphere.matIndex),TEX_PARAMS_LENGTH);\n\t\t}\n\t}\n    return result;\n}\nvec3 sampleSphere(Intersect ins,Sphere sphere,out float pdf){\n    return BLACK;\n}";
+
+var plane = "struct Plane{\n    vec3 normal;\n    float offset;\n    bool dface;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n};\nPlane parsePlane(float index){\n    Plane plane;\n    plane.normal = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    plane.offset = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    plane.dface = readBool(objects,vec2(5.0,index),OBJECTS_LENGTH);\n    plane.matIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);\n    plane.texIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    plane.emission = readVec3(objects,vec2(8.0,index),OBJECTS_LENGTH);\n    return plane;\n}\nvoid computeDpDForPlane( vec3 normal,out vec3 dpdu,out vec3 dpdv){\n    if (abs(normal.x)<0.5) {\n        dpdu = cross(normal, vec3(1,0,0));\n    }else {\n        dpdu = cross(normal, vec3(0,1,0));\n    }\n    dpdv = cross(normal,dpdu);\n}\nIntersect intersectPlane(Ray ray,Plane plane){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    float DN = dot(ray.dir,plane.normal);\n    if(DN==0.0||(!plane.dface&&DN>EPSILON)) return result;\n    float t = (plane.offset*dot(plane.normal,plane.normal)-dot(ray.origin,plane.normal))/DN;\n    if(t<EPSILON) return result;\n    result.d = t;\n    result.normal = plane.normal;\n    result.hit = ray.origin+result.d*ray.dir;\n    computeDpDForPlane(result.normal,result.dpdu,result.dpdv);\n    result.matIndex = plane.matIndex;\n    result.sc = getSurfaceColor(result.hit,plane.texIndex);\n    result.emission = plane.emission;\n    result.matCategory = readInt(texParams,vec2(0.0,plane.matIndex),TEX_PARAMS_LENGTH);\n    return result;\n}\nvec3 samplePlane(Intersect ins,Plane plane,out float pdf){\n    return BLACK;\n}";
+
+/**
+ * Created by eason on 1/21/18.
+ */
+let plugins$3 = {
+    "cube":new Plugin("cube",cube),
+    "sphere":new Plugin("sphere",sphere),
+    "plane":new Plugin("plane",plane)
+};
+
+let intersectHead = `Intersect intersectObjects(Ray ray){
+    Intersect ins;
+    ins.d = MAX_DISTANCE;
+    for(int i=0;i<ln+n;i++){
+        Intersect tmp;
+        tmp.d = MAX_DISTANCE;
+        int category = int(texture(objects,vec2(0.0,float(i)/float(ln+n-1))).r);
+        if(false) {}`;
+let intersectTail = `if(tmp.d<ins.d) ins = tmp;}return ins;}`;
+
+let intersect = new Export("intersect",intersectHead,intersectTail,"category",function(plugin){
+    return `${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(ln+n-1));
+    tmp = intersect${plugin.capitalName()}(ray,${plugin.name});
+    tmp.index = i;`
+});
+
+let sampleHead = `
+    vec3 sampleGeometry(Intersect ins,int i,out vec3 fpdf){
+    fpdf = BLACK;
+    int category = int(texture(objects,vec2(0.0,float(i)/float(ln+n-1))).r);
+    vec3 result = BLACK;if(false){}
+`;
+let sampleTail = `return result;}`;
+
+let sample = new Export("sample",sampleHead,sampleTail,"category",function(plugin){
+    return `float pdf;
+        ${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(ln+n-1));
+        result = sample${plugin.capitalName()}(ins,${plugin.name},pdf);
+        vec3 normal = normalFor${plugin.capitalName()}(result,${plugin.name});
+        fpdf = ${plugin.name}.emission*max(0.0,dot(normal,ins.hit-result))/pdf;`
+});
+
+let testShadow = `
+bool testShadow(Ray ray){
+    Intersect ins = intersectObjects(ray);
+    if(ins.index>=ln&&ins.d>EPSILON&&ins.d<1.0)
+        return true;
+    return false;
+}
+`;
+var shape = new Generator("shape","",testShadow,plugins$3,intersect,sample);
+
+var checkerboard = "void checkerboard_attr(float texIndex,out float size,out float lineWidth){\n    size = readFloat(texParams,vec2(1.0,texIndex),TEX_PARAMS_LENGTH);\n    lineWidth = readFloat(texParams,vec2(2.0,texIndex),TEX_PARAMS_LENGTH);\n}\nvec3 checkerboard(vec3 hit,float texIndex){\n    float size,lineWidth;\n    checkerboard_attr(texIndex,size,lineWidth);\n    float width = 0.5 * lineWidth / size;\n    float fx = hit.x/size-floor(hit.x/size),\n    fy = hit.y/size-floor(hit.y/size),\n    fz = hit.z/size-floor(hit.z/size);\n    bool in_outline = (fx<width||fx>1.0-width)||(fy<width||fy>1.0-width)||(fz<width||fz>1.0-width);\n    if (!in_outline) {\n        return WHITE;\n    } else {\n        return GREY;\n    }\n}";
+
+var cornellbox = "void cornellbox_attr(float texIndex,out vec3 min,out vec3 max){\n    min = readVec3(texParams,vec2(1.0,texIndex),TEX_PARAMS_LENGTH);\n    max = readVec3(texParams,vec2(4.0,texIndex),TEX_PARAMS_LENGTH);\n}\nvec3 cornellbox(vec3 hit,float texIndex){\n    vec3 min,max;\n    cornellbox_attr(texIndex,min,max);\n    if ( hit.x < min.x + 0.0001 )\n    \treturn YELLOW*0.8;\n    else if ( hit.x > max.x - 0.0001 )\n    \treturn BLUE*0.8;\n    else if ( hit.y < min.y + 0.0001 )\n    \treturn WHITE;\n    else if ( hit.y > max.y - 0.0001 )\n    \treturn WHITE;\n    else if ( hit.z > min.z - 0.0001 )\n    \treturn WHITE;\n    return BLACK;\n}";
+
+/**
+ * Created by eason on 1/20/18.
+ */
+let plugins$4 = {
+    "checkerboard":new Plugin("checkerboard",checkerboard),
+    "cornellbox":new Plugin("cornellbox",cornellbox)
+};
+
+let head$1 = `vec3 getSurfaceColor(vec3 hit,float texIndex){
+    int texCategory = readInt(texParams,vec2(0.0,texIndex),TEX_PARAMS_LENGTH);
+    if(texCategory==UNIFORM_COLOR) return readVec3(texParams,vec2(1.0,texIndex),TEX_PARAMS_LENGTH);`;
+let tail$1 = `return BLACK;}`;
+
+let ep$1 = new Export("getSurfaceColor",head$1,tail$1,"texCategory",function(plugin){
+    return `return ${plugin.name}(hit,texIndex);`
+});
+
+var texture = new Generator("texture","","",plugins$4,ep$1);
+
+var pathtrace = "void trace(Ray ray,out vec3 e,int maxDeepth){\n    vec3 fpdf = WHITE;e = BLACK;\n    int deepth=1;\n    while(++deepth<=maxDeepth){\n        Intersect ins = intersectObjects(ray);\n        ins.seed = timeSinceStart + float(deepth);\n        if(ins.d==MAX_DISTANCE) break;\n        vec3 wi;\n        vec3 _fpdf;\n        e += shade(ins,-ray.dir,wi,_fpdf)*fpdf;\n        fpdf *= _fpdf;\n        ray.origin = ins.hit;\n        ray.dir = wi;\n    }\n}";
+
+/**
+ * Created by eason on 1/21/18.
+ */
+let plugins$5 = {
+    "pathtrace":new Plugin("pathtrace",pathtrace)
+};
+
+var trace = new Generator("trace","","",plugins$5);
+
+var random = "float random( vec3 scale, float seed ){\n\treturn(fract( sin( dot( gl_FragCoord.xyz + seed, scale ) ) * 43758.5453 + seed ) );\n}\nvec2 random2(float seed){\n\treturn vec2(fract(sin(dot(gl_FragCoord.xy ,vec2(12.9898,78.233))) * 43758.5453 + seed),\n\t\tfract(cos(dot(gl_FragCoord.xy ,vec2(4.898,7.23))) * 23421.631 + seed));\n}";
+
+var sampler = "vec3 uniformlyRandomDirection( float seed ){\n\tfloat u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n\tfloat v = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat z = 1.0 - 2.0 * u;   float r = sqrt( 1.0 - z * z );\n\tfloat angle = 2.0 * PI * v;\n\treturn vec3( r * cos( angle ), r * sin( angle ), z );\n}\nvec3 uniformlyRandomVector( float seed ){\n\treturn uniformlyRandomDirection(seed) * sqrt(random(vec3(36.7539, 50.3658, 306.2759), seed));\n}\nvec3 cosWeightHemisphere(float seed){\n    float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n\tfloat v = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat r = sqrt(u);\n\tfloat angle = 2.0 * PI * v;\n\treturn vec3(r*cos(angle),r*sin(angle),sqrt(1.-u));\n}\nvec3 cosWeightHemisphere2(float seed){\n    float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n\tfloat v = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat angle = 2.0 * PI * v;\n\treturn vec3(u*cos(angle),u*sin(angle),cos(asin(u)));\n}";
+
+var texhelper = "vec2 convert(vec2 pos,float width){\n    pos.x = pos.x/width;\n    return pos;\n}\nint readInt(sampler2D tex,vec2 pos,float width){\n    return int(texture(tex,convert(pos,width)).r);\n}\nfloat readFloat(sampler2D tex,vec2 pos,float width){\n    return texture(tex,convert(pos,width)).r;\n}\nbool readBool(sampler2D tex,vec2 pos,float width){\n    return readInt(tex,pos,width)==1;\n}\nvec2 readVec2(sampler2D tex,vec2 pos,float width){\n    vec2 result;\n    pos = convert(pos,width);\n    result.x = texture(tex,pos).r;\n    pos.x += 1.0/width;\n    result.y = texture(tex,pos).r;\n    return result;\n}\nvec3 readVec3(sampler2D tex,vec2 pos,float width){\n    vec3 result;\n    pos = convert(pos,width);\n    result.x = texture(tex,pos).r;\n    pos.x += 1.0/width;\n    result.y = texture(tex,pos).r;\n    pos.x += 1.0/width;\n    result.z = texture(tex,pos).r;\n    return result;\n}";
+
+var utility = "vec3 worldToLocal(vec3 v,vec3 ns,vec3 ss,vec3 ts){\n    return vec3(dot(v,ss),dot(v,ts),dot(v,ns));\n}\nvec3 localToWorld(vec3 v,vec3 ns,vec3 ss,vec3 ts){\n    return vec3(ss.x * v.x + ts.x * v.y + ns.x * v.z,\n        ss.y * v.x + ts.y * v.y + ns.y * v.z,\n        ss.z * v.x + ts.z * v.y + ns.z * v.z);\n}\nvec3 ensure3byW(vec4 vec){\n    return vec3(vec.x/vec.w,vec.y/vec.w,vec.z/vec.w);\n}\nfloat modMatrix(mat3 mat){\n    return dot(cross(mat[0],mat[1]),mat[2]);\n}\nvec3 ortho(vec3 d) {\n\tif (abs(d.x)>0.00001 || abs(d.y)>0.00001) {\n\t\treturn vec3(d.y,-d.x,0.0);\n\t} else  {\n\t\treturn vec3(0.0,d.z,-d.y);\n\t}\n}\nfloat maxComponent(vec3 v){\n    return max(max(v.x,v.y),v.z);\n}\nvoid swap(inout float f1,inout float f2){\n    float tmp = f1;\n    f1 = f2;\n    f2 = tmp;\n}";
+
+/**
+ * Created by eason on 1/20/18.
+ */
+let plugins$6 = {
+    "random":new Plugin("random",random),
+    "sampler":new Plugin("sampler",sampler),
+    "texhelper":new Plugin("texhelper",texhelper),
+    "utility":new Plugin("utility",utility)
+};
+
+var util = new Generator("util","","",plugins$6);
+
+/**
+ * Created by eason on 1/20/18.
+ */
+class TraceShader{
+    constructor(pluginsList = {shape:[],texture:[],material:[],trace:"pathtrace"}){
+        this.uniform = {
+            n:{type:'int',value:0},
+            ln:{type:'int',value:0},
+            tn:{type:'int',value:0},
+            textureWeight:{type:'float',value:0},
+            timeSinceStart:{type:'float',value:0},
+            matrix:{type:'mat4',value:Matrix.I(4)},
+            eye:{type:'vec3',value:Vector.Zero(3)}
+        };
+        this.texture = {
+            cache:0,
+            objects:1,
+            texParams:2
+        };
+
+        this.glslv = "300 es";
+        this.pluginsList = pluginsList;
+    }
+
+    combinefs(){
+        return `#version ${this.glslv}\n`
+            + `precision highp float;
+               precision highp int;\n`
+            + this.uniformstr()
+            + c.generate()
+            + util.generate("random","sampler","texhelper","utility")
+            + texture.generate(...this.pluginsList.texture)
+            + material.generate(...this.pluginsList.material)
+            + shape.generate(...this.pluginsList.shape)
+            + shade.generate()
+            + trace.generate(this.pluginsList.trace)
+            + main.generate("fstrace")
+    }
+
+    combinevs(){
+        return `#version ${this.glslv}\n`
+            + `precision highp float;
+               precision highp int;\n`
+            + this.uniformstr()
+            + util.generate("utility")
+            + main.generate("vstrace")
+    }
+
+    uniformstr(){
+        let result = "";
+        for(let entry of Object.entries(this.uniform)){
+            result += `uniform ${entry[1].type} ${entry[0]};\n`;
+        }
+        for(let entry of Object.entries(this.texture)){
+            result += `uniform sampler2D ${entry[0]};\n`;
+        }
+        return result;
+    }
+}
+
+
+class RenderShader{
+    constructor(pluginsList={filter:"gamma"}){
+        this.texture = {
+            tex:0
+        };
+        this.glslv = "300 es";
+        this.pluginsList = pluginsList;
+    }
+
+    combinefs(){
+        return `#version ${this.glslv}\n`
+            + `precision highp float;\n`
+            + this.uniformstr()
+            + filter.generate(this.pluginsList.filter)
+            + main.generate("fsrender")
+    }
+
+    combinevs(){
+        return `#version ${this.glslv}\n`
+            + this.uniformstr()
+            + main.generate("vsrender")
+    }
+
+    uniformstr(){return `uniform sampler2D tex;\n`}
+}
+
+/**
  * Created by eason on 17-3-21.
  */
 class Tracer {
     constructor(){
-        this.shader = new ShaderProgram(vs_trace,fs_trace,true);
+        this.shader = new ShaderProgram(true);
         this.timeStart = new Date();
-
-        this.shader.textures.cache = 0;
-        this.shader.textures.objects = 1;
-        this.shader.textures.texParams = 2;
 
         this.objects_tex = {};
         this.params_tex = {};
-
-        this.shader.uniforms.light = $V([2,2,2]);
     }
 
-    update(data){
-        let data_objects = new Float32Array(data.objects);//物体数据
-        let data_texparams = new Float32Array(data.texparams);//材质参数
+    update(scene){
+        this.shader.setProgram(new TraceShader(scene.tracerConfig()));
+        //序列化场景数据
+        let objects = [],texparams = [];
+        for(let object of scene.objects){
+            objects.push(...object.gen(texparams.length/ShaderProgram.TEXPARAMS_LENGTH));
+            texparams.push(...object.genTexparams());
+        }
 
-        let n = parseInt(data.objects.length/ShaderProgram.OBJECTS_LENGTH);
-        let tn = parseInt(data.texparams.length/ShaderProgram.TEXPARAMS_LENGTH);
+        let data_objects = new Float32Array(objects);//物体数据
+        let data_texparams = new Float32Array(texparams);//材质参数
+
+        let n = parseInt(objects.length/ShaderProgram.OBJECTS_LENGTH);
+        let tn = parseInt(texparams.length/ShaderProgram.TEXPARAMS_LENGTH);
 
         this.objects_tex = WebglHelper.createTexture();
         this.params_tex = WebglHelper.createTexture();
@@ -359,18 +710,18 @@ class Tracer {
             gl.R32F,gl.RED,gl.FLOAT,data_texparams,true
         );
 
-        this.shader.uniforms.n = ['int',data.n];
-        this.shader.uniforms.ln = ['int',data.ln];
-        this.shader.uniforms.tn = ['int',tn];
+        this.shader.uniform.n.value = scene.obcount;
+        this.shader.uniform.ln.value = scene.lgcount;
+        this.shader.uniform.tn.value = tn;
     }
 
     render(modelviewProjection,eye,sampleCount){
-        this.shader.uniforms.eye = eye;
-        this.shader.uniforms.matrix = Matrix.Translation(
+        this.shader.uniform.eye.value = eye;
+        this.shader.uniform.matrix.value = Matrix.Translation(
             Vector.create([(Math.random() * 2 - 1), (Math.random() * 2 - 1), 0]).multiply(1/512)
         ).multiply(modelviewProjection).inverse();
-        this.shader.uniforms.textureWeight = sampleCount===0?0.0001:sampleCount / (sampleCount + 1);
-        this.shader.uniforms.timeSinceStart = (new Date() - this.timeStart) * 0.001;
+        this.shader.uniform.textureWeight.value = sampleCount===0?0.0001:sampleCount / (sampleCount + 1);
+        this.shader.uniform.timeSinceStart.value = (new Date() - this.timeStart) * 0.001;
 
         this.shader.render();
     }
@@ -383,25 +734,14 @@ class Renderer {
     constructor(canvas){
         WebglHelper.initWebgl(canvas);
 
-        this.shader = new ShaderProgram(vs_render,fs_render);
+        this.shader = new ShaderProgram();
 
         this.tracer = new Tracer();
-
-        this.data={objects:[],texparams:[],ln:0,n:0};
     }
 
     update(scene){
-        for(let light of scene.lights){
-            this.data.objects.push(...light.gen(this.data.texparams.length/ShaderProgram.TEXPARAMS_LENGTH));
-            this.data.texparams.push(...light.genTexparams());
-        }
-        for(let object of scene.objects){
-            this.data.objects.push(...object.gen(this.data.texparams.length/ShaderProgram.TEXPARAMS_LENGTH));
-            this.data.texparams.push(...object.genTexparams());
-        }
-        this.data.ln = scene.lights.length;
-        this.data.n = scene.objects.length;
-        this.tracer.update(this.data);
+        this.shader.setProgram(new RenderShader(scene.rendererConfig()));
+        this.tracer.update(scene);
     }
 
     render(scene){
@@ -488,6 +828,12 @@ class Cube{
         this.light = !this.emission.equal($V([0,0,0]));
     }
 
+    get pluginName(){
+        return "cube";
+    }
+
+    set pluginName(name){}
+
     genTexparams(){
         let tmp = [];
         tmp.push(...this.material.gen());
@@ -519,6 +865,12 @@ class Sphere{
 
         this.light = !this.emission.equal($V([0,0,0]));
     }
+
+    get pluginName(){
+        return "sphere";
+    }
+
+    set pluginName(name){}
 
     genTexparams(){
         let tmp = [];
@@ -552,6 +904,12 @@ class Plane{
         this.light = !this.emission.equal($V([0,0,0]));
     }
 
+    get pluginName(){
+        return "plane";
+    }
+
+    set pluginName(name){}
+
     genTexparams(){
         let tmp = [];
         tmp.push(...this.material.gen());
@@ -578,18 +936,41 @@ class Plane{
 class Scene {
     constructor(){
         this.camera = {};
-        this.lights = [];
         this.objects = [];
         this.sampleCount = 0;
+        this.lgcount = 0;
+        this.obcount = 0;
+        this._trace = "pathtrace";
+        this._filter = "gamma";
+    }
+
+    set filter(plugin){
+        if(filter.query(plugin)) this._filter = plugin;
+    }
+
+    get filter(){
+        return this._filter;
+    }
+
+    set trace(plugin){
+        if(trace.query(plugin)) this._trace = plugin;
+    }
+
+    get trace(){
+        return this._trace;
     }
 
     get mat(){
         return this.camera.projection.x(this.camera.modelview);
     }
 
+    set mat(mat){}
+
     get eye(){
         return this.camera.eye;
     }
+
+    set eye(eye){}
 
     add(something){
         if(something instanceof Camera){
@@ -597,14 +978,49 @@ class Scene {
         }else if(something instanceof Cube||
             something instanceof Sphere||
             something instanceof Plane){
-            if(something.light) this.lights.push(something);
-            else this.objects.push(something);
+            if(something.light) {
+                this.objects.unshift(something);
+                this.lgcount++;
+            }
+            else {
+                this.objects.push(something);
+                this.obcount++;
+            }
         }
     }
 
     update(){
         this.camera.update();
         scene.sampleCount = 0;
+    }
+
+    tracerConfig() {
+        let pluginsList = {
+            shape:[],
+            material:[],
+            texture:[],
+            trace:this.trace
+        };
+
+        for(let ob of this.objects){
+            if(ob.pluginName &&
+                !pluginsList.shape.includes(ob.pluginName))
+                pluginsList.shape.push(ob.pluginName);
+            if(ob.material.pluginName &&
+                !pluginsList.material.includes(ob.material.pluginName))
+                pluginsList.material.push(ob.material.pluginName);
+            if(ob.texture.pluginName &&
+                !pluginsList.texture.includes(ob.texture.pluginName))
+                pluginsList.texture.push(ob.texture.pluginName);
+        }
+
+        return pluginsList;
+    }
+
+    rendererConfig(){
+        return {
+            filter:this.filter
+        }
     }
 }
 
@@ -617,6 +1033,12 @@ class Matte{
         if(kd<=0) kd=1;
         this.kd = kd;
     }
+
+    get pluginName(){
+        return "matte";
+    }
+
+    set pluginName(name){}
 
     gen(){
         let tmp = [
@@ -633,6 +1055,12 @@ class Mirror{
         if(kr<=0) kr=0.5;
         this.kr = kr;
     }
+
+    get pluginName(){
+        return "mirror";
+    }
+
+    set pluginName(name){}
 
     gen(){
         let tmp = [
@@ -653,6 +1081,12 @@ class Metal{
         this.const2 = 4*Math.PI*ax*ay;
     }
 
+    get pluginName(){
+        return "metal";
+    }
+
+    set pluginName(name){}
+
     gen(){
         let tmp = [
             3,this.ax,this.ay,this.invax2,this.invay2,this.const2
@@ -668,6 +1102,12 @@ class Transmission{
         this.nt = nt;
         this.F0 = (1.0 - nt) * (1.0 - nt) / ((1.0 + nt) * (1.0 + nt));
     }
+
+    get pluginName(){
+        return "transmission";
+    }
+
+    set pluginName(name){}
 
     gen(){
         let tmp = [
@@ -693,6 +1133,12 @@ class UniformColor{
         this.color = $V(color);
     }
 
+    get pluginName(){
+        return undefined;
+    }
+
+    set pluginName(name){}
+
     gen(){
         let tmp = [
             0,this.color.e(1),this.color.e(2),this.color.e(3)
@@ -712,6 +1158,12 @@ class Checkerboard{
         this.lineWidth = lineWidth;
     }
 
+    get pluginName(){
+        return "checkerboard";
+    }
+
+    set pluginName(name){}
+
     gen(){
         let tmp = [
             5,this.size,this.lineWidth
@@ -727,6 +1179,12 @@ class CornellBox{
         this.min = $V(min);
         this.max = $V(max);
     }
+
+    get pluginName(){
+        return "cornellbox";
+    }
+
+    set pluginName(name){}
 
     gen(){
         let tmp = [

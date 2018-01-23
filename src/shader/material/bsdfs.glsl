@@ -1,6 +1,3 @@
-#include "../const/define.glsl"
-#include "../util/sampler.glsl"
-
 //lambertian
 
 struct Lambertian{

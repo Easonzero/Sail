@@ -1,10 +1,8 @@
-#include "bsdfs.glsl"
-
 void matte_attr(float matIndex,out Lambertian l){
     l.kd = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);
 }
 
-vec3 matte(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi){
+vec3 matte(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){
     vec3 f;
     float pdf;
 

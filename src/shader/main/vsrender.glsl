@@ -1,5 +1,3 @@
-#version 300 es
-
 in vec3 vertex;
 out vec2 texCoord;
 

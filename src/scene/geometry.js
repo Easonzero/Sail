@@ -14,6 +14,12 @@ class Cube{
         this.light = !this.emission.equal($V([0,0,0]));
     }
 
+    get pluginName(){
+        return "cube";
+    }
+
+    set pluginName(name){}
+
     genTexparams(){
         let tmp = [];
         tmp.push(...this.material.gen());
@@ -46,6 +52,12 @@ class Sphere{
         this.light = !this.emission.equal($V([0,0,0]));
     }
 
+    get pluginName(){
+        return "sphere";
+    }
+
+    set pluginName(name){}
+
     genTexparams(){
         let tmp = [];
         tmp.push(...this.material.gen());
@@ -77,6 +89,12 @@ class Plane{
 
         this.light = !this.emission.equal($V([0,0,0]));
     }
+
+    get pluginName(){
+        return "plane";
+    }
+
+    set pluginName(name){}
 
     genTexparams(){
         let tmp = [];
