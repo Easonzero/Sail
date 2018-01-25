@@ -1,6 +1,31 @@
 /**
  * Created by eason on 1/21/18.
  */
+class PluginParams{
+    constructor(name){
+        this.name = name;
+        this.params = {};
+    }
+
+    addParam(name,value){
+        this.params[name] = value;
+    }
+
+    getParam(name){
+        let result = this.params[name].match(/-?\d+\.\d+?/g);
+        for(let i in result){
+            result[i] = parseFloat(result[i]);
+        }
+        return result;
+    }
+
+    getParamName(name,generatorName){
+       return `${generatorName}_${this.name}_${name}`.toUpperCase();
+    }
+
+
+}
+
 class Plugin {
     constructor(name, fn) {
         this.name = name;
@@ -22,6 +47,14 @@ class Plugin {
 
     equal(name){
         return this.name === name;
+    }
+
+    param(pluginParam,generatorName){
+        let params = '';
+        for(let param of Object.entries(pluginParam.params)){
+            params += `#define ${pluginParam.getParamName(param[0],generatorName)} ${param[1]}\n`;
+        }
+        return params;
     }
 }
 
@@ -48,16 +81,17 @@ class Generator{
         this.tail = tail;
     }
 
-    generate(...names){
+    generate(...pluginParams){
         let result = this.head + '\n';
-        for(let name of names){
-            result += this.plugins[name].fn + '\n';
+        for(let pluginParam of pluginParams){
+            result += this.plugins[pluginParam.name].param(pluginParam,this.name);
+            result += this.plugins[pluginParam.name].fn + '\n';
         }
         for(let e of this.exports){
             result += e.head;
-            for(let name of names){
-                result += e.condition(this.plugins[name].defineName());
-                result += `{${e.callfn(this.plugins[name])}}`;
+            for(let pluginParam of pluginParams){
+                result += e.condition(this.plugins[pluginParam.name].defineName());
+                result += `{${e.callfn(this.plugins[pluginParam.name])}}`;
             }
             result += e.tail + '\n';
         }
@@ -70,4 +104,4 @@ class Generator{
     }
 }
 
-export{Plugin,Export,Generator};
+export{PluginParams,Plugin,Export,Generator};

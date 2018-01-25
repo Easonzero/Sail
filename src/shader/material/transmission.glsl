@@ -17,5 +17,8 @@ vec3 transmission(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool int
 }
 
 vec3 transmission_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){
-    return BLACK;
+    Refractive refractive_brdf;
+    transmission_attr(matIndex,refractive_brdf);
+    refractive_brdf.rc = sc;
+    return refractive_f(refractive_brdf,wi,wo);
 }

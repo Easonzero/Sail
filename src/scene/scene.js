@@ -5,6 +5,7 @@ import {Camera} from './camera';
 import {Cube,Sphere,Plane} from './geometry';
 import trace from '../shader/trace/shader.trace'
 import filter from '../shader/filter/shader.filter'
+import {PluginParams} from '../shader/generator';
 
 class Scene {
     constructor(){
@@ -13,12 +14,12 @@ class Scene {
         this.sampleCount = 0;
         this.lgcount = 0;
         this.obcount = 0;
-        this._trace = "pathtrace";
-        this._filter = "gamma";
+        this._trace = new PluginParams("pathtrace");
+        this._filter = new PluginParams("none");
     }
 
     set filter(plugin){
-        if(filter.query(plugin)) this._filter = plugin;
+        if(filter.query(plugin)) this._filter.name = plugin;
     }
 
     get filter(){
@@ -26,7 +27,7 @@ class Scene {
     }
 
     set trace(plugin){
-        if(trace.query(plugin)) this._trace = plugin;
+        if(trace.query(plugin)) this._trace.name = plugin;
     }
 
     get trace(){
@@ -75,18 +76,29 @@ class Scene {
             trace:this.trace
         };
 
+        let tmp = {
+            shape:[],
+            material:[],
+            texture:[]
+        };
+
         for(let ob of this.objects){
             if(ob.pluginName &&
-                !pluginsList.shape.includes(ob.pluginName))
-                pluginsList.shape.push(ob.pluginName);
+                !tmp.shape.includes(ob.pluginName)){
+                pluginsList.shape.push(new PluginParams(ob.pluginName));
+                tmp.shape.push(ob.pluginName);
+            }
             if(ob.material.pluginName &&
-                !pluginsList.material.includes(ob.material.pluginName))
-                pluginsList.material.push(ob.material.pluginName);
+                !tmp.material.includes(ob.material.pluginName)){
+                pluginsList.material.push(new PluginParams(ob.material.pluginName));
+                tmp.material.push(ob.material.pluginName);
+            }
             if(ob.texture.pluginName &&
-                !pluginsList.texture.includes(ob.texture.pluginName))
-                pluginsList.texture.push(ob.texture.pluginName);
+                !tmp.texture.includes(ob.texture.pluginName)){
+                pluginsList.texture.push(new PluginParams(ob.texture.pluginName));
+                tmp.texture.push(ob.texture.pluginName);
+            }
         }
-
         return pluginsList;
     }
 

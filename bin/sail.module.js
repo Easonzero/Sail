@@ -835,6 +835,31 @@ class Matrix{
 /**
  * Created by eason on 1/21/18.
  */
+class PluginParams{
+    constructor(name){
+        this.name = name;
+        this.params = {};
+    }
+
+    addParam(name,value){
+        this.params[name] = value;
+    }
+
+    getParam(name){
+        let result = this.params[name].match(/-?\d+\.\d+?/g);
+        for(let i in result){
+            result[i] = parseFloat(result[i]);
+        }
+        return result;
+    }
+
+    getParamName(name,generatorName){
+       return `${generatorName}_${this.name}_${name}`.toUpperCase();
+    }
+
+
+}
+
 class Plugin {
     constructor(name, fn) {
         this.name = name;
@@ -856,6 +881,14 @@ class Plugin {
 
     equal(name){
         return this.name === name;
+    }
+
+    param(pluginParam,generatorName){
+        let params = '';
+        for(let param of Object.entries(pluginParam.params)){
+            params += `#define ${pluginParam.getParamName(param[0],generatorName)} ${param[1]}\n`;
+        }
+        return params;
     }
 }
 
@@ -882,16 +915,17 @@ class Generator{
         this.tail = tail;
     }
 
-    generate(...names){
+    generate(...pluginParams){
         let result = this.head + '\n';
-        for(let name of names){
-            result += this.plugins[name].fn + '\n';
+        for(let pluginParam of pluginParams){
+            result += this.plugins[pluginParam.name].param(pluginParam,this.name);
+            result += this.plugins[pluginParam.name].fn + '\n';
         }
         for(let e of this.exports){
             result += e.head;
-            for(let name of names){
-                result += e.condition(this.plugins[name].defineName());
-                result += `{${e.callfn(this.plugins[name])}}`;
+            for(let pluginParam of pluginParams){
+                result += e.condition(this.plugins[pluginParam.name].defineName());
+                result += `{${e.callfn(this.plugins[pluginParam.name])}}`;
             }
             result += e.tail + '\n';
         }
@@ -913,13 +947,53 @@ var struct = "struct Intersect{\n    float d;\n    vec3 hit;\n    vec3 normal;\n
  */
 var c = new Generator("const",define,struct);
 
-var gamma = "float gamma(float x) {\n    return pow(clamp(x,0.0,1.0), 1.0/2.2) + 0.5/255.0;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(tex, texCoord).rgb;\n    return vec4(gamma(color.r),gamma(color.g),gamma(color.b),1.0);\n}";
+var gamma = "float gamma(float x) {\n    return pow(clamp(x,0.0,1.0), 1.0/FILTER_GAMMA_C) + 0.0022222222222222;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(tex, texCoord).rgb;\n    return vec4(gamma(color.r),gamma(color.g),gamma(color.b),1.0);\n}";
+
+var none = "vec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(tex, texCoord).rgb;\n    return vec4(color,1.0);\n}";
+
+var box = "float box(vec2 coord){\n    return 1.0;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    vec2 del = FILTER_BOX_R/512.0;\n    vec2 o = texCoord-del/2.0;\n    int sampleNum = 0;\n    for(int i=0;i<int(FILTER_BOX_R.x);i++){\n        for(int j=0;j<int(FILTER_BOX_R.y);j++){\n            vec2 coord = o+vec2(float(i)/512.0,0)+vec2(0,float(j)/512.0);\n            if(coord.x<0.0||coord.y<0.0 ||\n            coord.x>=1.0||coord.y>=1.0) continue;\n            vec3 tmpColor = texture(tex, coord).rgb;\n            float weight = box(coord);\n            color += tmpColor * weight;\n            sampleNum++;\n        }\n    }\n    return vec4(color/float(sampleNum),1.0);\n}";
+
+var gaussian = "float gaussian(float d,float expv){\n    return max(0.0, exp(-FILTER_GAUSSIAN_ALPHA * d * d) - expv);\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    vec2 del = FILTER_GAUSSIAN_R/512.0;\n    vec2 o = texCoord-del/2.0;\n    int sampleNum = 0;\n    for(int i=0;i<int(FILTER_GAUSSIAN_R.x);i++){\n        for(int j=0;j<int(FILTER_GAUSSIAN_R.y);j++){\n            vec2 coord = o+vec2(float(i)/512.0,0)+vec2(0,float(j)/512.0);\n            if(coord.x<0.0||coord.y<0.0 ||\n            coord.x>=1.0||coord.y>=1.0) continue;\n            vec2 d = (coord-texCoord)*512.0;\n            vec3 tmpColor = texture(tex, coord).rgb;\n            float weight = gaussian((abs(d.x)+0.5)/FILTER_GAUSSIAN_R.y,FILTER_GAUSSIAN_EXPX)\n                            * gaussian((abs(d.y)+0.5)/FILTER_GAUSSIAN_R.x,FILTER_GAUSSIAN_EXPY);\n            color += tmpColor * weight;\n            sampleNum++;\n        }\n    }\n    return vec4(color/float(sampleNum),1.0);\n}";
+
+var mitchell = "float mitchell1D(float x){\n    x = abs(2.0 * x);\n    if (x > 1.0)\n        return ((-FILTER_MITCHELL_B - 6.0 * FILTER_MITCHELL_C) * x * x * x + (6.0 * FILTER_MITCHELL_B + 30.0 * FILTER_MITCHELL_C) * x * x +\n                (-12.0 * FILTER_MITCHELL_B - 48.0 * FILTER_MITCHELL_C) * x + (8.0 * FILTER_MITCHELL_B + 24.0 * FILTER_MITCHELL_C)) * (1.f / 6.f);\n    else\n        return ((12.0 - 9.0 * FILTER_MITCHELL_B - 6.0 * FILTER_MITCHELL_C) * x * x * x +\n                (-18.0 + 12.0 * FILTER_MITCHELL_B + 6.0 * FILTER_MITCHELL_C) * x * x + (6.0 - 2.0 * FILTER_MITCHELL_B)) *\n                (1.f / 6.f);\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    vec2 del = FILTER_MITCHELL_R/512.0;\n    vec2 o = texCoord-del/2.0;\n    int sampleNum = 0;\n    for(int i=0;i<int(FILTER_MITCHELL_R.x);i++){\n        for(int j=0;j<int(FILTER_MITCHELL_R.y);j++){\n            vec2 coord = o+vec2(float(i)/512.0,0)+vec2(0,float(j)/512.0);\n            if(coord.x<0.0||coord.y<0.0 ||\n            coord.x>=1.0||coord.y>=1.0) continue;\n            vec2 d = (coord-texCoord)*512.0;\n            vec3 tmpColor = texture(tex, coord).rgb;\n            float weight = mitchell1D((abs(d.x)+0.5)*FILTER_MITCHELL_INVX/FILTER_MITCHELL_R.y)\n                            * mitchell1D((abs(d.y)+0.5)*FILTER_MITCHELL_INVY/FILTER_MITCHELL_R.x);\n            color += tmpColor * weight;\n            sampleNum++;\n        }\n    }\n    return vec4(color/float(sampleNum),1.0);\n}";
+
+var sinc = "#define PI 3.141592653589793\nfloat sinc(float x){\n    x = abs(x);\n    if (x < 1e-5) return 1.0;\n    return sin(PI * x) / (PI * x);\n}\nfloat windowedSinc(float x, float radius){\n    x = abs(x);\n    if (x > radius) return 0.0;\n    float lanczos = sinc(x / FILTER_SINC_TAU);\n    return sinc(x) * lanczos;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    vec2 del = FILTER_SINC_R/512.0;\n    vec2 o = texCoord-del/2.0;\n    int sampleNum = 0;\n    for(int i=0;i<int(FILTER_SINC_R.x);i++){\n        for(int j=0;j<int(FILTER_SINC_R.y);j++){\n            vec2 coord = o+vec2(float(i)/512.0,0)+vec2(0,float(j)/512.0);\n            if(coord.x<0.0||coord.y<0.0 ||\n            coord.x>=1.0||coord.y>=1.0) continue;\n            vec2 d = (coord-texCoord)*512.0;\n            vec3 tmpColor = texture(tex, coord).rgb;\n            float weight = windowedSinc((abs(d.x)+0.5)/FILTER_SINC_R.y,FILTER_SINC_R.x)\n                            * windowedSinc((abs(d.y)+0.5)/FILTER_SINC_R.x,FILTER_SINC_R.y);\n            color += tmpColor * weight;\n            sampleNum++;\n        }\n    }\n    return vec4(color/float(sampleNum),1.0);\n}";
+
+var triangle = "float triangle(float d,float radius){\n    return max(0.0,radius - d);\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    vec2 del = FILTER_TRIANGLE_R/512.0;\n    vec2 o = texCoord-del/2.0;\n    int sampleNum = 0;\n    for(int i=0;i<int(FILTER_TRIANGLE_R.x);i++){\n        for(int j=0;j<int(FILTER_TRIANGLE_R.y);j++){\n            vec2 coord = o+vec2(float(i)/512.0,0)+vec2(0,float(j)/512.0);\n            if(coord.x<0.0||coord.y<0.0 ||\n            coord.x>=1.0||coord.y>=1.0) continue;\n            vec2 d = (coord-texCoord)*512.0;\n            vec3 tmpColor = texture(tex, coord).rgb;\n            float weight = triangle((abs(d.x)+0.5),FILTER_TRIANGLE_R.x)\n                            * triangle((abs(d.y)+0.5),FILTER_TRIANGLE_R.y);\n            color += tmpColor * weight;\n            sampleNum++;\n        }\n    }\n    return vec4(color/float(sampleNum),1.0);\n}";
 
 /**
  * Created by eason on 1/23/18.
  */
 let plugins = {
-    "gamma":new Plugin("gamma",gamma)
+    "none":new Plugin("none",none),
+    "gamma":new Plugin("gamma",gamma),
+    "box":new Plugin("box",box),
+    "gaussian":new Plugin("gaussian",gaussian),
+    "mitchell":new Plugin("mitchell",mitchell),
+    "sinc":new Plugin("sinc",sinc),
+    "triangle":new Plugin("triangle",triangle)
+};
+
+plugins.gaussian.param = function (pluginParams,generatorName) {
+    let r = pluginParams.getParam("r");
+    let alpha = pluginParams.getParam("alpha")[0];
+    return `
+    #define FILTER_GAUSSIAN_R ${pluginParams.params.r}
+    #define FILTER_GAUSSIAN_ALPHA ${pluginParams.params.alpha}
+    #define FILTER_GAUSSIAN_EXPX ${Math.exp(-alpha*r[0]*r[0])}
+    #define FILTER_GAUSSIAN_EXPY ${Math.exp(-alpha*r[1]*r[1])}
+    `
+};
+
+plugins.mitchell.param = function (pluginParams,generatorName) {
+    let r = pluginParams.getParam("r");
+    return `
+    #define FILTER_MITCHELL_R ${pluginParams.params.r}
+    #define FILTER_MITCHELL_B ${pluginParams.params.b}
+    #define FILTER_MITCHELL_C ${pluginParams.params.c}
+    #define FILTER_MITCHELL_INVX ${1/r[0]}
+    #define FILTER_MITCHELL_INVY ${1/r[1]}
+    `
 };
 
 var filter = new Generator("filter","","",plugins);
@@ -944,15 +1018,15 @@ let plugins$1 = {
 
 var main = new Generator("main","","",plugins$1);
 
-var bsdfs = "\nstruct Lambertian{\n    float kd;\n    vec3 cd;\n};\nvec3 lambertian_f(Lambertian l,const vec3 wi,const vec3 wo){\n    return l.kd * l.cd * INVPI;\n}\nvec3 lambertian_sample_f(Lambertian l,float seed,out vec3 wi, vec3 wo, out float pdf){\n\twi = cosWeightHemisphere(seed);\n\tpdf = INVPI;\n\treturn lambertian_f(l,wi,wo);\n}\nstruct Reflective{\n    float kr;\n    vec3 cr;\n};\nvec3 reflective_f(Reflective r,const vec3 wi,const vec3 wo){\n    return r.cr;\n}\nvec3 reflective_sample_f(Reflective r,float seed,out vec3 wi, vec3 wo, out float pdf){\n\twi = vec3(-wo.x,-wo.y,wo.z) + uniformlyRandomVector(seed) * (1.0-r.kr);\n\tpdf = 1.0;\n\treturn reflective_f(r,wi,wo);\n}\nstruct Ward{\n    float ax, ay;\n    float invax2, invay2;\n    float const2;\n    vec3 rs;\n};\nvec3 ward_f(Ward w,const vec3 wi,const vec3 wo){\n    return w.rs;\n}\nvec3 ward_sample_f(Ward w,float seed,out vec3 wi, vec3 wo, out float pdf){\n    vec3 h;\n    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat phi = atan(w.ay*tan(2.0*PI*u2),w.ax);\n\tfloat cosPhi = cos(phi);\n\tfloat sinPhi = sqrt(1.0-cosPhi*cosPhi);\n\tfloat theta = atan(sqrt(-log(u1)/(cosPhi*cosPhi*w.invax2 + sinPhi*sinPhi*w.invay2)));\n\th.z = cos(theta);\n\tfloat cosTheta2 = h.z*h.z;\n\tfloat sinTheta = sqrt(1.0-cosTheta2);\n\tfloat tanTheta2 = (1.0-cosTheta2)/cosTheta2;\n\th.x = cosPhi*sinTheta;\n\th.y = sinPhi*sinTheta;\n\tif(dot(wo,h)<-EPSILON) h=-h;\n\twi = -wo + 2.f * dot(wo, h) * h;\n\tpdf = 1.0;\treturn ward_f(w,wi,wo);\n}\nstruct Refractive{\n    vec3 rc;\n    float F0;\n    float nt;\n};\nvec3 refractive_sample_f(Refractive r,float seed,bool into,out vec3 wi, vec3 wo, out float pdf){\n    float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n    vec3 n = vec3(0.0,0.0,1.0);\n    float nnt = into ? NC / r.nt : r.nt / NC;\n    float ddn = dot(-wo,n);\n\tfloat cos2t = 1.0-nnt*nnt*(1.0-ddn*ddn);\n\tif (cos2t < 0.0){\n\t    pdf = 1.0;\n\t    wi = vec3(-wo.x,-wo.y,wo.z);\n\t    return r.rc;\n\t}\n\tvec3 refr = normalize(-wo*nnt - n*(ddn*nnt+sqrt(cos2t)));\n\tfloat c = 1.0-(into?-ddn:dot(-n,refr));\n    float Fe = r.F0 + (1.0 - r.F0) * c * c * c * c * c;\n    float Fr = 1.0 - Fe;\n    pdf = 0.25 + 0.5 * Fe;\n    if (u < pdf){\n        wi = vec3(-wo.x,-wo.y,wo.z);\n        return r.rc * Fe;\n    }\n    else{\n        wi = refr;\n        pdf = 1.0-pdf;\n        return r.rc * Fr;\n    }\n}\n";
+var bsdfs = "\nstruct Lambertian{\n    float kd;\n    vec3 cd;\n};\nvec3 lambertian_f(Lambertian l,const vec3 wi,const vec3 wo){\n    return l.kd * l.cd * INVPI;\n}\nvec3 lambertian_sample_f(Lambertian l,float seed,out vec3 wi, vec3 wo, out float pdf){\n\twi = cosWeightHemisphere(seed);\n\tpdf = INVPI;\n\treturn lambertian_f(l,wi,wo);\n}\nstruct Reflective{\n    float kr;\n    vec3 cr;\n};\nvec3 reflective_f(Reflective r,const vec3 wi,const vec3 wo){\n    return BLACK;\n}\nvec3 reflective_sample_f(Reflective r,float seed,out vec3 wi, vec3 wo, out float pdf){\n\twi = vec3(-wo.x,-wo.y,wo.z) + uniformlyRandomVector(seed) * (1.0-r.kr);\n\tpdf = 1.0;\n\treturn r.cr;\n}\nstruct Ward{\n    float ax, ay;\n    float invax2, invay2;\n    float const2;\n    vec3 rs;\n};\nvec3 ward_f(Ward w,const vec3 wi,const vec3 wo){\n    return w.rs;\n}\nvec3 ward_sample_f(Ward w,float seed,out vec3 wi, vec3 wo, out float pdf){\n    vec3 h;\n    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat phi = atan(w.ay*tan(2.0*PI*u2),w.ax);\n\tfloat cosPhi = cos(phi);\n\tfloat sinPhi = sqrt(1.0-cosPhi*cosPhi);\n\tfloat theta = atan(sqrt(-log(u1)/(cosPhi*cosPhi*w.invax2 + sinPhi*sinPhi*w.invay2)));\n\th.z = cos(theta);\n\tfloat cosTheta2 = h.z*h.z;\n\tfloat sinTheta = sqrt(1.0-cosTheta2);\n\tfloat tanTheta2 = (1.0-cosTheta2)/cosTheta2;\n\th.x = cosPhi*sinTheta;\n\th.y = sinPhi*sinTheta;\n\tif(dot(wo,h)<-EPSILON) h=-h;\n\twi = -wo + 2.f * dot(wo, h) * h;\n\tpdf = 1.0;\treturn ward_f(w,wi,wo);\n}\nstruct Refractive{\n    vec3 rc;\n    float F0;\n    float nt;\n};\nvec3 refractive_f(Refractive r,vec3 wi, vec3 wo){\n    return BLACK;\n}\nvec3 refractive_sample_f(Refractive r,float seed,bool into,out vec3 wi, vec3 wo, out float pdf){\n    float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n    vec3 n = vec3(0.0,0.0,1.0);\n    float nnt = into ? NC / r.nt : r.nt / NC;\n    float ddn = dot(-wo,n);\n\tvec3 refr = refract(-wo,n,nnt);\n\tfloat c = 1.0-(into?-ddn:dot(-n,refr));\n    float Fe = r.F0 + (1.0 - r.F0) * c * c * c * c * c;\n    float Fr = 1.0 - Fe;\n    pdf = 0.25 + 0.5 * Fe;\n    if (u < pdf){\n        wi = vec3(-wo.x,-wo.y,wo.z);\n        return r.rc * Fe;\n    }\n    else{\n        wi = refr;\n        pdf = 1.0-pdf;\n        return r.rc * Fr;\n    }\n}\n";
 
 var metal = "void metal_attr(float matIndex,out Ward w){\n    w.ax = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n    w.ay = readFloat(texParams,vec2(2.0,matIndex),TEX_PARAMS_LENGTH);\n    w.invax2 = readFloat(texParams,vec2(3.0,matIndex),TEX_PARAMS_LENGTH);\n    w.invay2 = readFloat(texParams,vec2(4.0,matIndex),TEX_PARAMS_LENGTH);\n    w.const2 = readFloat(texParams,vec2(5.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 metal(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    Ward ward_brdf;\n    metal_attr(matIndex,ward_brdf);\n    ward_brdf.rs = sc;\n    f = ward_sample_f(ward_brdf,seed,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 metal_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){\n    Ward ward_brdf;\n    metal_attr(matIndex,ward_brdf);\n    ward_brdf.rs = sc;\n    return ward_f(ward_brdf,wi,wo);\n}";
 
 var matte = "void matte_attr(float matIndex,out Lambertian l){\n    l.kd = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 matte(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    Lambertian diffuse_brdf;\n    matte_attr(matIndex,diffuse_brdf);\n    diffuse_brdf.cd = sc;\n    f = lambertian_sample_f(diffuse_brdf,seed,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 matte_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){\n    Lambertian diffuse_brdf;\n    matte_attr(matIndex,diffuse_brdf);\n    diffuse_brdf.cd = sc;\n    return lambertian_f(diffuse_brdf,wi,wo);\n}";
 
-var mirror = "void mirror_attr(float matIndex,out Reflective r){\n    r.kr = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 mirror(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    Reflective specular_brdf;\n    mirror_attr(matIndex,specular_brdf);\n    specular_brdf.cr = sc;\n    f = reflective_sample_f(specular_brdf,seed,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 mirror_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){\n    return BLACK;\n}";
+var mirror = "void mirror_attr(float matIndex,out Reflective r){\n    r.kr = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 mirror(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    Reflective specular_brdf;\n    mirror_attr(matIndex,specular_brdf);\n    specular_brdf.cr = sc;\n    f = reflective_sample_f(specular_brdf,seed,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 mirror_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){\n    Reflective specular_brdf;\n    mirror_attr(matIndex,specular_brdf);\n    specular_brdf.cr = sc;\n    return reflective_f(specular_brdf,wi,wo);\n}";
 
-var transmission = "void transmission_attr(float matIndex,out Refractive r){\n    r.nt = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n    r.F0 = readFloat(texParams,vec2(2.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 transmission(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    Refractive refractive_brdf;\n    transmission_attr(matIndex,refractive_brdf);\n    refractive_brdf.rc = sc;\n    f = refractive_sample_f(refractive_brdf,seed,into,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 transmission_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){\n    return BLACK;\n}";
+var transmission = "void transmission_attr(float matIndex,out Refractive r){\n    r.nt = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n    r.F0 = readFloat(texParams,vec2(2.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 transmission(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    Refractive refractive_brdf;\n    transmission_attr(matIndex,refractive_brdf);\n    refractive_brdf.rc = sc;\n    f = refractive_sample_f(refractive_brdf,seed,into,wi,wo,pdf);\n    return f/pdf;\n}\nvec3 transmission_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){\n    Refractive refractive_brdf;\n    transmission_attr(matIndex,refractive_brdf);\n    refractive_brdf.rc = sc;\n    return refractive_f(refractive_brdf,wi,wo);\n}";
 
 /**
  * Created by eason on 1/20/18.
@@ -1042,7 +1116,7 @@ var shape = new Generator("shape","",testShadow,plugins$3,intersect,sample);
 
 var checkerboard = "void checkerboard_attr(float texIndex,out float size,out float lineWidth){\n    size = readFloat(texParams,vec2(1.0,texIndex),TEX_PARAMS_LENGTH);\n    lineWidth = readFloat(texParams,vec2(2.0,texIndex),TEX_PARAMS_LENGTH);\n}\nvec3 checkerboard(vec3 hit,float texIndex){\n    float size,lineWidth;\n    checkerboard_attr(texIndex,size,lineWidth);\n    float width = 0.5 * lineWidth / size;\n    float fx = hit.x/size-floor(hit.x/size),\n    fy = hit.y/size-floor(hit.y/size),\n    fz = hit.z/size-floor(hit.z/size);\n    bool in_outline = (fx<width||fx>1.0-width)||(fy<width||fy>1.0-width)||(fz<width||fz>1.0-width);\n    if (!in_outline) {\n        return WHITE;\n    } else {\n        return GREY;\n    }\n}";
 
-var cornellbox = "void cornellbox_attr(float texIndex,out vec3 min,out vec3 max){\n    min = readVec3(texParams,vec2(1.0,texIndex),TEX_PARAMS_LENGTH);\n    max = readVec3(texParams,vec2(4.0,texIndex),TEX_PARAMS_LENGTH);\n}\nvec3 cornellbox(vec3 hit,float texIndex){\n    vec3 min,max;\n    cornellbox_attr(texIndex,min,max);\n    if ( hit.x < min.x + 0.0001 )\n    \treturn YELLOW*0.8;\n    else if ( hit.x > max.x - 0.0001 )\n    \treturn BLUE*0.8;\n    else if ( hit.y < min.y + 0.0001 )\n    \treturn WHITE;\n    else if ( hit.y > max.y - 0.0001 )\n    \treturn WHITE;\n    else if ( hit.z > min.z - 0.0001 )\n    \treturn WHITE;\n    return BLACK;\n}";
+var cornellbox = "void cornellbox_attr(float texIndex,out vec3 min,out vec3 max){\n    min = readVec3(texParams,vec2(1.0,texIndex),TEX_PARAMS_LENGTH);\n    max = readVec3(texParams,vec2(4.0,texIndex),TEX_PARAMS_LENGTH);\n}\nvec3 cornellbox(vec3 hit,float texIndex){\n    vec3 min,max;\n    cornellbox_attr(texIndex,min,max);\n    if ( hit.x < min.x + 0.0001 )\n    \treturn YELLOW;\n    else if ( hit.x > max.x - 0.0001 )\n    \treturn BLUE;\n    else if ( hit.y < min.y + 0.0001 )\n    \treturn WHITE;\n    else if ( hit.y > max.y - 0.0001 )\n    \treturn WHITE;\n    else if ( hit.z > min.z - 0.0001 )\n    \treturn WHITE;\n    return BLACK;\n}";
 
 /**
  * Created by eason on 1/20/18.
@@ -1106,7 +1180,7 @@ class TraceShader{
             textureWeight:{type:'float',value:0},
             timeSinceStart:{type:'float',value:0},
             matrix:{type:'mat4',value:Matrix.I(4)},
-            eye:{type:'vec3',value:Vector.Zero(3)}
+            eye:{type:'vec3',value:Vector.Zero(3)},
         };
         this.texture = {
             cache:0,
@@ -1124,13 +1198,18 @@ class TraceShader{
                precision highp int;\n`
             + this.uniformstr()
             + c.generate()
-            + util.generate("random","sampler","texhelper","utility")
+            + util.generate(
+                new PluginParams("random"),
+                new PluginParams("sampler"),
+                new PluginParams("texhelper"),
+                new PluginParams("utility")
+            )
             + texture.generate(...this.pluginsList.texture)
             + material.generate(...this.pluginsList.material)
             + shape.generate(...this.pluginsList.shape)
             + shade.generate()
             + trace.generate(this.pluginsList.trace)
-            + main.generate("fstrace")
+            + main.generate(new PluginParams("fstrace"))
     }
 
     combinevs(){
@@ -1138,8 +1217,8 @@ class TraceShader{
             + `precision highp float;
                precision highp int;\n`
             + this.uniformstr()
-            + util.generate("utility")
-            + main.generate("vstrace")
+            + util.generate(new PluginParams("utility"))
+            + main.generate(new PluginParams("vstrace"))
     }
 
     uniformstr(){
@@ -1169,13 +1248,13 @@ class RenderShader{
             + `precision highp float;\n`
             + this.uniformstr()
             + filter.generate(this.pluginsList.filter)
-            + main.generate("fsrender")
+            + main.generate(new PluginParams("fsrender"))
     }
 
     combinevs(){
         return `#version ${this.glslv}\n`
             + this.uniformstr()
-            + main.generate("vsrender")
+            + main.generate(new PluginParams("vsrender"))
     }
 
     uniformstr(){return `uniform sampler2D tex;\n`}
@@ -1451,12 +1530,12 @@ class Scene {
         this.sampleCount = 0;
         this.lgcount = 0;
         this.obcount = 0;
-        this._trace = "pathtrace";
-        this._filter = "gamma";
+        this._trace = new PluginParams("pathtrace");
+        this._filter = new PluginParams("none");
     }
 
     set filter(plugin){
-        if(filter.query(plugin)) this._filter = plugin;
+        if(filter.query(plugin)) this._filter.name = plugin;
     }
 
     get filter(){
@@ -1464,7 +1543,7 @@ class Scene {
     }
 
     set trace(plugin){
-        if(trace.query(plugin)) this._trace = plugin;
+        if(trace.query(plugin)) this._trace.name = plugin;
     }
 
     get trace(){
@@ -1513,18 +1592,29 @@ class Scene {
             trace:this.trace
         };
 
+        let tmp = {
+            shape:[],
+            material:[],
+            texture:[]
+        };
+
         for(let ob of this.objects){
             if(ob.pluginName &&
-                !pluginsList.shape.includes(ob.pluginName))
-                pluginsList.shape.push(ob.pluginName);
+                !tmp.shape.includes(ob.pluginName)){
+                pluginsList.shape.push(new PluginParams(ob.pluginName));
+                tmp.shape.push(ob.pluginName);
+            }
             if(ob.material.pluginName &&
-                !pluginsList.material.includes(ob.material.pluginName))
-                pluginsList.material.push(ob.material.pluginName);
+                !tmp.material.includes(ob.material.pluginName)){
+                pluginsList.material.push(new PluginParams(ob.material.pluginName));
+                tmp.material.push(ob.material.pluginName);
+            }
             if(ob.texture.pluginName &&
-                !pluginsList.texture.includes(ob.texture.pluginName))
-                pluginsList.texture.push(ob.texture.pluginName);
+                !tmp.texture.includes(ob.texture.pluginName)){
+                pluginsList.texture.push(new PluginParams(ob.texture.pluginName));
+                tmp.texture.push(ob.texture.pluginName);
+            }
         }
-
         return pluginsList;
     }
 

@@ -1,5 +1,5 @@
 float gamma(float x) {
-    return pow(clamp(x,0.0,1.0), 1.0/2.2) + 0.5/255.0;
+    return pow(clamp(x,0.0,1.0), 1.0/FILTER_GAMMA_C) + 0.0022222222222222;
 }
 
 vec4 pixelFilter(vec2 texCoord){

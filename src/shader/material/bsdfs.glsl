@@ -23,13 +23,13 @@ struct Reflective{
 };
 
 vec3 reflective_f(Reflective r,const vec3 wi,const vec3 wo){
-    return r.cr;
+    return BLACK;
 }
 
 vec3 reflective_sample_f(Reflective r,float seed,out vec3 wi, vec3 wo, out float pdf){
 	wi = vec3(-wo.x,-wo.y,wo.z) + uniformlyRandomVector(seed) * (1.0-r.kr);
 	pdf = 1.0;
-	return reflective_f(r,wi,wo);
+	return r.cr;
 }
 
 
@@ -83,21 +83,17 @@ struct Refractive{
     float nt;
 };
 
+vec3 refractive_f(Refractive r,vec3 wi, vec3 wo){
+    return BLACK;
+}
+
 vec3 refractive_sample_f(Refractive r,float seed,bool into,out vec3 wi, vec3 wo, out float pdf){
     float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );
     vec3 n = vec3(0.0,0.0,1.0);
     float nnt = into ? NC / r.nt : r.nt / NC;
     float ddn = dot(-wo,n);
 
-	float cos2t = 1.0-nnt*nnt*(1.0-ddn*ddn);
-
-	if (cos2t < 0.0){
-	    pdf = 1.0;
-	    wi = vec3(-wo.x,-wo.y,wo.z);
-	    return r.rc;
-	}
-
-	vec3 refr = normalize(-wo*nnt - n*(ddn*nnt+sqrt(cos2t)));
+	vec3 refr = refract(-wo,n,nnt);
 
 	float c = 1.0-(into?-ddn:dot(-n,refr));
     float Fe = r.F0 + (1.0 - r.F0) * c * c * c * c * c;

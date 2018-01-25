@@ -2,6 +2,7 @@
  * Created by eason on 1/20/18.
  */
 import {Vector,Matrix} from '../utils/matrix';
+import {PluginParams} from '../shader/generator'
 import c from '../shader/const/shader.const'
 import filter from '../shader/filter/shader.filter'
 import main from '../shader/main/shader.main'
@@ -21,7 +22,7 @@ class TraceShader{
             textureWeight:{type:'float',value:0},
             timeSinceStart:{type:'float',value:0},
             matrix:{type:'mat4',value:Matrix.I(4)},
-            eye:{type:'vec3',value:Vector.Zero(3)}
+            eye:{type:'vec3',value:Vector.Zero(3)},
         };
         this.texture = {
             cache:0,
@@ -39,13 +40,18 @@ class TraceShader{
                precision highp int;\n`
             + this.uniformstr()
             + c.generate()
-            + util.generate("random","sampler","texhelper","utility")
+            + util.generate(
+                new PluginParams("random"),
+                new PluginParams("sampler"),
+                new PluginParams("texhelper"),
+                new PluginParams("utility")
+            )
             + texture.generate(...this.pluginsList.texture)
             + material.generate(...this.pluginsList.material)
             + shape.generate(...this.pluginsList.shape)
             + shade.generate()
             + trace.generate(this.pluginsList.trace)
-            + main.generate("fstrace")
+            + main.generate(new PluginParams("fstrace"))
     }
 
     combinevs(){
@@ -53,8 +59,8 @@ class TraceShader{
             + `precision highp float;
                precision highp int;\n`
             + this.uniformstr()
-            + util.generate("utility")
-            + main.generate("vstrace")
+            + util.generate(new PluginParams("utility"))
+            + main.generate(new PluginParams("vstrace"))
     }
 
     uniformstr(){
@@ -84,13 +90,13 @@ class RenderShader{
             + `precision highp float;\n`
             + this.uniformstr()
             + filter.generate(this.pluginsList.filter)
-            + main.generate("fsrender")
+            + main.generate(new PluginParams("fsrender"))
     }
 
     combinevs(){
         return `#version ${this.glslv}\n`
             + this.uniformstr()
-            + main.generate("vsrender")
+            + main.generate(new PluginParams("vsrender"))
     }
 
     uniformstr(){return `uniform sampler2D tex;\n`}

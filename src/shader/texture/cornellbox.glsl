@@ -8,9 +8,9 @@ vec3 cornellbox(vec3 hit,float texIndex){
     cornellbox_attr(texIndex,min,max);
 
     if ( hit.x < min.x + 0.0001 )
-    	return YELLOW*0.8;
+    	return YELLOW;
     else if ( hit.x > max.x - 0.0001 )
-    	return BLUE*0.8;
+    	return BLUE;
     else if ( hit.y < min.y + 0.0001 )
     	return WHITE;
     else if ( hit.y > max.y - 0.0001 )

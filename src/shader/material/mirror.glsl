@@ -16,5 +16,8 @@ vec3 mirror(float seed,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){
 }
 
 vec3 mirror_f(float matIndex,vec3 sc,vec3 wo,vec3 wi){
-    return BLACK;
+    Reflective specular_brdf;
+    mirror_attr(matIndex,specular_brdf);
+    specular_brdf.cr = sc;
+    return reflective_f(specular_brdf,wi,wo);
 }
