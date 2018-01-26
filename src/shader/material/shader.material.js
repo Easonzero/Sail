@@ -25,4 +25,4 @@ let ep = new Export("material",head,tail,"matCategory",function(plugin){
         f = ${plugin.name}_f(matIndex,sc,wo,wi);`
 });
 
-export default new Generator("material",bsdfs,"",plugins,ep);
+export default new Generator("material",[bsdfs],[""],plugins,ep);

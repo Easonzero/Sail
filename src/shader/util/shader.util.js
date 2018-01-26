@@ -14,4 +14,4 @@ let plugins = {
     "utility":new Plugin("utility",utility)
 };
 
-export default new Generator("util","","",plugins);
+export default new Generator("util",[""],[""],plugins);

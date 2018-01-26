@@ -22,8 +22,6 @@ class PluginParams{
     getParamName(name,generatorName){
        return `${generatorName}_${this.name}_${name}`.toUpperCase();
     }
-
-
 }
 
 class Plugin {
@@ -75,10 +73,34 @@ class Export{
 class Generator{
     constructor(name,head,tail,plugins,...exports){
         this.plugins = plugins;
-        this.name = name;
+        this._name = name;
         this.exports = exports;
-        this.head = head;
-        this.tail = tail;
+        this._head = head;
+        this._tail = tail;
+    }
+
+    set head(head){}
+
+    get head(){
+        let head = "";
+        for(let e of this._head)
+            head += e + '\n';
+        return head;
+    }
+
+    set tail(tail){}
+
+    get tail(){
+        let tail = "";
+        for(let e of this._tail)
+            tail += e + '\n';
+        return tail;
+    }
+
+    set name(name){}
+
+    get name(){
+        return this._name;
     }
 
     generate(...pluginParams){

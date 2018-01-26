@@ -862,8 +862,6 @@
 	    getParamName(name,generatorName){
 	       return `${generatorName}_${this.name}_${name}`.toUpperCase();
 	    }
-
-
 	}
 
 	class Plugin {
@@ -915,10 +913,34 @@
 	class Generator{
 	    constructor(name,head,tail,plugins,...exports){
 	        this.plugins = plugins;
-	        this.name = name;
+	        this._name = name;
 	        this.exports = exports;
-	        this.head = head;
-	        this.tail = tail;
+	        this._head = head;
+	        this._tail = tail;
+	    }
+
+	    set head(head){}
+
+	    get head(){
+	        let head = "";
+	        for(let e of this._head)
+	            head += e + '\n';
+	        return head;
+	    }
+
+	    set tail(tail){}
+
+	    get tail(){
+	        let tail = "";
+	        for(let e of this._tail)
+	            tail += e + '\n';
+	        return tail;
+	    }
+
+	    set name(name){}
+
+	    get name(){
+	        return this._name;
 	    }
 
 	    generate(...pluginParams){
@@ -951,21 +973,223 @@
 	/**
 	 * Created by eason on 1/20/18.
 	 */
-	var c = new Generator("const",define,struct);
+	var c = new Generator("const",[define],[struct]);
+
+	var window$1 = "vec3 windowSampler(vec2 coord,inout int count){\n    if(coord.x<0.0||coord.x>1.0||coord.y<0.0||coord.y>1.0)\n        return vec3(0,0,0);\n    count++;\n    return texture(tex,coord).rgb;\n}\nvec3 window(vec2 coord,float i,float j,out int count){\n    count = 0;\n    vec2 x = vec2(i/512.0,0);\n    vec2 y = vec2(0,j/512.0);\n    vec3 color = vec3(0,0,0);\n    color += windowSampler(coord+x+y,count);\n    color += windowSampler(coord+x-y,count);\n    color += windowSampler(coord-x+y,count);\n    color += windowSampler(coord-x-y,count);\n    return color;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    float weightSum = 0.0;\n    for(int i=0;i<FILTER_WINDOW_WIDTH;i++){\n        for(int j=0;j<FILTER_WINDOW_WIDTH;j++){\n            int count;\n            vec3 tmpColor = window(\n                texCoord,\n                (float(j) + 0.5) * FILTER_WINDOW_RADIUS.x / float(FILTER_WINDOW_WIDTH),\n                (float(i) + 0.5) * FILTER_WINDOW_RADIUS.y / float(FILTER_WINDOW_WIDTH),\n                count\n            );\n            float weight = windowWeightTable[i*j+j];\n            weightSum += weight*float(count);\n            color += tmpColor * weight;\n        }\n    }\n    return vec4(color/weightSum,1.0);\n}";
 
 	var gamma = "float gamma(float x) {\n    return pow(clamp(x,0.0,1.0), 1.0/FILTER_GAMMA_C) + 0.0022222222222222;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(tex, texCoord).rgb;\n    return vec4(gamma(color.r),gamma(color.g),gamma(color.b),1.0);\n}";
 
 	var none = "vec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(tex, texCoord).rgb;\n    return vec4(color,1.0);\n}";
 
-	var box = "float box(vec2 coord){\n    return 1.0;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    vec2 del = FILTER_BOX_R/512.0;\n    vec2 o = texCoord-del/2.0;\n    int sampleNum = 0;\n    for(int i=0;i<int(FILTER_BOX_R.x);i++){\n        for(int j=0;j<int(FILTER_BOX_R.y);j++){\n            vec2 coord = o+vec2(float(i)/512.0,0)+vec2(0,float(j)/512.0);\n            if(coord.x<0.0||coord.y<0.0 ||\n            coord.x>=1.0||coord.y>=1.0) continue;\n            vec3 tmpColor = texture(tex, coord).rgb;\n            float weight = box(coord);\n            color += tmpColor * weight;\n            sampleNum++;\n        }\n    }\n    return vec4(color/float(sampleNum),1.0);\n}";
+	/**
+	 * Created by eason on 1/26/18.
+	 */
+	function box(p){
+	    return 1.0;
+	}
 
-	var gaussian = "float gaussian(float d,float expv){\n    return max(0.0, exp(-FILTER_GAUSSIAN_ALPHA * d * d) - expv);\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    vec2 del = FILTER_GAUSSIAN_R/512.0;\n    vec2 o = texCoord-del/2.0;\n    int sampleNum = 0;\n    for(int i=0;i<int(FILTER_GAUSSIAN_R.x);i++){\n        for(int j=0;j<int(FILTER_GAUSSIAN_R.y);j++){\n            vec2 coord = o+vec2(float(i)/512.0,0)+vec2(0,float(j)/512.0);\n            if(coord.x<0.0||coord.y<0.0 ||\n            coord.x>=1.0||coord.y>=1.0) continue;\n            vec2 d = (coord-texCoord)*512.0;\n            vec3 tmpColor = texture(tex, coord).rgb;\n            float weight = gaussian((abs(d.x)+0.5)/FILTER_GAUSSIAN_R.y,FILTER_GAUSSIAN_EXPX)\n                            * gaussian((abs(d.y)+0.5)/FILTER_GAUSSIAN_R.x,FILTER_GAUSSIAN_EXPY);\n            color += tmpColor * weight;\n            sampleNum++;\n        }\n    }\n    return vec4(color/float(sampleNum),1.0);\n}";
+	function Box_param(windowWidth){
 
-	var mitchell = "float mitchell1D(float x){\n    x = abs(2.0 * x);\n    if (x > 1.0)\n        return ((-FILTER_MITCHELL_B - 6.0 * FILTER_MITCHELL_C) * x * x * x + (6.0 * FILTER_MITCHELL_B + 30.0 * FILTER_MITCHELL_C) * x * x +\n                (-12.0 * FILTER_MITCHELL_B - 48.0 * FILTER_MITCHELL_C) * x + (8.0 * FILTER_MITCHELL_B + 24.0 * FILTER_MITCHELL_C)) * (1.f / 6.f);\n    else\n        return ((12.0 - 9.0 * FILTER_MITCHELL_B - 6.0 * FILTER_MITCHELL_C) * x * x * x +\n                (-18.0 + 12.0 * FILTER_MITCHELL_B + 6.0 * FILTER_MITCHELL_C) * x * x + (6.0 - 2.0 * FILTER_MITCHELL_B)) *\n                (1.f / 6.f);\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    vec2 del = FILTER_MITCHELL_R/512.0;\n    vec2 o = texCoord-del/2.0;\n    int sampleNum = 0;\n    for(int i=0;i<int(FILTER_MITCHELL_R.x);i++){\n        for(int j=0;j<int(FILTER_MITCHELL_R.y);j++){\n            vec2 coord = o+vec2(float(i)/512.0,0)+vec2(0,float(j)/512.0);\n            if(coord.x<0.0||coord.y<0.0 ||\n            coord.x>=1.0||coord.y>=1.0) continue;\n            vec2 d = (coord-texCoord)*512.0;\n            vec3 tmpColor = texture(tex, coord).rgb;\n            float weight = mitchell1D((abs(d.x)+0.5)*FILTER_MITCHELL_INVX/FILTER_MITCHELL_R.y)\n                            * mitchell1D((abs(d.y)+0.5)*FILTER_MITCHELL_INVY/FILTER_MITCHELL_R.x);\n            color += tmpColor * weight;\n            sampleNum++;\n        }\n    }\n    return vec4(color/float(sampleNum),1.0);\n}";
+	    return function(pluginParams){
+	        let r = pluginParams.getParam("r");
+	        let length = windowWidth*windowWidth;
+	        let result = `
+        #define FILTER_WINDOW_WIDTH ${windowWidth}
+        #define FILTER_WINDOW_LENGTH ${length}
+        #define FILTER_WINDOW_RADIUS ${pluginParams.params.r}
+        float windowWeightTable[FILTER_WINDOW_LENGTH] = float[FILTER_WINDOW_LENGTH](`;
 
-	var sinc = "#define PI 3.141592653589793\nfloat sinc(float x){\n    x = abs(x);\n    if (x < 1e-5) return 1.0;\n    return sin(PI * x) / (PI * x);\n}\nfloat windowedSinc(float x, float radius){\n    x = abs(x);\n    if (x > radius) return 0.0;\n    float lanczos = sinc(x / FILTER_SINC_TAU);\n    return sinc(x) * lanczos;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    vec2 del = FILTER_SINC_R/512.0;\n    vec2 o = texCoord-del/2.0;\n    int sampleNum = 0;\n    for(int i=0;i<int(FILTER_SINC_R.x);i++){\n        for(int j=0;j<int(FILTER_SINC_R.y);j++){\n            vec2 coord = o+vec2(float(i)/512.0,0)+vec2(0,float(j)/512.0);\n            if(coord.x<0.0||coord.y<0.0 ||\n            coord.x>=1.0||coord.y>=1.0) continue;\n            vec2 d = (coord-texCoord)*512.0;\n            vec3 tmpColor = texture(tex, coord).rgb;\n            float weight = windowedSinc((abs(d.x)+0.5)/FILTER_SINC_R.y,FILTER_SINC_R.x)\n                            * windowedSinc((abs(d.y)+0.5)/FILTER_SINC_R.x,FILTER_SINC_R.y);\n            color += tmpColor * weight;\n            sampleNum++;\n        }\n    }\n    return vec4(color/float(sampleNum),1.0);\n}";
+	        let offset = 0;
+	        for(let i=0;i<windowWidth;i++){
+	            for(let j=0;j<windowWidth;j++,offset++){
+	                let p = {
+	                  x:(j + 0.5) * r.x / windowWidth,
+	                  y:(i + 0.5) * r.y / windowWidth
+	                };
+	                let weight = box(p)+'';
+	                if(!weight.includes('.')) weight+='.0';
+	                result += weight;
+	                if(offset<length-1) result+=',';
+	                else result+=');';
+	            }
+	        }
 
-	var triangle = "float triangle(float d,float radius){\n    return max(0.0,radius - d);\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    vec2 del = FILTER_TRIANGLE_R/512.0;\n    vec2 o = texCoord-del/2.0;\n    int sampleNum = 0;\n    for(int i=0;i<int(FILTER_TRIANGLE_R.x);i++){\n        for(int j=0;j<int(FILTER_TRIANGLE_R.y);j++){\n            vec2 coord = o+vec2(float(i)/512.0,0)+vec2(0,float(j)/512.0);\n            if(coord.x<0.0||coord.y<0.0 ||\n            coord.x>=1.0||coord.y>=1.0) continue;\n            vec2 d = (coord-texCoord)*512.0;\n            vec3 tmpColor = texture(tex, coord).rgb;\n            float weight = triangle((abs(d.x)+0.5),FILTER_TRIANGLE_R.x)\n                            * triangle((abs(d.y)+0.5),FILTER_TRIANGLE_R.y);\n            color += tmpColor * weight;\n            sampleNum++;\n        }\n    }\n    return vec4(color/float(sampleNum),1.0);\n}";
+	        return result;
+	    }
+	}
+
+	/**
+	 * Created by eason on 1/26/18.
+	 */
+	function gaussian(d,expv,alpha){
+	    return Math.max(0.0, Math.exp(-alpha * d * d) - expv);
+	}
+
+	function Gaussian_param(windowWidth){
+
+	    return function(pluginParams){
+	        let r = pluginParams.getParam("r");
+	        let alpha = pluginParams.getParam("alpha")[0];
+	        let length = windowWidth*windowWidth;
+	        let result = `
+        #define FILTER_WINDOW_WIDTH ${windowWidth}
+        #define FILTER_WINDOW_LENGTH ${length}
+        #define FILTER_WINDOW_RADIUS ${pluginParams.params.r}
+        float windowWeightTable[FILTER_WINDOW_LENGTH] = float[FILTER_WINDOW_LENGTH](`;
+
+	        let offset = 0;
+	        for(let i=0;i<windowWidth;i++){
+	            for(let j=0;j<windowWidth;j++,offset++){
+	                let p = {
+	                    x:(j + 0.5) * r[0] / windowWidth,
+	                    y:(i + 0.5) * r[1] / windowWidth
+	                };
+	                let expx = Math.exp(-alpha*r[0]*r[0]),expy = Math.exp(-alpha*r[1]*r[1]);
+	                let weight = gaussian(p.x,expx,alpha)*gaussian(p.y,expy,alpha)+'';
+	                if(!weight.includes('.')) weight+='.0';
+	                result += weight;
+	                if(offset<length-1) result+=',';
+	                else result+=');';
+	            }
+	        }
+
+	        return result;
+	    }
+	}
+
+	/**
+	 * Created by eason on 1/26/18.
+	 */
+	function mitchell(x,B,C){
+	    x = Math.abs(2 * x);
+	    if (x > 1)
+	        return ((-B - 6 * C) * x * x * x + (6 * B + 30 * C) * x * x +
+	            (-12 * B - 48 * C) * x + (8 * B + 24 * C)) *
+	            (1.0 / 6.0);
+	    else
+	        return ((12 - 9 * B - 6 * C) * x * x * x +
+	            (-18 + 12 * B + 6 * C) * x * x + (6 - 2 * B)) *
+	            (1.0 / 6.0);
+	}
+
+	function Mitchell_param(windowWidth){
+
+	    return function(pluginParams){
+	        let r = pluginParams.getParam("r");
+	        let b = pluginParams.getParam("b");
+	        let c = pluginParams.getParam("c");
+	        let length = windowWidth*windowWidth;
+	        let result = `
+        #define FILTER_WINDOW_WIDTH ${windowWidth}
+        #define FILTER_WINDOW_LENGTH ${length}
+        #define FILTER_WINDOW_RADIUS ${pluginParams.params.r}
+        float windowWeightTable[FILTER_WINDOW_LENGTH] = float[FILTER_WINDOW_LENGTH](`;
+
+	        let offset = 0;
+	        for(let i=0;i<windowWidth;i++){
+	            for(let j=0;j<windowWidth;j++,offset++){
+	                let p = {
+	                    x:(j + 0.5) * r[0] / windowWidth,
+	                    y:(i + 0.5) * r[1] / windowWidth
+	                };
+	                let weight = mitchell(p.x/r[0],b,c)
+	                    *mitchell(p.y/r[1],b,c)+'';
+	                if(!weight.includes('.')) weight+='.0';
+	                result += weight;
+	                if(offset<length-1) result+=',';
+	                else result+=');';
+	            }
+	        }
+
+	        return result;
+	    }
+	}
+
+	/**
+	 * Created by eason on 1/26/18.
+	 */
+	function sinc(x){
+	    x = Math.abs(x);
+	    if (x < 1e-5) return 1.0;
+	    return Math.sin(Math.PI * x) / (Math.PI * x);
+	}
+
+	function windowedSinc(x,radius,tau){
+	    x = Math.abs(x);
+	    if (x > radius) return 0.0;
+	    let lanczos = sinc(x / tau);
+	    return sinc(x) * lanczos;
+	}
+
+	function Sinc_param(windowWidth){
+
+	    return function(pluginParams){
+	        let r = pluginParams.getParam("r");
+	        let tau = pluginParams.getParam("tau");
+	        let length = windowWidth*windowWidth;
+	        let result = `
+        #define FILTER_WINDOW_WIDTH ${windowWidth}
+        #define FILTER_WINDOW_LENGTH ${length}
+        #define FILTER_WINDOW_RADIUS ${pluginParams.params.r}
+        float windowWeightTable[FILTER_WINDOW_LENGTH] = float[FILTER_WINDOW_LENGTH](`;
+
+	        let offset = 0;
+	        for(let i=0;i<windowWidth;i++){
+	            for(let j=0;j<windowWidth;j++,offset++){
+	                let p = {
+	                    x:(j + 0.5) * r[0] / windowWidth,
+	                    y:(i + 0.5) * r[1] / windowWidth
+	                };
+	                let weight = windowedSinc(p.x,r[0],tau)
+	                    *windowedSinc(p.y,r[1],tau)+'';
+	                if(!weight.includes('.')) weight+='.0';
+	                result += weight;
+	                if(offset<length-1) result+=',';
+	                else result+=');';
+	            }
+	        }
+
+	        return result;
+	    }
+	}
+
+	/**
+	 * Created by eason on 1/26/18.
+	 */
+	function triangle(d,radius){
+	    return Math.max(0.0,radius - d);
+	}
+
+	function Triangle_param(windowWidth){
+
+	    return function(pluginParams){
+	        let r = pluginParams.getParam("r");
+	        let length = windowWidth*windowWidth;
+	        let result = `
+        #define FILTER_WINDOW_WIDTH ${windowWidth}
+        #define FILTER_WINDOW_LENGTH ${length}
+        #define FILTER_WINDOW_RADIUS ${pluginParams.params.r}
+        float windowWeightTable[FILTER_WINDOW_LENGTH] = float[FILTER_WINDOW_LENGTH](`;
+
+	        let offset = 0;
+	        for(let i=0;i<windowWidth;i++){
+	            for(let j=0;j<windowWidth;j++,offset++){
+	                let p = {
+	                    x:(j + 0.5) * r[0] / windowWidth,
+	                    y:(i + 0.5) * r[1] / windowWidth
+	                };
+	                let weight = triangle(p.x,r[0])
+	                    *triangle(p.y,r[1])+'';
+	                if(!weight.includes('.')) weight+='.0';
+	                result += weight;
+	                if(offset<length-1) result+=',';
+	                else result+=');';
+	            }
+	        }
+
+	        return result;
+	    }
+	}
 
 	/**
 	 * Created by eason on 1/23/18.
@@ -973,36 +1197,25 @@
 	let plugins = {
 	    "none":new Plugin("none",none),
 	    "gamma":new Plugin("gamma",gamma),
-	    "box":new Plugin("box",box),
-	    "gaussian":new Plugin("gaussian",gaussian),
-	    "mitchell":new Plugin("mitchell",mitchell),
-	    "sinc":new Plugin("sinc",sinc),
-	    "triangle":new Plugin("triangle",triangle)
+	    "box":new Plugin("box",window$1),
+	    "gaussian":new Plugin("gaussian",window$1),
+	    "mitchell":new Plugin("mitchell",window$1),
+	    "sinc":new Plugin("sinc",window$1),
+	    "triangle":new Plugin("triangle",window$1)
 	};
+	let windowWidth = 4;
 
-	plugins.gaussian.param = function (pluginParams,generatorName) {
-	    let r = pluginParams.getParam("r");
-	    let alpha = pluginParams.getParam("alpha")[0];
-	    return `
-    #define FILTER_GAUSSIAN_R ${pluginParams.params.r}
-    #define FILTER_GAUSSIAN_ALPHA ${pluginParams.params.alpha}
-    #define FILTER_GAUSSIAN_EXPX ${Math.exp(-alpha*r[0]*r[0])}
-    #define FILTER_GAUSSIAN_EXPY ${Math.exp(-alpha*r[1]*r[1])}
-    `
-	};
+	plugins.box.param = Box_param(windowWidth);
 
-	plugins.mitchell.param = function (pluginParams,generatorName) {
-	    let r = pluginParams.getParam("r");
-	    return `
-    #define FILTER_MITCHELL_R ${pluginParams.params.r}
-    #define FILTER_MITCHELL_B ${pluginParams.params.b}
-    #define FILTER_MITCHELL_C ${pluginParams.params.c}
-    #define FILTER_MITCHELL_INVX ${1/r[0]}
-    #define FILTER_MITCHELL_INVY ${1/r[1]}
-    `
-	};
+	plugins.gaussian.param = Gaussian_param(windowWidth);
 
-	var filter = new Generator("filter","","",plugins);
+	plugins.mitchell.param = Mitchell_param(windowWidth);
+
+	plugins.sinc.param = Sinc_param(windowWidth);
+
+	plugins.triangle.param = Triangle_param(windowWidth);
+
+	var filter = new Generator("filter",[""],[""],plugins);
 
 	var fsrender = "in vec2 texCoord;\nout vec4 color;\nvoid main() {\n    color = pixelFilter(texCoord);\n}";
 
@@ -1022,7 +1235,7 @@
 	    "vstrace":new Plugin("vstrace",vstrace)
 	};
 
-	var main = new Generator("main","","",plugins$1);
+	var main = new Generator("main",[""],[""],plugins$1);
 
 	var bsdfs = "\nstruct Lambertian{\n    float kd;\n    vec3 cd;\n};\nvec3 lambertian_f(Lambertian l,const vec3 wi,const vec3 wo){\n    return l.kd * l.cd * INVPI;\n}\nvec3 lambertian_sample_f(Lambertian l,float seed,out vec3 wi, vec3 wo, out float pdf){\n\twi = cosWeightHemisphere(seed);\n\tpdf = INVPI;\n\treturn lambertian_f(l,wi,wo);\n}\nstruct Reflective{\n    float kr;\n    vec3 cr;\n};\nvec3 reflective_f(Reflective r,const vec3 wi,const vec3 wo){\n    return BLACK;\n}\nvec3 reflective_sample_f(Reflective r,float seed,out vec3 wi, vec3 wo, out float pdf){\n\twi = vec3(-wo.x,-wo.y,wo.z) + uniformlyRandomVector(seed) * (1.0-r.kr);\n\tpdf = 1.0;\n\treturn r.cr;\n}\nstruct Ward{\n    float ax, ay;\n    float invax2, invay2;\n    float const2;\n    vec3 rs;\n};\nvec3 ward_f(Ward w,const vec3 wi,const vec3 wo){\n    return w.rs;\n}\nvec3 ward_sample_f(Ward w,float seed,out vec3 wi, vec3 wo, out float pdf){\n    vec3 h;\n    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), seed );\n\tfloat phi = atan(w.ay*tan(2.0*PI*u2),w.ax);\n\tfloat cosPhi = cos(phi);\n\tfloat sinPhi = sqrt(1.0-cosPhi*cosPhi);\n\tfloat theta = atan(sqrt(-log(u1)/(cosPhi*cosPhi*w.invax2 + sinPhi*sinPhi*w.invay2)));\n\th.z = cos(theta);\n\tfloat cosTheta2 = h.z*h.z;\n\tfloat sinTheta = sqrt(1.0-cosTheta2);\n\tfloat tanTheta2 = (1.0-cosTheta2)/cosTheta2;\n\th.x = cosPhi*sinTheta;\n\th.y = sinPhi*sinTheta;\n\tif(dot(wo,h)<-EPSILON) h=-h;\n\twi = -wo + 2.f * dot(wo, h) * h;\n\tpdf = 1.0;\treturn ward_f(w,wi,wo);\n}\nstruct Refractive{\n    vec3 rc;\n    float F0;\n    float nt;\n};\nvec3 refractive_f(Refractive r,vec3 wi, vec3 wo){\n    return BLACK;\n}\nvec3 refractive_sample_f(Refractive r,float seed,bool into,out vec3 wi, vec3 wo, out float pdf){\n    float u = random( vec3( 12.9898, 78.233, 151.7182 ), seed );\n    vec3 n = vec3(0.0,0.0,1.0);\n    float nnt = into ? NC / r.nt : r.nt / NC;\n    float ddn = dot(-wo,n);\n\tvec3 refr = refract(-wo,n,nnt);\n\tfloat c = 1.0-(into?-ddn:dot(-n,refr));\n    float Fe = r.F0 + (1.0 - r.F0) * c * c * c * c * c;\n    float Fr = 1.0 - Fe;\n    pdf = 0.25 + 0.5 * Fe;\n    if (u < pdf){\n        wi = vec3(-wo.x,-wo.y,wo.z);\n        return r.rc * Fe;\n    }\n    else{\n        wi = refr;\n        pdf = 1.0-pdf;\n        return r.rc * Fr;\n    }\n}\n";
 
@@ -1054,14 +1267,14 @@
         f = ${plugin.name}_f(matIndex,sc,wo,wi);`
 	});
 
-	var material = new Generator("material",bsdfs,"",plugins$2,ep);
+	var material = new Generator("material",[bsdfs],[""],plugins$2,ep);
 
 	var shade$1 = "vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){\n    vec3 f,direct = BLACK,_fpdf;\n    bool into = dot(ins.normal,-wo) < 0.0;\n    if(!into) {ins.normal = -ins.normal;}\n    wo = worldToLocal(wo,ins.normal,ins.dpdu,ins.dpdv);\n    fpdf = material(ins.seed,ins.matCategory,ins.matIndex,ins.sc,into,wo,wi,f);\n    wi = localToWorld(wi,ins.normal,ins.dpdu,ins.dpdv);\n    if(ins.index>=ln&&ins.matCategory==MATTE)\n        for(int i=0;i<ln;i++){\n            vec3 light = sampleGeometry(ins,i,_fpdf);\n            vec3 toLight = light - ins.hit;\n            float d = length(toLight);\n            if(!testShadow(Ray(ins.hit + ins.normal * 0.0001, toLight)))\n                direct +=  f * max(0.0, dot(normalize(toLight), ins.normal)) * _fpdf/(d * d);\n        }\n    return ins.emission+direct;\n}";
 
 	/**
 	 * Created by eason on 1/21/18.
 	 */
-	var shade = new Generator("shade",shade$1,"");
+	var shade = new Generator("shade",[shade$1],[""]);
 
 	var cube = "struct Cube{\n    vec3 lb;\n    vec3 rt;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n};\nCube parseCube(float index){\n    Cube cube;\n    cube.lb = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    cube.rt = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    cube.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cube.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cube.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);\n    return cube;\n}\nvec3 normalForCube( vec3 hit, Cube cube){\n\tif ( hit.x < cube.lb.x + 0.0001 )\n\t\treturn vec3( -1.0, 0.0, 0.0 );\n\telse if ( hit.x > cube.rt.x - 0.0001 )\n\t\treturn vec3( 1.0, 0.0, 0.0 );\n\telse if ( hit.y < cube.lb.y + 0.0001 )\n\t\treturn vec3( 0.0, -1.0, 0.0 );\n\telse if ( hit.y > cube.rt.y - 0.0001 )\n\t\treturn vec3( 0.0, 1.0, 0.0 );\n\telse if ( hit.z < cube.lb.z + 0.0001 )\n\t\treturn vec3( 0.0, 0.0, -1.0 );\n\telse return vec3( 0.0, 0.0, 1.0 );\n}\nvoid computeDpDForCube( vec3 normal,out vec3 dpdu,out vec3 dpdv){\n    if (abs(normal.x)<0.5) {\n        dpdu = cross(normal, vec3(1,0,0));\n    }else {\n        dpdu = cross(normal, vec3(0,1,0));\n    }\n    dpdv = cross(normal,dpdu);\n}\nvec3 sampleCube(Intersect ins,Cube cube,out float pdf){\n    vec3 x = vec3(cube.rt.x-cube.lb.x,0.0,0.0);\n    vec3 y = vec3(0.0,0.0,cube.rt.z-cube.lb.z);\n    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), ins.seed );\n    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), ins.seed );\n    pdf = 1.0/(length(x)*length(y));\n    return cube.lb+u1*x+u2*y;\n}\nIntersect intersectCube(Ray ray,Cube cube){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 tMin = (cube.lb - ray.origin) / ray.dir;\n    vec3 tMax = (cube.rt- ray.origin) / ray.dir;\n    vec3 t1 = min( tMin, tMax );\n    vec3 t2 = max( tMin, tMax );\n    float tNear = max( max( t1.x, t1.y ), t1.z );\n    float tFar = min( min( t2.x, t2.y ), t2.z );\n    float t=-1.0,f;\n    if(tNear>EPSILON&&tNear<tFar) t = tNear;\n    else if(tNear<tFar) t = tFar;\n    if(t > EPSILON){\n        result.d = t;\n        result.hit = ray.origin+t*ray.dir;\n        result.normal = normalForCube(ray.origin+t*ray.dir,cube);\n        computeDpDForCube(result.normal,result.dpdu,result.dpdv);\n        result.matIndex = cube.matIndex;\n        result.sc = getSurfaceColor(result.hit,cube.texIndex);\n        result.emission = cube.emission;\n        result.matCategory = readInt(texParams,vec2(0.0,cube.matIndex),TEX_PARAMS_LENGTH);\n    }\n    return result;\n}";
 
@@ -1118,7 +1331,7 @@ bool testShadow(Ray ray){
     return false;
 }
 `;
-	var shape = new Generator("shape","",testShadow,plugins$3,intersect,sample);
+	var shape = new Generator("shape",[""],[testShadow],plugins$3,intersect,sample);
 
 	var checkerboard = "void checkerboard_attr(float texIndex,out float size,out float lineWidth){\n    size = readFloat(texParams,vec2(1.0,texIndex),TEX_PARAMS_LENGTH);\n    lineWidth = readFloat(texParams,vec2(2.0,texIndex),TEX_PARAMS_LENGTH);\n}\nvec3 checkerboard(vec3 hit,float texIndex){\n    float size,lineWidth;\n    checkerboard_attr(texIndex,size,lineWidth);\n    float width = 0.5 * lineWidth / size;\n    float fx = hit.x/size-floor(hit.x/size),\n    fy = hit.y/size-floor(hit.y/size),\n    fz = hit.z/size-floor(hit.z/size);\n    bool in_outline = (fx<width||fx>1.0-width)||(fy<width||fy>1.0-width)||(fz<width||fz>1.0-width);\n    if (!in_outline) {\n        return WHITE;\n    } else {\n        return GREY;\n    }\n}";
 
@@ -1141,7 +1354,7 @@ bool testShadow(Ray ray){
 	    return `return ${plugin.name}(hit,texIndex);`
 	});
 
-	var texture = new Generator("texture","","",plugins$4,ep$1);
+	var texture = new Generator("texture",[""],[""],plugins$4,ep$1);
 
 	var pathtrace = "void trace(Ray ray,out vec3 e,int maxDeepth){\n    vec3 fpdf = WHITE;e = BLACK;\n    int deepth=1;\n    while(++deepth<=maxDeepth){\n        Intersect ins = intersectObjects(ray);\n        ins.seed = timeSinceStart + float(deepth);\n        if(ins.d==MAX_DISTANCE) break;\n        vec3 wi;\n        vec3 _fpdf;\n        e += shade(ins,-ray.dir,wi,_fpdf)*fpdf;\n        fpdf *= _fpdf;\n        ray.origin = ins.hit;\n        ray.dir = wi;\n    }\n}";
 
@@ -1152,7 +1365,7 @@ bool testShadow(Ray ray){
 	    "pathtrace":new Plugin("pathtrace",pathtrace)
 	};
 
-	var trace = new Generator("trace","","",plugins$5);
+	var trace = new Generator("trace",[""],[""],plugins$5);
 
 	var random = "float random( vec3 scale, float seed ){\n\treturn(fract( sin( dot( gl_FragCoord.xyz + seed, scale ) ) * 43758.5453 + seed ) );\n}\nvec2 random2(float seed){\n\treturn vec2(fract(sin(dot(gl_FragCoord.xy ,vec2(12.9898,78.233))) * 43758.5453 + seed),\n\t\tfract(cos(dot(gl_FragCoord.xy ,vec2(4.898,7.23))) * 23421.631 + seed));\n}";
 
@@ -1172,7 +1385,7 @@ bool testShadow(Ray ray){
 	    "utility":new Plugin("utility",utility)
 	};
 
-	var util = new Generator("util","","",plugins$6);
+	var util = new Generator("util",[""],[""],plugins$6);
 
 	/**
 	 * Created by eason on 1/20/18.

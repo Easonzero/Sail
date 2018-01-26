@@ -22,7 +22,8 @@ scene.add(camera);
 
 let control = new Sail.Control(canvas,scene);
 
-scene.filter = 'none';
+scene.filter = 'gamma';
+scene.filter.addParam('c','2.2');
 scene.trace = 'pathtrace';
 
 renderer.update(scene);

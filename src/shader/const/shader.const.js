@@ -5,4 +5,4 @@ import {Generator} from '../generator';
 import define from './define.glsl';
 import struct from './struct.glsl';
 
-export default new Generator("const",define,struct);
+export default new Generator("const",[define],[struct]);

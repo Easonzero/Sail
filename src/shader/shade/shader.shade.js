@@ -4,4 +4,4 @@
 import {Generator} from '../generator';
 import shade from './shade.glsl';
 
-export default new Generator("shade",shade,"");
+export default new Generator("shade",[shade],[""]);

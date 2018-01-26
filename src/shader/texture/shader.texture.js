@@ -19,4 +19,4 @@ let ep = new Export("getSurfaceColor",head,tail,"texCategory",function(plugin){
     return `return ${plugin.name}(hit,texIndex);`
 });
 
-export default new Generator("texture","","",plugins,ep);
+export default new Generator("texture",[""],[""],plugins,ep);

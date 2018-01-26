@@ -2,44 +2,34 @@
  * Created by eason on 1/23/18.
  */
 import {Generator,Plugin} from '../generator';
+import window from './window.glsl';
 import gamma from './gamma.glsl';
 import none from './none.glsl';
-import box from './box.glsl';
-import gaussian from './gaussian.glsl'
-import mitchell from './mitchell.glsl'
-import sinc from './sinc.glsl'
-import triangle from './triangle.glsl'
+import {Box_param} from './box'
+import {Gaussian_param} from './gaussian'
+import {Mitchell_param} from './mitchell'
+import {Sinc_param} from './sinc'
+import {Triangle_param} from './triangle'
 
 let plugins = {
     "none":new Plugin("none",none),
     "gamma":new Plugin("gamma",gamma),
-    "box":new Plugin("box",box),
-    "gaussian":new Plugin("gaussian",gaussian),
-    "mitchell":new Plugin("mitchell",mitchell),
-    "sinc":new Plugin("sinc",sinc),
-    "triangle":new Plugin("triangle",triangle)
+    "box":new Plugin("box",window),
+    "gaussian":new Plugin("gaussian",window),
+    "mitchell":new Plugin("mitchell",window),
+    "sinc":new Plugin("sinc",window),
+    "triangle":new Plugin("triangle",window)
 };
+let windowWidth = 4;
 
-plugins.gaussian.param = function (pluginParams,generatorName) {
-    let r = pluginParams.getParam("r");
-    let alpha = pluginParams.getParam("alpha")[0];
-    return `
-    #define FILTER_GAUSSIAN_R ${pluginParams.params.r}
-    #define FILTER_GAUSSIAN_ALPHA ${pluginParams.params.alpha}
-    #define FILTER_GAUSSIAN_EXPX ${Math.exp(-alpha*r[0]*r[0])}
-    #define FILTER_GAUSSIAN_EXPY ${Math.exp(-alpha*r[1]*r[1])}
-    `
-};
+plugins.box.param = Box_param(windowWidth);
 
-plugins.mitchell.param = function (pluginParams,generatorName) {
-    let r = pluginParams.getParam("r");
-    return `
-    #define FILTER_MITCHELL_R ${pluginParams.params.r}
-    #define FILTER_MITCHELL_B ${pluginParams.params.b}
-    #define FILTER_MITCHELL_C ${pluginParams.params.c}
-    #define FILTER_MITCHELL_INVX ${1/r[0]}
-    #define FILTER_MITCHELL_INVY ${1/r[1]}
-    `
-};
+plugins.gaussian.param = Gaussian_param(windowWidth);
 
-export default new Generator("filter","","",plugins);
+plugins.mitchell.param = Mitchell_param(windowWidth);
+
+plugins.sinc.param = Sinc_param(windowWidth);
+
+plugins.triangle.param = Triangle_param(windowWidth);
+
+export default new Generator("filter",[""],[""],plugins);

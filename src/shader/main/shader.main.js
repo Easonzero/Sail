@@ -14,4 +14,4 @@ let plugins = {
     "vstrace":new Plugin("vstrace",vstrace)
 };
 
-export default new Generator("main","","",plugins);
+export default new Generator("main",[""],[""],plugins);

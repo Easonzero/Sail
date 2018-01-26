@@ -8,4 +8,4 @@ let plugins = {
     "pathtrace":new Plugin("pathtrace",pathtrace)
 };
 
-export default new Generator("trace","","",plugins);
+export default new Generator("trace",[""],[""],plugins);

@@ -53,4 +53,4 @@ bool testShadow(Ray ray){
     return false;
 }
 `;
-export default new Generator("shape","",testShadow,plugins,intersect,sample);
+export default new Generator("shape",[""],[testShadow],plugins,intersect,sample);
