@@ -3,8 +3,18 @@
  */
 import {ShaderProgram} from '../core/webgl';
 
-class Matte{
+class Material{
+    gen(data){
+        let l = data.length;
+        data.length = ShaderProgram.TEXPARAMS_LENGTH;
+        return data.fill(0,l,data.length);
+    }
+}
+
+class Matte extends Material{
     constructor(kd=1){
+        super();
+
         if(kd<=0) kd=1;
         this.kd = kd;
     }
@@ -19,14 +29,15 @@ class Matte{
         let tmp = [
             1,this.kd
         ];
-        let l = tmp.length;
-        tmp.length = ShaderProgram.TEXPARAMS_LENGTH;
-        return tmp.fill(0,l,tmp.length);
+
+        return super.gen(tmp);
     }
 }
 
-class Mirror{
+class Mirror extends Material{
     constructor(kr=1.0){
+        super();
+
         if(kr<=0) kr=0.5;
         this.kr = kr;
     }
@@ -41,14 +52,15 @@ class Mirror{
         let tmp = [
             2,this.kr
         ];
-        let l = tmp.length;
-        tmp.length = ShaderProgram.TEXPARAMS_LENGTH;
-        return tmp.fill(0,l,tmp.length);
+
+        return super.gen(tmp);
     }
 }
 
-class Metal{
+class Metal extends Material{
     constructor(ax=1,ay=1){
+        super();
+
         this.ax = ax;
         this.ay = ay;
         this.invax2 = 1/(ax*ax);
@@ -66,14 +78,15 @@ class Metal{
         let tmp = [
             3,this.ax,this.ay,this.invax2,this.invay2,this.const2
         ];
-        let l = tmp.length;
-        tmp.length = ShaderProgram.TEXPARAMS_LENGTH;
-        return tmp.fill(0,l,tmp.length);
+
+        return super.gen(tmp);
     }
 }
 
-class Transmission{
+class Transmission extends Material{
     constructor(nt){
+        super();
+
         this.nt = nt;
         this.F0 = (1.0 - nt) * (1.0 - nt) / ((1.0 + nt) * (1.0 + nt));
     }
@@ -88,9 +101,8 @@ class Transmission{
         let tmp = [
             4,this.nt,this.F0
         ];
-        let l = tmp.length;
-        tmp.length = ShaderProgram.TEXPARAMS_LENGTH;
-        return tmp.fill(0,l,tmp.length);
+
+        return super.gen(tmp);
     }
 }
 

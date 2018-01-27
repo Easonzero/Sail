@@ -4,14 +4,24 @@
 import {ShaderProgram} from '../core/webgl';
 import {Vector} from '../utils/matrix';
 
-class Color{
+class Texture{
+    gen(data){
+        let l = data.length;
+        data.length = ShaderProgram.TEXPARAMS_LENGTH;
+        return data.fill(0,l,data.length);
+    }
+}
+
+class Color {
     static create(color){
         return new UniformColor(color);
     }
 }
 
-class UniformColor{
+class UniformColor extends Texture{
     constructor(color){
+        super();
+
         this.color = new Vector(color);
     }
 
@@ -25,14 +35,15 @@ class UniformColor{
         let tmp = [
             0,this.color.e(1),this.color.e(2),this.color.e(3)
         ];
-        let l = tmp.length;
-        tmp.length = ShaderProgram.TEXPARAMS_LENGTH;
-        return tmp.fill(0,l,tmp.length);
+
+        return super.gen(tmp);
     }
 }
 
-class Checkerboard{
+class Checkerboard extends Texture{
     constructor(size=0.3,lineWidth=0.03){
+        super();
+
         if(size<=0) size=0.3;
         if(lineWidth<0) lineWidth=0.03;
 
@@ -50,14 +61,15 @@ class Checkerboard{
         let tmp = [
             5,this.size,this.lineWidth
         ];
-        let l = tmp.length;
-        tmp.length = ShaderProgram.TEXPARAMS_LENGTH;
-        return tmp.fill(0,l,tmp.length);
+
+        return super.gen(tmp);
     }
 }
 
-class CornellBox{
+class CornellBox extends Texture{
     constructor(min,max){
+        super();
+
         this.min = new Vector(min);
         this.max = new Vector(max);
     }
@@ -73,9 +85,8 @@ class CornellBox{
             6,this.min.e(1),this.min.e(2),this.min.e(3),
             this.max.e(1),this.max.e(2),this.max.e(3)
         ];
-        let l = tmp.length;
-        tmp.length = ShaderProgram.TEXPARAMS_LENGTH;
-        return tmp.fill(0,l,tmp.length);
+
+        return super.gen(tmp);
     }
 }
 

@@ -49,9 +49,7 @@ class Scene {
     add(something){
         if(something instanceof Camera){
             this.camera = something;
-        }else if(something instanceof Cube||
-            something instanceof Sphere||
-            something instanceof Plane){
+        }else if(something instanceof Object){
             if(something.light) {
                 this.objects.unshift(something);
                 this.lgcount++;

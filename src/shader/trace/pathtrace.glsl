@@ -4,7 +4,7 @@ void trace(Ray ray,out vec3 e,int maxDeepth){
     while(++deepth<=maxDeepth){
         Intersect ins = intersectObjects(ray);
         ins.seed = timeSinceStart + float(deepth);
-        if(ins.d==MAX_DISTANCE) break;
+        if(ins.d>=MAX_DISTANCE) break;
 
         vec3 wi;
         vec3 _fpdf;

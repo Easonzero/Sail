@@ -13,8 +13,17 @@ import texture from '../shader/texture/shader.texture'
 import trace from '../shader/trace/shader.trace'
 import util from '../shader/util/shader.util'
 
-class TraceShader{
+class Shader{
+    constructor(pluginsList){
+        this.pluginsList = pluginsList;
+        this.glslv = "300 es";
+    }
+}
+
+class TraceShader extends Shader{
     constructor(pluginsList = {shape:[],texture:[],material:[],trace:"pathtrace"}){
+        super(pluginsList);
+
         this.uniform = {
             n:{type:'int',value:0},
             ln:{type:'int',value:0},
@@ -29,9 +38,6 @@ class TraceShader{
             objects:1,
             texParams:2
         };
-
-        this.glslv = "300 es";
-        this.pluginsList = pluginsList;
     }
 
     combinefs(){
@@ -76,13 +82,13 @@ class TraceShader{
 }
 
 
-class RenderShader{
+class RenderShader extends Shader{
     constructor(pluginsList={filter:"gamma"}){
+        super(pluginsList);
+
         this.texture = {
             tex:0
         };
-        this.glslv = "300 es";
-        this.pluginsList = pluginsList;
     }
 
     combinefs(){

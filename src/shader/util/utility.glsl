@@ -33,3 +33,19 @@ void swap(inout float f1,inout float f2){
     f1 = f2;
     f2 = tmp;
 }
+
+bool quadratic(float A,float B,float C,out float t0,out float t1) {
+    float discrim = B * B - 4.0 * A * C;
+    if (discrim < 0.0) return false;
+    float rootDiscrim = sqrt(discrim);
+
+    float q;
+    if (B < 0.0)
+        q = -0.5 * (B - rootDiscrim);
+    else
+        q = -0.5 * (B + rootDiscrim);
+    t0 = q / A;
+    t1 = C / q;
+    if (t0 > t1) swap(t0, t1);
+    return true;
+}

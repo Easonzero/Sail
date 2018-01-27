@@ -116,7 +116,7 @@ class ShaderProgram {
     get texture(){return this.shader.texture}
 }
 
-ShaderProgram.OBJECTS_LENGTH = 12;
+ShaderProgram.OBJECTS_LENGTH = 17;
 ShaderProgram.TEXPARAMS_LENGTH = 7;
 
 class WebglHelper {

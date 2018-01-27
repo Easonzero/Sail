@@ -5,12 +5,21 @@ import {Generator,Export,Plugin} from '../generator';
 import cube from './cube.glsl';
 import sphere from './sphere.glsl';
 import plane from './plane.glsl';
-
+import cone from './cone.glsl';
+import cylinder from './cylinder.glsl';
+import disk from './disk.glsl';
+import hyperboloid from './hyperboloid.glsl';
+import paraboloid from './paraboloid.glsl';
 
 let plugins = {
     "cube":new Plugin("cube",cube),
     "sphere":new Plugin("sphere",sphere),
-    "plane":new Plugin("plane",plane)
+    "plane":new Plugin("plane",plane),
+    "cone":new Plugin("cone",cone),
+    "cylinder":new Plugin("cylinder",cylinder),
+    "disk":new Plugin("disk",disk),
+    "hyperboloid":new Plugin("hyperboloid",hyperboloid),
+    "paraboloid":new Plugin("paraboloid",paraboloid)
 };
 
 let intersectHead = `Intersect intersectObjects(Ray ray){
