@@ -30,7 +30,14 @@ let intersectHead = `Intersect intersectObjects(Ray ray){
         tmp.d = MAX_DISTANCE;
         int category = int(texture(objects,vec2(0.0,float(i)/float(ln+n-1))).r);
         if(false) {}`;
-let intersectTail = `if(tmp.d<ins.d) ins = tmp;}return ins;}`;
+let intersectTail = `if(tmp.d < ins.d) ins = tmp;}
+
+ins.matCategory = readInt(texParams,vec2(0.0,ins.matIndex),TEX_PARAMS_LENGTH);
+ins.into = dot(ins.normal,ray.dir) < -EPSILON;
+if(!ins.into) {
+    ins.normal = -ins.normal;
+}
+return ins;}`;
 
 let intersect = new Export("intersect",intersectHead,intersectTail,"category",function(plugin){
     return `${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(ln+n-1));

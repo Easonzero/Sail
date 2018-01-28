@@ -157,10 +157,9 @@ class Cylinder extends Object{
 }
 
 class Disk extends Object{
-    constructor(position,height,radius,innerRadius,material,texture,emission){
+    constructor(position,radius,innerRadius,material,texture,emission){
         super(material,texture,emission);
         this.position = new Vector(position);
-        this.height = height;
         this.radius = radius;
         this.innerRadius = innerRadius;
     }
@@ -176,7 +175,7 @@ class Disk extends Object{
         let tmp = [
             6,
             this.position.e(1),this.position.e(2),this.position.e(3),
-            this.height,this.radius,this.innerRadius,texparamID,texparamID+1,
+            this.radius,this.innerRadius,texparamID,texparamID+1,
             this.emission.e(1),this.emission.e(2),this.emission.e(3)
         ];
         return super.gen(tmp);
@@ -185,25 +184,31 @@ class Disk extends Object{
 
 class Hyperboloid extends Object{
     constructor(position,p1,p2,material,texture,emission){
+
         super(material,texture,emission);
         this.position = new Vector(position);
         this.p1 = new Vector(p1);
         this.p2 = new Vector(p2);
-
-        let pp = p1;
-        if(p2.e(3) === 0){
+        let pp = this.p1;
+        if(this.p2.e(3) === 0){
             this.p1 = this.p2;
             this.p2 = pp;
         }
-        let xy1, xy2;
+        pp = this.p1;
+        let xy1, xy2,n=0;
         do {
-            pp = pp.add(p2.subtract(p1).x(2));
+            pp = pp.add(this.p2.subtract(this.p1).x(2));
             xy1 = pp.e(1) * pp.e(1) + pp.e(2) * pp.e(2);
-            xy2 = p2.e(1) * p2.e(1) + p2.e(2) * p2.e(2);
-            this.ah = (1 / xy1 - (pp.e(3) * pp.e(3)) / (xy1 * p2.e(3) * p2.e(3))) /
-            (1 - (xy2 * pp.e(3) * pp.e(3)) / (xy1 * p2.e(3) * p2.e(3)));
-            this.ch = (ah * xy2 - 1) / (p2.e(3) * p2.e(3));
-        } while (isFinite(ah)|| isNaN(ah));
+            xy2 = this.p2.e(1) * this.p2.e(1) + this.p2.e(2) * this.p2.e(2);
+            this.ah = (1 / xy1 - (pp.e(3) * pp.e(3)) / (xy1 * this.p2.e(3) * this.p2.e(3))) /
+            (1 - (xy2 * pp.e(3) * pp.e(3)) / (xy1 * this.p2.e(3) * this.p2.e(3)));
+            this.ch = (this.ah * xy2 - 1) / (this.p2.e(3) * this.p2.e(3));
+            n++;
+        } while (!isFinite(this.ah)|| isNaN(this.ah) && n<20);
+
+        if(!isFinite(this.ah)|| isNaN(this.ah)){
+            throw "the p1,p2 of hyperboloid is illegal";
+        }
     }
 
     get pluginName(){

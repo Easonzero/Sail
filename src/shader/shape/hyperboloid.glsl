@@ -19,6 +19,7 @@ Hyperboloid parseHyperboloid(float index){
     hyperboloid.matIndex = readFloat(objects,vec2(12.0,index),OBJECTS_LENGTH)/float(tn-1);
     hyperboloid.texIndex = readFloat(objects,vec2(13.0,index),OBJECTS_LENGTH)/float(tn-1);
     hyperboloid.emission = readVec3(objects,vec2(14.0,index),OBJECTS_LENGTH);
+
     return hyperboloid;
 }
 
@@ -64,8 +65,8 @@ Intersect intersectHyperboloid(Ray ray,Hyperboloid hyperboloid){
     float phi = atan(pr.x * hit.y - hit.x * pr.y,
                          hit.x * pr.x + hit.y * pr.y);
     if (phi < 0.0) phi += 2.0 * PI;
-    zMin = min(hyperboloid.p1.z, hyperboloid.p2.z);
-    zMax = max(hyperboloid.p1.z, hyperboloid.p2.z);
+    float zMin = min(hyperboloid.p1.z, hyperboloid.p2.z);
+    float zMax = max(hyperboloid.p1.z, hyperboloid.p2.z);
     if (hit.z < zMin || hit.z > zMax){
         if (t == t2) return result;
         t = t2;
@@ -82,13 +83,12 @@ Intersect intersectHyperboloid(Ray ray,Hyperboloid hyperboloid){
     if(t >= MAX_DISTANCE) return result;
 
     result.d = t;
-    computeDpDForHyperboloid(hit,hyperboloid.p1,hyperboloid.p2,phi,dpdu,dpdv);
+    computeDpDForHyperboloid(hit,hyperboloid.p1,hyperboloid.p2,phi,result.dpdu,result.dpdv);
     result.normal = normalize(cross(result.dpdu,result.dpdv));
     result.hit = hit;
     result.matIndex = hyperboloid.matIndex;
     result.sc = getSurfaceColor(result.hit,hyperboloid.texIndex);
     result.emission = hyperboloid.emission;
-    result.matCategory = readInt(texParams,vec2(0.0,hyperboloid.matIndex),TEX_PARAMS_LENGTH);
 
     result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+hyperboloid.p;
     result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);

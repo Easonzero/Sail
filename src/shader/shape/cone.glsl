@@ -72,7 +72,6 @@ Intersect intersectCone(Ray ray,Cone cone){
     result.matIndex = cone.matIndex;
     result.sc = getSurfaceColor(result.hit,cone.texIndex);
     result.emission = cone.emission;
-    result.matCategory = readInt(texParams,vec2(0.0,cone.matIndex),TEX_PARAMS_LENGTH);
 
     result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+cone.p;
     result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);

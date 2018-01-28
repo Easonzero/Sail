@@ -15,14 +15,14 @@ let plugins = {
     "transmission":new Plugin("transmission",transmission)
 };
 
-let head = `vec3 material(float seed,int matCategory,float matIndex,vec3 sc,bool into,vec3 wo,out vec3 wi,out vec3 f){
+let head = `vec3 material(Intersect ins,vec3 wo,out vec3 wi,out vec3 f){
     f = BLACK;
     vec3 fpdf;if(false){}`;
 let tail = `return fpdf;}`;
 
-let ep = new Export("material",head,tail,"matCategory",function(plugin){
-    return `fpdf = ${plugin.name}(seed,matIndex,sc,wo,wi,into);
-        f = ${plugin.name}_f(matIndex,sc,wo,wi);`
+let ep = new Export("material",head,tail,"ins.matCategory",function(plugin){
+    return `fpdf = ${plugin.name}(ins.seed,ins.matIndex,ins.sc,wo,wi,ins.into);
+        f = ${plugin.name}_f(ins.matIndex,ins.sc,wo,wi);`
 });
 
 export default new Generator("material",[bsdfs],[""],plugins,ep);

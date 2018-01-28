@@ -1,6 +1,5 @@
 struct Disk{
     vec3 p;
-    float h;
     float r;
     float innerR;
     float matIndex;
@@ -11,12 +10,11 @@ struct Disk{
 Disk parseDisk(float index){
     Disk disk;
     disk.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);
-    disk.h = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);
-    disk.r = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);
-    disk.innerR = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH);
-    disk.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);
-    disk.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);
-    disk.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);
+    disk.r = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);
+    disk.innerR = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);
+    disk.matIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);
+    disk.texIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);
+    disk.emission = readVec3(objects,vec2(8.0,index),OBJECTS_LENGTH);
     return disk;
 }
 
@@ -40,8 +38,8 @@ Intersect intersectDisk(Ray ray,Disk disk){
     ray.origin = worldToLocal(ray.origin - disk.p,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);
 
     if (ray.dir.z == 0.0) return result;
-    float t = (disk.h - ray.origin.z) / ray.dir.z;
-    if (t <= 0) return result;
+    float t = -ray.origin.z / ray.dir.z;
+    if (t <= 0.0) return result;
 
     vec3 hit = ray.origin+t*ray.dir;
     float dist2 = hit.x * hit.x + hit.y * hit.y;
@@ -57,7 +55,6 @@ Intersect intersectDisk(Ray ray,Disk disk){
     result.matIndex = disk.matIndex;
     result.sc = getSurfaceColor(result.hit,disk.texIndex);
     result.emission = disk.emission;
-    result.matCategory = readInt(texParams,vec2(0.0,disk.matIndex),TEX_PARAMS_LENGTH);
 
     result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+disk.p;
     result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);

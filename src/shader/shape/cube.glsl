@@ -69,7 +69,6 @@ Intersect intersectCube(Ray ray,Cube cube){
         result.matIndex = cube.matIndex;
         result.sc = getSurfaceColor(result.hit,cube.texIndex);
         result.emission = cube.emission;
-        result.matCategory = readInt(texParams,vec2(0.0,cube.matIndex),TEX_PARAMS_LENGTH);
     }
     return result;
 }

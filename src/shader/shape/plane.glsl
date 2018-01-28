@@ -42,7 +42,6 @@ Intersect intersectPlane(Ray ray,Plane plane){
     result.matIndex = plane.matIndex;
     result.sc = getSurfaceColor(result.hit,plane.texIndex);
     result.emission = plane.emission;
-    result.matCategory = readInt(texParams,vec2(0.0,plane.matIndex),TEX_PARAMS_LENGTH);
     return result;
 }
 

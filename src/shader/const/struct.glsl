@@ -4,6 +4,7 @@ struct Intersect{
     vec3 normal;
     vec3 ns;
     vec3 dpdu,dpdv;
+    bool into;
     float matIndex;//材质索引
     vec3 sc;//表面颜色
     vec3 emission;

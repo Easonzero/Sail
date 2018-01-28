@@ -36,5 +36,5 @@
 #define NC 1.0
 
 #define OBJECT_SPACE_N vec3(0,1,0)
-#define OBJECT_SPACE_S vec3(1,0,0)
-#define OBJECT_SPACE_T vec3(0,0,-1)
+#define OBJECT_SPACE_S vec3(0,0,-1)
+#define OBJECT_SPACE_T vec3(1,0,0)

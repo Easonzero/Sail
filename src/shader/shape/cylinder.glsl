@@ -24,7 +24,7 @@ void computeDpDForCylinder(vec3 hit,float h,out vec3 dpdu,out vec3 dpdv){
 }
 
 vec3 normalForCylinder(vec3 hit,Cylinder cylinder){
-    return normalize(vec3((hit-cylinder.p).xy,0));
+    return normalize(vec3((hit).xy,0));
 }
 
 Intersect intersectCylinder(Ray ray,Cylinder cylinder){
@@ -47,17 +47,11 @@ Intersect intersectCylinder(Ray ray,Cylinder cylinder){
     if(t1 < EPSILON) t = t2;
 
     vec3 hit = ray.origin+t*ray.dir;
-    float hitRad = sqrt(hit.x * hit.x + hit.y * hit.y);
-    hit.x *= cylinder.r / hitRad;
-    hit.y *= cylinder.r / hitRad;
     if (hit.z < -EPSILON || hit.z > cylinder.h){
         if (t == t2) return result;
         t = t2;
 
         hit = ray.origin+t*ray.dir;
-        float hitRad = sqrt(hit.x * hit.x + hit.y * hit.y);
-        hit.x *= cylinder.r / hitRad;
-        hit.y *= cylinder.r / hitRad;
         if (hit.z < -EPSILON || hit.z > cylinder.h) return result;
     }
 
@@ -70,7 +64,6 @@ Intersect intersectCylinder(Ray ray,Cylinder cylinder){
     result.matIndex = cylinder.matIndex;
     result.sc = getSurfaceColor(result.hit,cylinder.texIndex);
     result.emission = cylinder.emission;
-    result.matCategory = readInt(texParams,vec2(0.0,cylinder.matIndex),TEX_PARAMS_LENGTH);
 
     result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+cylinder.p;
     result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);

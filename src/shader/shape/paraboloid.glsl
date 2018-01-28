@@ -21,7 +21,7 @@ Paraboloid parseParaboloid(float index){
 }
 
 void computeDpDForParaboloid(vec3 hit,float zMax,float zMin,out vec3 dpdu,out vec3 dpdv){
-    dpdu = vec3(-2.0 * PI * hit.y, phiMax * hit.x, 0);
+    dpdu = vec3(-2.0 * PI * hit.y, 2.0 * PI * hit.x, 0);
     dpdv = (zMax - zMin) *
                 vec3(hit.x / (2.0 * hit.z), hit.y / (2.0 * hit.z), 1);
 
@@ -69,13 +69,12 @@ Intersect intersectParaboloid(Ray ray,Paraboloid paraboloid){
     if(t >= MAX_DISTANCE) return result;
 
     result.d = t;
-    computeDpDForParaboloid(hit,zMax,zMin,dpdu,dpdv);
+    computeDpDForParaboloid(hit,zMax,zMin,result.dpdu,result.dpdv);
     result.normal = normalize(cross(result.dpdu,result.dpdv));
     result.hit = hit;
     result.matIndex = paraboloid.matIndex;
     result.sc = getSurfaceColor(result.hit,paraboloid.texIndex);
     result.emission = paraboloid.emission;
-    result.matCategory = readInt(texParams,vec2(0.0,paraboloid.matIndex),TEX_PARAMS_LENGTH);
 
     result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+paraboloid.p;
     result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);

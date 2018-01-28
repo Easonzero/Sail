@@ -58,7 +58,6 @@ Intersect intersectSphere(Ray ray,Sphere sphere){
     result.matIndex = sphere.matIndex;
     result.sc = getSurfaceColor(result.hit,sphere.texIndex);
     result.emission = sphere.emission;
-    result.matCategory = readInt(texParams,vec2(0.0,sphere.matIndex),TEX_PARAMS_LENGTH);
 
     result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+sphere.c;
     result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);
