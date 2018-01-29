@@ -5,10 +5,11 @@ import {ShaderProgram} from '../core/webgl';
 import {Vector} from '../utils/matrix';
 
 class Object{
-    constructor(material,texture,emission=[0,0,0]){
+    constructor(material,texture,emission=[0,0,0],reverseNormal=false){
         this.material = material;
         this.texture = texture;
         this.emission = new Vector(emission);
+        this.reverseNormal = reverseNormal?1:0;
 
         this.light = !this.emission.eql(new Vector([0,0,0]));
     }
@@ -20,7 +21,11 @@ class Object{
         return tmp;
     }
 
-    gen(data){
+    gen(data,texparamID){
+        data.push(
+            this.reverseNormal,texparamID,texparamID+1,
+            this.emission.e(1),this.emission.e(2),this.emission.e(3)
+        );
         let l = data.length;
         data.length = ShaderProgram.OBJECTS_LENGTH;
         return data.fill(0,l,data.length);
@@ -28,8 +33,8 @@ class Object{
 }
 
 class Cube extends Object{
-    constructor(min,max,material,texture,emission){
-        super(material,texture,emission);
+    constructor(min,max,material,texture,emission,reverseNormal){
+        super(material,texture,emission,reverseNormal);
 
         this.min = new Vector(min);
         this.max = new Vector(max);
@@ -45,17 +50,15 @@ class Cube extends Object{
         let tmp = [
             1,
             this.min.e(1),this.min.e(2),this.min.e(3),
-            this.max.e(1),this.max.e(2),this.max.e(3),
-            texparamID,texparamID+1,
-            this.emission.e(1),this.emission.e(2),this.emission.e(3)
+            this.max.e(1),this.max.e(2),this.max.e(3)
         ];
-        return super.gen(tmp);
+        return super.gen(tmp,texparamID);
     }
 }
 
 class Sphere extends Object{
-    constructor(c,r,material,texture,emission){
-        super(material,texture,emission);
+    constructor(c,r,material,texture,emission,reverseNormal){
+        super(material,texture,emission,reverseNormal);
 
         this.c = new Vector(c);
         this.r = r;
@@ -71,24 +74,22 @@ class Sphere extends Object{
     gen(texparamID){
         let tmp = [
             2,
-            this.c.e(1),this.c.e(2),this.c.e(3),
-            this.r,texparamID,texparamID+1,
-            this.emission.e(1),this.emission.e(2),this.emission.e(3)
+            this.c.e(1),this.c.e(2),this.c.e(3),this.r
         ];
-        return super.gen(tmp);
+        return super.gen(tmp,texparamID);
     }
 }
 
-class Plane extends Object{
-    constructor(normal,offset,dface=false,material,texture,emission){
-        super(material,texture,emission);
-        this.normal = new Vector(normal).toUnitVector();
-        this.offset = offset;
-        this.dface = dface?1:0;
+class Rectangle extends Object{
+    constructor(min,max,material,texture,emission,reverseNormal){
+        super(material,texture,emission,reverseNormal);
+
+        this.min = new Vector(min);
+        this.max = new Vector(max);
     }
 
     get pluginName(){
-        return "plane";
+        return "rectangle";
     }
 
     set pluginName(name){}
@@ -96,17 +97,17 @@ class Plane extends Object{
     gen(texparamID){
         let tmp = [
             3,
-            this.normal.e(1),this.normal.e(2),this.normal.e(3),
-            this.offset,this.dface,texparamID,texparamID+1,
-            this.emission.e(1),this.emission.e(2),this.emission.e(3)
+            this.min.e(1),this.min.e(2),this.min.e(3),
+            this.max.e(1),this.max.e(2),this.max.e(3)
         ];
-        return super.gen(tmp);
+        return super.gen(tmp,texparamID);
     }
 }
 
 class Cone extends Object{
-    constructor(position,height,radius,material,texture,emission){
-        super(material,texture,emission);
+    constructor(position,height,radius,material,texture,emission,reverseNormal){
+        super(material,texture,emission,reverseNormal);
+
         this.position = new Vector(position);
         this.height = height;
         this.radius = radius;
@@ -123,16 +124,16 @@ class Cone extends Object{
         let tmp = [
             4,
             this.position.e(1),this.position.e(2),this.position.e(3),
-            this.height,this.radius,texparamID,texparamID+1,
-            this.emission.e(1),this.emission.e(2),this.emission.e(3)
+            this.height,this.radius
         ];
-        return super.gen(tmp);
+        return super.gen(tmp,texparamID);
     }
 }
 
 class Cylinder extends Object{
-    constructor(position,height,radius,material,texture,emission){
-        super(material,texture,emission);
+    constructor(position,height,radius,material,texture,emission,reverseNormal){
+        super(material,texture,emission,reverseNormal);
+
         this.position = new Vector(position);
         this.height = height;
         this.radius = radius;
@@ -149,16 +150,16 @@ class Cylinder extends Object{
         let tmp = [
             5,
             this.position.e(1),this.position.e(2),this.position.e(3),
-            this.height,this.radius,texparamID,texparamID+1,
-            this.emission.e(1),this.emission.e(2),this.emission.e(3)
+            this.height,this.radius
         ];
-        return super.gen(tmp);
+        return super.gen(tmp,texparamID);
     }
 }
 
 class Disk extends Object{
-    constructor(position,radius,innerRadius,material,texture,emission){
-        super(material,texture,emission);
+    constructor(position,radius,innerRadius,material,texture,emission,reverseNormal){
+        super(material,texture,emission,reverseNormal);
+
         this.position = new Vector(position);
         this.radius = radius;
         this.innerRadius = innerRadius;
@@ -175,17 +176,16 @@ class Disk extends Object{
         let tmp = [
             6,
             this.position.e(1),this.position.e(2),this.position.e(3),
-            this.radius,this.innerRadius,texparamID,texparamID+1,
-            this.emission.e(1),this.emission.e(2),this.emission.e(3)
+            this.radius,this.innerRadius
         ];
-        return super.gen(tmp);
+        return super.gen(tmp,texparamID);
     }
 }
 
 class Hyperboloid extends Object{
-    constructor(position,p1,p2,material,texture,emission){
+    constructor(position,p1,p2,material,texture,emission,reverseNormal){
+        super(material,texture,emission,reverseNormal);
 
-        super(material,texture,emission);
         this.position = new Vector(position);
         this.p1 = new Vector(p1);
         this.p2 = new Vector(p2);
@@ -224,16 +224,16 @@ class Hyperboloid extends Object{
             this.position.e(1),this.position.e(2),this.position.e(3),
             this.p1.e(1),this.p1.e(2),this.p1.e(3),
             this.p2.e(1),this.p2.e(2),this.p2.e(3),
-            this.ah,this.ch,texparamID,texparamID+1,
-            this.emission.e(1),this.emission.e(2),this.emission.e(3)
+            this.ah,this.ch
         ];
-        return super.gen(tmp);
+        return super.gen(tmp,texparamID);
     }
 }
 
 class Paraboloid extends Object{
-    constructor(position,z0,z1,radius,material,texture,emission){
-        super(material,texture,emission);
+    constructor(position,z0,z1,radius,material,texture,emission,reverseNormal){
+        super(material,texture,emission,reverseNormal);
+
         this.position = new Vector(position);
         this.z0 = z0;
         this.z1 = z1;
@@ -251,11 +251,10 @@ class Paraboloid extends Object{
         let tmp = [
             8,
             this.position.e(1),this.position.e(2),this.position.e(3),
-            this.z0,this.z1,this.radius,texparamID,texparamID+1,
-            this.emission.e(1),this.emission.e(2),this.emission.e(3)
+            this.z0,this.z1,this.radius
         ];
-        return super.gen(tmp);
+        return super.gen(tmp,texparamID);
     }
 }
 
-export {Cube,Sphere,Plane,Cone,Cylinder,Disk,Hyperboloid,Paraboloid};
+export {Cube,Sphere,Rectangle,Cone,Cylinder,Disk,Hyperboloid,Paraboloid};

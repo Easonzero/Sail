@@ -4,7 +4,7 @@
 import {Generator,Export,Plugin} from '../generator';
 import cube from './cube.glsl';
 import sphere from './sphere.glsl';
-import plane from './plane.glsl';
+import rectangle from './rectangle.glsl';
 import cone from './cone.glsl';
 import cylinder from './cylinder.glsl';
 import disk from './disk.glsl';
@@ -14,7 +14,7 @@ import paraboloid from './paraboloid.glsl';
 let plugins = {
     "cube":new Plugin("cube",cube),
     "sphere":new Plugin("sphere",sphere),
-    "plane":new Plugin("plane",plane),
+    "rectangle":new Plugin("rectangle",rectangle),
     "cone":new Plugin("cone",cone),
     "cylinder":new Plugin("cylinder",cylinder),
     "disk":new Plugin("disk",disk),

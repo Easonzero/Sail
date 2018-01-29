@@ -13,7 +13,7 @@ let mirror = new Sail.Mirror(1.0);
 let transmission = new Sail.Transmission(1.5);
 let cornellbox = new Sail.CornellBox([0,0,0],[5.560,5.488,5.592]);
 
-scene.add(new Sail.Cube([2.13,5.488,2.27],[3.43,5.489,3.32],matte,Sail.Color.create([0,0,0]),[12,12,12]));
+scene.add(new Sail.Rectangle([2.13,5.488,2.27],[3.43,5.488,3.32],matte,Sail.Color.create([0,0,0]),[12,12,12]));
 scene.add(new Sail.Cube([0,0,-7],[5.560,5.488,5.592],matte,cornellbox));
 
 //scene.add(new Sail.Sphere([1.5,1.25,2.70],1.2,mirror,Sail.Color.create([1,1,1])));

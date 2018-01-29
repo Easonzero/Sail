@@ -5,6 +5,7 @@ struct Cylinder{
     float matIndex;
     float texIndex;
     vec3 emission;
+    bool reverseNormal;
 };
 
 Cylinder parseCylinder(float index){
@@ -12,9 +13,10 @@ Cylinder parseCylinder(float index){
     cylinder.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);
     cylinder.h = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);
     cylinder.r = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);
-    cylinder.matIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);
-    cylinder.texIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);
-    cylinder.emission = readVec3(objects,vec2(8.0,index),OBJECTS_LENGTH);
+    cylinder.reverseNormal = readBool(objects,vec2(6.0,index),OBJECTS_LENGTH);
+    cylinder.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);
+    cylinder.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);
+    cylinder.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);
     return cylinder;
 }
 
@@ -24,7 +26,7 @@ void computeDpDForCylinder(vec3 hit,float h,out vec3 dpdu,out vec3 dpdv){
 }
 
 vec3 normalForCylinder(vec3 hit,Cylinder cylinder){
-    return normalize(vec3((hit).xy,0));
+    return (cylinder.reverseNormal?-1.0:1.0)*normalize(vec3((hit).xy,0));
 }
 
 Intersect intersectCylinder(Ray ray,Cylinder cylinder){

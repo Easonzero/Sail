@@ -1,4 +1,4 @@
-#define OBJECTS_LENGTH 16.0
+#define OBJECTS_LENGTH 17.0
 #define TEX_PARAMS_LENGTH 6.0
 
 #define MAX_DISTANCE 1e5
@@ -9,7 +9,7 @@
 
 #define CUBE 1
 #define SPHERE 2
-#define PLANE 3
+#define RECTANGLE 3
 #define CONE 4
 #define CYLINDER 5
 #define DISK 6

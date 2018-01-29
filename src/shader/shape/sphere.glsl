@@ -4,20 +4,22 @@ struct Sphere{
     float matIndex;
     float texIndex;
     vec3 emission;
+    bool reverseNormal;
 };
 
 Sphere parseSphere(float index){
     Sphere sphere;
     sphere.c = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);
     sphere.r = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);
-    sphere.matIndex = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH)/float(tn-1);
-    sphere.texIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);
-    sphere.emission = readVec3(objects,vec2(7.0,index),OBJECTS_LENGTH);
+    sphere.reverseNormal = readBool(objects,vec2(5.0,index),OBJECTS_LENGTH);
+    sphere.matIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);
+    sphere.texIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);
+    sphere.emission = readVec3(objects,vec2(8.0,index),OBJECTS_LENGTH);
     return sphere;
 }
 
 vec3 normalForSphere( vec3 hit, Sphere sphere ){
-	return (hit - sphere.c) / sphere.r;
+	return (sphere.reverseNormal?-1.0:1.0)*(hit - sphere.c) / sphere.r;
 }
 
 void computeDpDForSphere(vec3 hit,float radius,out vec3 dpdu,out vec3 dpdv){

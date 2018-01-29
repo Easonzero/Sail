@@ -5,6 +5,7 @@ struct Cone{
     float matIndex;
     float texIndex;
     vec3 emission;
+    bool reverseNormal;
 };
 
 Cone parseCone(float index){
@@ -12,9 +13,10 @@ Cone parseCone(float index){
     cone.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);
     cone.h = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);
     cone.r = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);
-    cone.matIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);
-    cone.texIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);
-    cone.emission = readVec3(objects,vec2(8.0,index),OBJECTS_LENGTH);
+    cone.reverseNormal = readBool(objects,vec2(6.0,index),OBJECTS_LENGTH);
+    cone.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);
+    cone.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);
+    cone.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);
     return cone;
 }
 
@@ -31,7 +33,7 @@ vec3 normalForCone(vec3 hit,Cone cone){
     float x1 = d/tana;
     float x2 = d*tana;
     vec3 no = vec3(0,0,cone.h-x1-x2);
-    return normalize(hit-no);
+    return (cone.reverseNormal?-1.0:1.0)*normalize(hit-no);
 }
 
 Intersect intersectCone(Ray ray,Cone cone){

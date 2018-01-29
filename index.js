@@ -3,7 +3,7 @@
  */
 import {Renderer} from './src/core/renderer'
 import {Scene} from './src/scene/scene'
-import {Cube,Sphere,Plane,Cone,Cylinder,Disk,Hyperboloid,Paraboloid} from './src/scene/geometry'
+import {Cube,Sphere,Rectangle,Cone,Cylinder,Disk,Hyperboloid,Paraboloid} from './src/scene/geometry'
 import {Camera} from './src/scene/camera'
 import {Matte,Mirror,Metal,Transmission} from './src/scene/material'
 import {Color,Checkerboard,CornellBox} from './src/scene/texture'
@@ -15,7 +15,7 @@ window.Sail = {
     Scene:Scene,
     Cube:Cube,
     Sphere:Sphere,
-    Plane:Plane,
+    Rectangle:Rectangle,
     Cone:Cone,
     Cylinder:Cylinder,
     Disk:Disk,

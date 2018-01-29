@@ -6,6 +6,7 @@ struct Paraboloid{
     float matIndex;
     float texIndex;
     vec3 emission;
+    bool reverseNormal;
 };
 
 Paraboloid parseParaboloid(float index){
@@ -14,9 +15,10 @@ Paraboloid parseParaboloid(float index){
     paraboloid.z0 = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);
     paraboloid.z1 = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);
     paraboloid.r = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH);
-    paraboloid.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);
-    paraboloid.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);
-    paraboloid.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);
+    paraboloid.reverseNormal = readBool(objects,vec2(7.0,index),OBJECTS_LENGTH);
+    paraboloid.matIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);
+    paraboloid.texIndex = readFloat(objects,vec2(9.0,index),OBJECTS_LENGTH)/float(tn-1);
+    paraboloid.emission = readVec3(objects,vec2(10.0,index),OBJECTS_LENGTH);
     return paraboloid;
 }
 
@@ -32,7 +34,7 @@ vec3 normalForParaboloid(vec3 hit,Paraboloid paraboloid){
     float zMax = max(paraboloid.z0, paraboloid.z1);
     vec3 dpdu,dpdv;
     computeDpDForParaboloid(hit,zMax,zMin,dpdu,dpdv);
-    return normalize(cross(dpdu,dpdv));
+    return (paraboloid.reverseNormal?-1.0:1.0)*normalize(cross(dpdu,dpdv));
 }
 
 Intersect intersectParaboloid(Ray ray,Paraboloid paraboloid){

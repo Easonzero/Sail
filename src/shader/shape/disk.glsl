@@ -5,6 +5,7 @@ struct Disk{
     float matIndex;
     float texIndex;
     vec3 emission;
+    bool reverseNormal;
 };
 
 Disk parseDisk(float index){
@@ -12,9 +13,10 @@ Disk parseDisk(float index){
     disk.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);
     disk.r = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);
     disk.innerR = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);
-    disk.matIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);
-    disk.texIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);
-    disk.emission = readVec3(objects,vec2(8.0,index),OBJECTS_LENGTH);
+    disk.reverseNormal = readBool(objects,vec2(6.0,index),OBJECTS_LENGTH);
+    disk.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);
+    disk.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);
+    disk.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);
     return disk;
 }
 
@@ -24,10 +26,7 @@ void computeDpDForDisk(vec3 hit,float r,float innerR,float dist2,out vec3 dpdu,o
 }
 
 vec3 normalForDisk(vec3 hit,Disk disk){
-    float dist2 = hit.x * hit.x + hit.y * hit.y;
-    vec3 dpdu,dpdv;
-    computeDpDForDisk(hit,disk.r,disk.innerR,dist2,dpdu,dpdv);
-    return normalize(cross(dpdu,dpdv));
+    return (disk.reverseNormal?-1.0:1.0)*vec3(0,1,0);
 }
 
 Intersect intersectDisk(Ray ray,Disk disk){

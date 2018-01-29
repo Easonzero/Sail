@@ -7,6 +7,7 @@ struct Hyperboloid{
     float matIndex;
     float texIndex;
     vec3 emission;
+    bool reverseNormal;
 };
 
 Hyperboloid parseHyperboloid(float index){
@@ -16,9 +17,10 @@ Hyperboloid parseHyperboloid(float index){
     hyperboloid.p2 = readVec3(objects,vec2(7.0,index),OBJECTS_LENGTH);
     hyperboloid.ah = readFloat(objects,vec2(10.0,index),OBJECTS_LENGTH);
     hyperboloid.ch = readFloat(objects,vec2(11.0,index),OBJECTS_LENGTH);
-    hyperboloid.matIndex = readFloat(objects,vec2(12.0,index),OBJECTS_LENGTH)/float(tn-1);
-    hyperboloid.texIndex = readFloat(objects,vec2(13.0,index),OBJECTS_LENGTH)/float(tn-1);
-    hyperboloid.emission = readVec3(objects,vec2(14.0,index),OBJECTS_LENGTH);
+    hyperboloid.reverseNormal = readBool(objects,vec2(12.0,index),OBJECTS_LENGTH);
+    hyperboloid.matIndex = readFloat(objects,vec2(13.0,index),OBJECTS_LENGTH)/float(tn-1);
+    hyperboloid.texIndex = readFloat(objects,vec2(14.0,index),OBJECTS_LENGTH)/float(tn-1);
+    hyperboloid.emission = readVec3(objects,vec2(15.0,index),OBJECTS_LENGTH);
 
     return hyperboloid;
 }
@@ -38,7 +40,7 @@ vec3 normalForHyperboloid(vec3 hit,Hyperboloid hyperboloid){
     if (phi < 0.0) phi += 2.0 * PI;
     vec3 dpdu,dpdv;
     computeDpDForHyperboloid(hit,hyperboloid.p1,hyperboloid.p2,phi,dpdu,dpdv);
-    return normalize(cross(dpdu,dpdv));
+    return (hyperboloid.reverseNormal?-1.0:1.0)*normalize(cross(dpdu,dpdv));
 }
 
 Intersect intersectHyperboloid(Ray ray,Hyperboloid hyperboloid){

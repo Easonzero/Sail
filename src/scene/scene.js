@@ -2,7 +2,7 @@
  * Created by eason on 17-4-12.
  */
 import {Camera} from './camera';
-import {Cube,Sphere,Plane} from './geometry';
+import {Cube,Sphere,Rectangle} from './geometry';
 import trace from '../shader/trace/shader.trace'
 import filter from '../shader/filter/shader.filter'
 import {PluginParams} from '../shader/generator';
