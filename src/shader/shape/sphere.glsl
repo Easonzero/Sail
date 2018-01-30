@@ -53,12 +53,21 @@ Intersect intersectSphere(Ray ray,Sphere sphere){
     if(t1 < EPSILON) t = t2;
     if(t >= MAX_DISTANCE) return result;
 
+    vec3 hit = ray.origin+t*ray.dir;
+    if (hit.x == 0.0 && hit.y == 0.0) hit.x = 1e-5f * sphere.r;
+    float phi = atan(hit.y, hit.x);
+    if (phi < 0.0) phi += 2.0 * PI;
+
+    float u = phi / (2.0 * PI);
+    float theta = acos(clamp(hit.z / sphere.r, -1.0, 1.0));
+    float v = theta / PI;
+
     result.d = t;
     result.hit = ray.origin+t*ray.dir;
     computeDpDForSphere(result.hit,sphere.r,result.dpdu,result.dpdv);
     result.normal = normalize(cross(result.dpdv,result.dpdu));
     result.matIndex = sphere.matIndex;
-    result.sc = getSurfaceColor(result.hit,sphere.texIndex);
+    result.sc = getSurfaceColor(result.hit,vec2(u,v),sphere.texIndex);
     result.emission = sphere.emission;
 
     result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+sphere.c;
@@ -68,7 +77,7 @@ Intersect intersectSphere(Ray ray,Sphere sphere){
     return result;
 }
 
-vec3 sampleSphere(Intersect ins,Sphere sphere,out float pdf){
+vec3 sampleSphere(float seed,Sphere sphere,out float pdf){
     //todo
     return BLACK;
 }

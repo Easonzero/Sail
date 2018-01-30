@@ -43,7 +43,7 @@ void computeDpDForCube( vec3 normal,out vec3 dpdu,out vec3 dpdv){
     dpdv = cross(normal,dpdu);
 }
 
-vec3 sampleCube(Intersect ins,Cube cube,out float pdf){
+vec3 sampleCube(float seed,Cube cube,out float pdf){
     return BLACK;
 }
 
@@ -65,7 +65,7 @@ Intersect intersectCube(Ray ray,Cube cube){
         result.normal = normalForCube(ray.origin+t*ray.dir,cube);
         computeDpDForCube(result.normal,result.dpdu,result.dpdv);
         result.matIndex = cube.matIndex;
-        result.sc = getSurfaceColor(result.hit,cube.texIndex);
+        result.sc = getSurfaceColor(result.hit,vec2(0,0),cube.texIndex);
         result.emission = cube.emission;
     }
     return result;

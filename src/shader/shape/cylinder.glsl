@@ -26,7 +26,7 @@ void computeDpDForCylinder(vec3 hit,float h,out vec3 dpdu,out vec3 dpdv){
 }
 
 vec3 normalForCylinder(vec3 hit,Cylinder cylinder){
-    return (cylinder.reverseNormal?-1.0:1.0)*normalize(vec3((hit).xy,0));
+    return (cylinder.reverseNormal?-1.0:1.0)*normalize(vec3(hit.xy-cylinder.p.xy,0));
 }
 
 Intersect intersectCylinder(Ray ray,Cylinder cylinder){
@@ -74,7 +74,7 @@ Intersect intersectCylinder(Ray ray,Cylinder cylinder){
     return result;
 }
 
-vec3 sampleCylinder(Intersect ins,Cylinder cylinder,out float pdf){
+vec3 sampleCylinder(float seed,Cylinder cylinder,out float pdf){
     //todo
     return BLACK;
 }

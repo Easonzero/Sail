@@ -2,7 +2,6 @@ struct Intersect{
     float d;
     vec3 hit;
     vec3 normal;
-    vec3 ns;
     vec3 dpdu,dpdv;
     bool into;
     float matIndex;//材质索引

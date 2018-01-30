@@ -28,6 +28,7 @@ void computeDpDForCone(vec3 hit,float h,out vec3 dpdu,out vec3 dpdv){
 }
 
 vec3 normalForCone(vec3 hit,Cone cone){
+    hit = hit-cone.p;
     float tana = cone.r/cone.h;
     float d = sqrt(hit.x*hit.x+hit.y*hit.y);
     float x1 = d/tana;
@@ -82,7 +83,7 @@ Intersect intersectCone(Ray ray,Cone cone){
     return result;
 }
 
-vec3 sampleCone(Intersect ins,Cone cone,out float pdf){
+vec3 sampleCone(float seed,Cone cone,out float pdf){
     //todo
     return BLACK;
 }

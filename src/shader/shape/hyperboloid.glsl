@@ -40,7 +40,8 @@ vec3 normalForHyperboloid(vec3 hit,Hyperboloid hyperboloid){
     if (phi < 0.0) phi += 2.0 * PI;
     vec3 dpdu,dpdv;
     computeDpDForHyperboloid(hit,hyperboloid.p1,hyperboloid.p2,phi,dpdu,dpdv);
-    return (hyperboloid.reverseNormal?-1.0:1.0)*normalize(cross(dpdu,dpdv));
+    vec3 normal = localToWorld(normalize(cross(dpdu,dpdv)),OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);
+    return (hyperboloid.reverseNormal?-1.0:1.0)*normal;
 }
 
 Intersect intersectHyperboloid(Ray ray,Hyperboloid hyperboloid){
@@ -99,7 +100,7 @@ Intersect intersectHyperboloid(Ray ray,Hyperboloid hyperboloid){
     return result;
 }
 
-vec3 sampleHyperboloid(Intersect ins,Hyperboloid hyperboloid,out float pdf){
+vec3 sampleHyperboloid(float seed,Hyperboloid hyperboloid,out float pdf){
     //todo
     return BLACK;
 }

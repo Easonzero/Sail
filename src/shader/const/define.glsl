@@ -1,11 +1,16 @@
 #define OBJECTS_LENGTH 17.0
-#define TEX_PARAMS_LENGTH 6.0
+#define TEX_PARAMS_LENGTH 15.0
 
 #define MAX_DISTANCE 1e5
 #define MAXBOUNCES 5
 #define EPSILON 1e-4
 #define PI 3.141592653589793
 #define INVPI 0.3183098861837907
+#define INV2PI 0.159154943091895;
+#define INV4PI 0.079577471545947;
+#define PIOVER2 1.570796326794896;
+#define PIOVER4 0.785398163397448;
+#define SQRT2 1.414213562373095;
 
 #define CUBE 1
 #define SPHERE 2
@@ -25,6 +30,16 @@
 #define UNIFORM_COLOR 0
 #define CHECKERBOARD 5
 #define CORNELLBOX 6
+#define CHECKERBOARD2 7
+#define BILERP 8
+#define DOTS 9
+#define FBM 10
+#define MARBLE 11
+#define MIX 12
+#define SCALE 13
+#define UV 14
+#define WINDY 15
+#define WRINKLED 16
 
 #define BLACK vec3(0.0,0.0,0.0)
 #define WHITE vec3(1.0,1.0,1.0)

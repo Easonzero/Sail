@@ -51,18 +51,18 @@ Intersect intersectRectangle(Ray ray,Rectangle rectangle){
 
     result.d = t;
     result.matIndex = rectangle.matIndex;
-    result.sc = getSurfaceColor(hit,rectangle.texIndex);
+    result.sc = getSurfaceColor(hit,vec2(hit.x/maxX,hit.y/maxY),rectangle.texIndex);
     result.emission = rectangle.emission;
 
     result.hit = localToWorld(hit,result.normal,ss,ts)+rectangle.min;
     return result;
 }
 
-vec3 sampleRectangle(Intersect ins,Rectangle rectangle,out float pdf){
+vec3 sampleRectangle(float seed,Rectangle rectangle,out float pdf){
     vec3 x = vec3(rectangle.max.x-rectangle.min.x,0.0,0.0);
     vec3 y = vec3(0.0,(rectangle.max-rectangle.min).yz);
-    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), ins.seed );
-    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), ins.seed );
+    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), seed );
+    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), seed );
     pdf = 1.0/(length(x)*length(y));
     return rectangle.min+x*u1+y*u2;
 }

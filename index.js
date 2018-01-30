@@ -6,7 +6,7 @@ import {Scene} from './src/scene/scene'
 import {Cube,Sphere,Rectangle,Cone,Cylinder,Disk,Hyperboloid,Paraboloid} from './src/scene/geometry'
 import {Camera} from './src/scene/camera'
 import {Matte,Mirror,Metal,Transmission} from './src/scene/material'
-import {Color,Checkerboard,CornellBox} from './src/scene/texture'
+import {Color,Checkerboard,CornellBox,Checkerboard2,Bilerp,Dots,Fbm,Marble,Mix,Scale,UV,Windy,Wrinkled} from './src/scene/texture'
 import {Control} from './src/utils/control'
 import {Matrix,Vector} from './src/utils/matrix';
 
@@ -29,6 +29,16 @@ window.Sail = {
     Transmission:Transmission,
     Color:Color,
     Checkerboard:Checkerboard,
+    Checkerboard2:Checkerboard2,
+    Bilerp:Bilerp,
+    Dots:Dots,
+    Fbm:Fbm,
+    Marble:Marble,
+    Mix:Mix,
+    Scale:Scale,
+    UV:UV,
+    Windy:Windy,
+    Wrinkled:Wrinkled,
     CornellBox:CornellBox,
     Matrix:Matrix,
     Vector:Vector

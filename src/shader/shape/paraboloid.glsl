@@ -34,7 +34,8 @@ vec3 normalForParaboloid(vec3 hit,Paraboloid paraboloid){
     float zMax = max(paraboloid.z0, paraboloid.z1);
     vec3 dpdu,dpdv;
     computeDpDForParaboloid(hit,zMax,zMin,dpdu,dpdv);
-    return (paraboloid.reverseNormal?-1.0:1.0)*normalize(cross(dpdu,dpdv));
+    vec3 normal = localToWorld(normalize(cross(dpdu,dpdv)),OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);
+    return (paraboloid.reverseNormal?-1.0:1.0)*normal;
 }
 
 Intersect intersectParaboloid(Ray ray,Paraboloid paraboloid){
@@ -85,7 +86,7 @@ Intersect intersectParaboloid(Ray ray,Paraboloid paraboloid){
     return result;
 }
 
-vec3 sampleParaboloid(Intersect ins,Paraboloid paraboloid,out float pdf){
+vec3 sampleParaboloid(float seed,Paraboloid paraboloid,out float pdf){
     //todo
     return BLACK;
 }

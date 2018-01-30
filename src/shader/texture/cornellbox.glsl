@@ -3,7 +3,7 @@ void cornellbox_attr(float texIndex,out vec3 min,out vec3 max){
     max = readVec3(texParams,vec2(4.0,texIndex),TEX_PARAMS_LENGTH);
 }
 
-vec3 cornellbox(vec3 hit,float texIndex){
+vec3 cornellbox(vec3 hit,vec2 uv,float texIndex){
     vec3 min,max;
     cornellbox_attr(texIndex,min,max);
 

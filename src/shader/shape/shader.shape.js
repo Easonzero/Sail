@@ -42,6 +42,9 @@ return ins;}`;
 let intersect = new Export("intersect",intersectHead,intersectTail,"category",function(plugin){
     return `${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(ln+n-1));
     tmp = intersect${plugin.capitalName()}(ray,${plugin.name});
+    vec3 n = (${plugin.name}.reverseNormal?-1.0:1.0)*tmp.normal;
+    bool faceObj = dot(n,ray.dir)<-EPSILON;
+    tmp.emission = faceObj?tmp.emission:BLACK;
     tmp.index = i;`
 });
 
@@ -56,7 +59,7 @@ let sampleTail = `return result;}`;
 let sample = new Export("sample",sampleHead,sampleTail,"category",function(plugin){
     return `float pdf;
         ${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(ln+n-1));
-        result = sample${plugin.capitalName()}(ins,${plugin.name},pdf);
+        result = sample${plugin.capitalName()}(ins.seed,${plugin.name},pdf);
         vec3 normal = normalFor${plugin.capitalName()}(result,${plugin.name});
         fpdf = ${plugin.name}.emission*max(0.0,dot(normal,ins.hit-result))/pdf;`
 });
