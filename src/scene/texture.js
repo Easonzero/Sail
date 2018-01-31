@@ -144,83 +144,8 @@ class Bilerp extends Texture{
     }
 }
 
-class Dots extends Texture{
-    constructor(inside,outside){
-        super();
-
-        this.inside = new Vector(inside);
-        this.outside = new Vector(outside);
-    }
-
-    get pluginName(){
-        return "dots";
-    }
-
-    set pluginName(name){}
-
-    gen(){
-        let tmp = [
-            9,
-            this.inside.e(1),this.inside.e(2),this.inside.e(3),
-            this.outside.e(1),this.outside.e(2),this.outside.e(3),
-        ];
-
-        return super.gen(tmp);
-    }
-}
-
-class Fbm extends Texture{
-    constructor(octaves,omega){
-        super();
-
-        this.octaves = octaves;
-        this.omega = omega;
-    }
-
-    get pluginName(){
-        return "fbm";
-    }
-
-    set pluginName(name){}
-
-    gen(){
-        let tmp = [
-            10,
-            this.octaves,this.omega
-        ];
-
-        return super.gen(tmp);
-    }
-}
-
-class Marble extends Texture{
-    constructor(octaves,omega,scale,variation){
-        super();
-
-        this.octaves = octaves;
-        this.omega = omega;
-        this.scale = scale;
-        this.variation = variation;
-    }
-
-    get pluginName(){
-        return "marble";
-    }
-
-    set pluginName(name){}
-
-    gen(){
-        let tmp = [
-            11,
-            this.octaves,this.omega,this.scale,this.variation
-        ];
-
-        return super.gen(tmp);
-    }
-}
-
 class Mix extends Texture{
-    constructor(octaves,color1,color2,amount){
+    constructor(color1,color2,amount){
         super();
 
         this.color1 = new Vector(color1);
@@ -229,14 +154,14 @@ class Mix extends Texture{
     }
 
     get pluginName(){
-        return "mix";
+        return "mixf";
     }
 
     set pluginName(name){}
 
     gen(){
         let tmp = [
-            12,
+            9,
             this.color1.e(1),this.color1.e(2),this.color1.e(3),
             this.color2.e(1),this.color2.e(2),this.color2.e(3),
             this.amount
@@ -247,7 +172,7 @@ class Mix extends Texture{
 }
 
 class Scale extends Texture{
-    constructor(octaves,color1,color2){
+    constructor(color1,color2){
         super();
 
         this.color1 = new Vector(color1);
@@ -262,7 +187,7 @@ class Scale extends Texture{
 
     gen(){
         let tmp = [
-            13,
+            10,
             this.color1.e(1),this.color1.e(2),this.color1.e(3),
             this.color2.e(1),this.color2.e(2),this.color2.e(3)
         ];
@@ -277,62 +202,18 @@ class UV extends Texture{
     }
 
     get pluginName(){
-        return "uv";
+        return "uvf";
     }
 
     set pluginName(name){}
 
     gen(){
         let tmp = [
-            14
+            11
         ];
 
         return super.gen(tmp);
     }
 }
 
-class Windy extends Texture{
-    constructor(){
-        super();
-    }
-
-    get pluginName(){
-        return "windy";
-    }
-
-    set pluginName(name){}
-
-    gen(){
-        let tmp = [
-            15
-        ];
-
-        return super.gen(tmp);
-    }
-}
-
-class Wrinkled extends Texture{
-    constructor(octaves,omega){
-        super();
-
-        this.octaves = octaves;
-        this.omega = omega;
-    }
-
-    get pluginName(){
-        return "wrinkled";
-    }
-
-    set pluginName(name){}
-
-    gen(){
-        let tmp = [
-            16,
-            this.octaves,this.omega
-        ];
-
-        return super.gen(tmp);
-    }
-}
-
-export {Color,Checkerboard,CornellBox,Checkerboard2,Bilerp,Dots,Fbm,Marble,Mix,Scale,UV,Windy,Wrinkled};
+export {Color,Checkerboard,CornellBox,Checkerboard2,Bilerp,Mix,Scale,UV};

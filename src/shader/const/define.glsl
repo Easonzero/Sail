@@ -32,14 +32,9 @@
 #define CORNELLBOX 6
 #define CHECKERBOARD2 7
 #define BILERP 8
-#define DOTS 9
-#define FBM 10
-#define MARBLE 11
-#define MIX 12
-#define SCALE 13
-#define UV 14
-#define WINDY 15
-#define WRINKLED 16
+#define MIXF 9
+#define SCALE 10
+#define UVF 11
 
 #define BLACK vec3(0.0,0.0,0.0)
 #define WHITE vec3(1.0,1.0,1.0)

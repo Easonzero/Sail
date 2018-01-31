@@ -7,28 +7,18 @@ import checkerboard from './checkerboard.glsl';
 import checkerboard2 from './checkerboard2.glsl';
 import cornellbox from './cornellbox.glsl';
 import bilerp from './bilerp.glsl';
-import dots from './dots.glsl';
-import fbm from './fbm.glsl';
-import marble from './marble.glsl';
-import mix from './mix.glsl';
+import mixf from './mixf.glsl';
 import scale from './scale.glsl';
-import uv from './uv.glsl';
-import windy from './windy.glsl';
-import wrinkled from './wrinkled.glsl';
+import uvf from './uvf.glsl';
 
 let plugins = {
     "checkerboard":new Plugin("checkerboard",checkerboard),
     "checkerboard2":new Plugin("checkerboard2",checkerboard2),
     "cornellbox":new Plugin("cornellbox",cornellbox),
     "bilerp":new Plugin("bilerp",bilerp),
-    "dots":new Plugin("dots",dots),
-    "fbm":new Plugin("fbm",fbm),
-    "marble":new Plugin("marble",marble),
-    "mix":new Plugin("mix",mix),
+    "mixf":new Plugin("mixf",mixf),
     "scale":new Plugin("scale",scale),
-    "uv":new Plugin("uv",uv),
-    "windy":new Plugin("windy",windy),
-    "wrinkled":new Plugin("wrinkled",wrinkled),
+    "uvf":new Plugin("uvf",uvf),
 };
 
 let head = `vec3 getSurfaceColor(vec3 hit,vec2 uv,float texIndex){
