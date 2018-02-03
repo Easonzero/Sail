@@ -63,11 +63,6 @@ Intersect intersectHyperboloid(Ray ray,Hyperboloid hyperboloid){
     if(t1 < EPSILON) t = t2;
 
     vec3 hit = ray.origin+t*ray.dir;
-    float v = (hit.z - hyperboloid.p1.z) / (hyperboloid.p2.z - hyperboloid.p1.z);
-    vec3 pr = (1.0 - v) * hyperboloid.p1 + v * hyperboloid.p2;
-    float phi = atan(pr.x * hit.y - hit.x * pr.y,
-                         hit.x * pr.x + hit.y * pr.y);
-    if (phi < 0.0) phi += 2.0 * PI;
     float zMin = min(hyperboloid.p1.z, hyperboloid.p2.z);
     float zMax = max(hyperboloid.p1.z, hyperboloid.p2.z);
     if (hit.z < zMin || hit.z > zMax){
@@ -75,22 +70,24 @@ Intersect intersectHyperboloid(Ray ray,Hyperboloid hyperboloid){
         t = t2;
 
         hit = ray.origin+t*ray.dir;
-        v = (hit.z - hyperboloid.p1.z) / (hyperboloid.p2.z - hyperboloid.p1.z);
-        pr = (1.0 - v) * hyperboloid.p1 + v * hyperboloid.p2;
-        phi = atan(pr.x * hit.y - hit.x * pr.y,
-                                 hit.x * pr.x + hit.y * pr.y);
-        if (phi < 0.0) phi += 2.0 * PI;
         if (hit.z < zMin || hit.z > zMax) return result;
     }
 
     if(t >= MAX_DISTANCE) return result;
+
+    float v = (hit.z - hyperboloid.p1.z) / (hyperboloid.p2.z - hyperboloid.p1.z);
+    vec3 pr = (1.0 - v) * hyperboloid.p1 + v * hyperboloid.p2;
+    float phi = atan(pr.x * hit.y - hit.x * pr.y,
+                             hit.x * pr.x + hit.y * pr.y);
+    if (phi < 0.0) phi += 2.0 * PI;
+    float u = phi / (2.0*PI);
 
     result.d = t;
     computeDpDForHyperboloid(hit,hyperboloid.p1,hyperboloid.p2,phi,result.dpdu,result.dpdv);
     result.normal = normalize(cross(result.dpdu,result.dpdv));
     result.hit = hit;
     result.matIndex = hyperboloid.matIndex;
-    result.sc = getSurfaceColor(result.hit,hyperboloid.texIndex);
+    result.sc = getSurfaceColor(result.hit,vec2(u,v),hyperboloid.texIndex);
     result.emission = hyperboloid.emission;
 
     result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+hyperboloid.p;

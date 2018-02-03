@@ -58,6 +58,7 @@ Intersect intersectCone(Ray ray,Cone cone){
     if(t1 < EPSILON) t = t2;
 
     vec3 hit = ray.origin+t*ray.dir;
+
     if (hit.z < -EPSILON || hit.z > cone.h){
         if (t == t2) return result;
         t = t2;
@@ -68,12 +69,18 @@ Intersect intersectCone(Ray ray,Cone cone){
 
     if(t >= MAX_DISTANCE) return result;
 
+    float phi = atan(hit.y, hit.x);
+    if (phi < 0.0) phi += 2.0 * PI;
+
+    float u = phi / (2.0 * PI);
+    float v = hit.z / cone.h;
+
     result.d = t;
     computeDpDForCone(hit,cone.h,result.dpdu,result.dpdv);
     result.normal = normalize(cross(result.dpdu,result.dpdv));
     result.hit = hit;
     result.matIndex = cone.matIndex;
-    result.sc = getSurfaceColor(result.hit,cone.texIndex);
+    result.sc = getSurfaceColor(result.hit,vec2(u,v),cone.texIndex);
     result.emission = cone.emission;
 
     result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+cone.p;

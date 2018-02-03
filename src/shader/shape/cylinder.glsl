@@ -49,6 +49,7 @@ Intersect intersectCylinder(Ray ray,Cylinder cylinder){
     if(t1 < EPSILON) t = t2;
 
     vec3 hit = ray.origin+t*ray.dir;
+
     if (hit.z < -EPSILON || hit.z > cylinder.h){
         if (t == t2) return result;
         t = t2;
@@ -59,12 +60,18 @@ Intersect intersectCylinder(Ray ray,Cylinder cylinder){
 
     if(t >= MAX_DISTANCE) return result;
 
+    float phi = atan(hit.y, hit.x);
+    if (phi < 0.0) phi += 2.0 * PI;
+
+    float u = phi / (2.0 * PI);
+    float v = hit.z / cylinder.h;
+
     result.d = t;
     computeDpDForCylinder(hit,cylinder.h,result.dpdu,result.dpdv);
     result.normal = normalize(cross(result.dpdu,result.dpdv));
     result.hit = hit;
     result.matIndex = cylinder.matIndex;
-    result.sc = getSurfaceColor(result.hit,cylinder.texIndex);
+    result.sc = getSurfaceColor(result.hit,vec2(u,v),cylinder.texIndex);
     result.emission = cylinder.emission;
 
     result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+cylinder.p;

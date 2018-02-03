@@ -3,6 +3,13 @@
  */
 import {ShaderProgram} from '../core/webgl';
 
+function roughnessToAlpha(roughness) {
+    roughness = Math.max(roughness, 1e-3);
+    let x = Math.log(roughness);
+    return 1.62142 + 0.819955 * x + 0.1734 * x * x +
+    0.0171201 * x * x * x + 0.000640711 * x * x * x * x;
+}
+
 class Material{
     gen(data){
         let l = data.length;
@@ -12,11 +19,21 @@ class Material{
 }
 
 class Matte extends Material{
-    constructor(kd=1){
+    constructor(kd=1,sigma=0){
         super();
 
         if(kd<=0) kd=1;
         this.kd = kd;
+        this.sigma = sigma;
+        this.A = 0;
+        this.B =0;
+
+        if(this.sigma!==0){
+            sigma = sigma*Math.PI/180;
+            let sigma2 = sigma * sigma;
+            this.A = 1.0 - (sigma2 / (2.0 * (sigma2 + 0.33)));
+            this.B = 0.45 * sigma2 / (sigma2 + 0.09);
+        }
     }
 
     get pluginName(){
@@ -27,7 +44,7 @@ class Matte extends Material{
 
     gen(){
         let tmp = [
-            1,this.kd
+            1,this.kd,this.sigma,this.A,this.B
         ];
 
         return super.gen(tmp);
@@ -83,27 +100,30 @@ class Metal extends Material{
     }
 }
 
-class Transmission extends Material{
-    constructor(nt){
+class Glass extends Material{
+    constructor(kr=1,kt=1,eta,uroughness=0,vroughness=0){
         super();
 
-        this.nt = nt;
-        this.F0 = (1.0 - nt) * (1.0 - nt) / ((1.0 + nt) * (1.0 + nt));
+        this.kr = kr;
+        this.kt = kt;
+        this.eta = eta;
+        this.uroughness = uroughness==0?uroughness:roughnessToAlpha(uroughness);
+        this.vroughness = vroughness==0?vroughness:roughnessToAlpha(vroughness);
     }
 
     get pluginName(){
-        return "transmission";
+        return "glass";
     }
 
     set pluginName(name){}
 
     gen(){
         let tmp = [
-            4,this.nt,this.F0
+            4,this.kr,this.kt,this.eta,this.uroughness,this.vroughness
         ];
 
         return super.gen(tmp);
     }
 }
 
-export {Matte,Mirror,Metal,Transmission};
+export {Matte,Mirror,Metal,Glass};

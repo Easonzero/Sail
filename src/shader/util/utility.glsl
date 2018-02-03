@@ -49,3 +49,12 @@ bool quadratic(float A,float B,float C,out float t0,out float t1) {
     if (t0 > t1) swap(t0, t1);
     return true;
 }
+
+vec3 sphericalDirection(float sinTheta, float cosTheta, float phi) {
+    return vec3(sinTheta * cos(phi), sinTheta * sin(phi),
+                    cosTheta);
+}
+
+bool equalZero(float x){
+    return x < 1e-4 && x > -1e-4;
+}

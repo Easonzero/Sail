@@ -71,12 +71,18 @@ Intersect intersectParaboloid(Ray ray,Paraboloid paraboloid){
 
     if(t >= MAX_DISTANCE) return result;
 
+    float phi = atan(hit.y, hit.x);
+    if (phi < 0.0) phi += 2.0 * PI;
+
+    float u = phi / (2.0*PI);
+    float v = (hit.z - zMin) / (zMax - zMin);
+
     result.d = t;
     computeDpDForParaboloid(hit,zMax,zMin,result.dpdu,result.dpdv);
     result.normal = normalize(cross(result.dpdu,result.dpdv));
     result.hit = hit;
     result.matIndex = paraboloid.matIndex;
-    result.sc = getSurfaceColor(result.hit,paraboloid.texIndex);
+    result.sc = getSurfaceColor(result.hit,vec2(u,v),paraboloid.texIndex);
     result.emission = paraboloid.emission;
 
     result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+paraboloid.p;

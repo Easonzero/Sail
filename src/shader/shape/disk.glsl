@@ -47,12 +47,20 @@ Intersect intersectDisk(Ray ray,Disk disk){
 
     if(t >= MAX_DISTANCE) return result;
 
+    float phi = atan(hit.y, hit.x);
+    if(phi < 0.0) phi += 2.0 * PI;
+
+    float u = phi / (2.0 * PI);
+    float rHit = sqrt(dist2);
+    float oneMinusV = ((rHit - disk.innerR) / (disk.r - disk.innerR));
+    float v = 1.0 - oneMinusV;
+
     result.d = t;
     computeDpDForDisk(hit,disk.r,disk.innerR,dist2,result.dpdu,result.dpdv);
     result.normal = normalize(cross(result.dpdu,result.dpdv));
     result.hit = hit;
     result.matIndex = disk.matIndex;
-    result.sc = getSurfaceColor(result.hit,disk.texIndex);
+    result.sc = getSurfaceColor(result.hit,vec2(u,v),disk.texIndex);
     result.emission = disk.emission;
 
     result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+disk.p;
