@@ -12,12 +12,6 @@ class Texture{
     }
 }
 
-class Color {
-    static create(color){
-        return new UniformColor(color);
-    }
-}
-
 class UniformColor extends Texture{
     constructor(color){
         super();
@@ -216,4 +210,4 @@ class UV extends Texture{
     }
 }
 
-export {Color,Checkerboard,CornellBox,Checkerboard2,Bilerp,Mix,Scale,UV};
+export {UniformColor,Checkerboard,CornellBox,Checkerboard2,Bilerp,Mix,Scale,UV};
