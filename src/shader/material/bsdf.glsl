@@ -218,7 +218,7 @@ vec3 microfacet_t_f(MicrofacetT mt, vec3 wo, vec3 wi){
     float sqrtDenom = dot(wo, wh) + eta * dot(wi, wh);
 
     return (1.0 - F) * mt.T *
-           abs(microfacet_d(mt.md,wh) * eta * eta *
+           abs(eta * eta * microfacet_d(mt.md,wh) *
                     abs(dot(wi, wh)) * abs(dot(wo, wh)) /
                     (cosThetaI * cosThetaO * sqrtDenom * sqrtDenom));
 }

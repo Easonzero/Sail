@@ -10,7 +10,7 @@ let camera = new Sail.Camera([2.78,2.73,-6],[2.78,2.73,2.79]);
 let matte = new Sail.Matte(0.7);
 let metal = new Sail.Metal(0.01,0.1);
 let mirror = new Sail.Mirror(1.0);
-let glass = new Sail.Glass(1,1,1.5);
+let glass = new Sail.Glass(1,1,1.5,0.1,0.01);
 let cornellbox = new Sail.CornellBox([0,0,0],[5.560,5.488,5.592]);
 let checkerboard2 = new Sail.Checkerboard2();
 

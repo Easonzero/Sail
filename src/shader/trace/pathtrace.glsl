@@ -10,7 +10,7 @@ void trace(Ray ray,out vec3 e,int maxDeepth){
         vec3 _fpdf;
         e += shade(ins,-ray.dir,wi,_fpdf)*fpdf;
 
-        fpdf *= _fpdf;
+        fpdf *= clamp(_fpdf,BLACK,WHITE);
 
         float outdot = dot(ins.normal,wi);
         ray.origin = ins.hit+ins.normal*(outdot>EPSILON?0.0001:-0.0001);

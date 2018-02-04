@@ -36,10 +36,12 @@ float frDielectric(float cosThetaI, float etaI, float etaT) {
 
     if (sinThetaT >= 1.0) return 1.0;
     float cosThetaT = sqrt(max(0.0, 1.0 - sinThetaT * sinThetaT));
-    float Rparl = ((etaT * cosThetaI) - (etaI * cosThetaT)) /
-                  ((etaT * cosThetaI) + (etaI * cosThetaT));
-    float Rperp = ((etaI * cosThetaI) - (etaT * cosThetaT)) /
-                  ((etaI * cosThetaI) + (etaT * cosThetaT));
+    float TI = etaT * cosThetaI,IT = etaI * cosThetaT,
+        II = etaI * cosThetaI, TT = etaT * cosThetaT;
+    float Rparl = (TI - IT) /
+                  (TI + IT);
+    float Rperp = (II - TT) /
+                  (II + TT);
     return (Rparl * Rparl + Rperp * Rperp) / 2.0;
 }
 
