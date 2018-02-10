@@ -29,7 +29,7 @@ a path tracer using WebGL for realtime performance
 
 ## 运行
 
-可以直接执行/test/index.html查看预设测试渲染结果。以下是测试代码及注释
+可以直接执行/ui/index.html,通过图形界面尝试渲染。也可以通过调用bin/sail.js,自己创建渲染脚本,以下是测试代码及注释
 
 ```js
 let canvas = document.getElementById('canvas');
@@ -40,9 +40,10 @@ let scene = new Sail.Scene();
 let camera = new Sail.Camera([2.78,2.73,-6],[2.78,2.73,2.79]);
 
 //创建材质、纹理
-let matte = new Sail.Matte(1.0);
-let metal = new Sail.Metal(0.1,0.01);
+let matte = new Sail.Matte(0.7);
+let metal = new Sail.Metal(0,0.01,0.1);
 let mirror = new Sail.Mirror(1.0);
+let glass = new Sail.Glass(1,1,1.5);
 let cornellbox = new Sail.CornellBox([0,0,0],[5.560,5.488,5.592]);
 
 //创建光源
