@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="codemirror.js"></script>
+    <script src="jsmode.js"></script>
+    <link rel="stylesheet" href="codemirror.css">
+    <link rel="stylesheet" href="duotone-light.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+    <h1>Sail</h1>
+    <p>
+        a path tracer using WebGL for realtime performance.
+        github:<a href="https://github.com/Easonzero/Sail">https://github.com/Easonzero/Sail</a>
+    </p>
+</header>
+<section id="main">
+    <section>
+        <canvas id="canvas" height="512" width="512"></canvas>
+        <textarea id="editor"></textarea>
+    </section>
+    <button id="run" onclick="run();">RUN</button>
+</section>
+<footer>
+    <p id="footer">Made by <a href="https://github.com/Easonzero">Easonzero</a> in 2018</p>
+</footer>
+</body>
+<script src="../bin/sail.js"></script>
+<script src="ui.js"></script>
+</html>

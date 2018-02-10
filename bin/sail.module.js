@@ -267,7 +267,7 @@ class Vector{
 
     angleFrom(vector) {
         let V = vector.elements || vector;
-        let n = this.elements.length, k = n, i;
+        let n = this.elements.length;
         if (n != V.length) { return null; }
         let dot = 0, mod1 = 0, mod2 = 0;
         // Work things out in parallel to save time
@@ -995,7 +995,7 @@ function Box_param(windowWidth){
 
         let offset = 0;
         for(let i=0;i<windowWidth;i++){
-            for(let j=0;j<windowWidth;j++,offset++){
+            for(let j=0;j<windowWidth;j++, offset++){
                 let p = {
                   x:(j + 0.5) * r.x / windowWidth,
                   y:(i + 0.5) * r.y / windowWidth
@@ -1033,7 +1033,7 @@ function Gaussian_param(windowWidth){
 
         let offset = 0;
         for(let i=0;i<windowWidth;i++){
-            for(let j=0;j<windowWidth;j++,offset++){
+            for(let j=0;j<windowWidth;j++, offset++){
                 let p = {
                     x:(j + 0.5) * r[0] / windowWidth,
                     y:(i + 0.5) * r[1] / windowWidth
@@ -1081,7 +1081,7 @@ function Mitchell_param(windowWidth){
 
         let offset = 0;
         for(let i=0;i<windowWidth;i++){
-            for(let j=0;j<windowWidth;j++,offset++){
+            for(let j=0;j<windowWidth;j++, offset++){
                 let p = {
                     x:(j + 0.5) * r[0] / windowWidth,
                     y:(i + 0.5) * r[1] / windowWidth
@@ -1129,7 +1129,7 @@ function Sinc_param(windowWidth){
 
         let offset = 0;
         for(let i=0;i<windowWidth;i++){
-            for(let j=0;j<windowWidth;j++,offset++){
+            for(let j=0;j<windowWidth;j++, offset++){
                 let p = {
                     x:(j + 0.5) * r[0] / windowWidth,
                     y:(i + 0.5) * r[1] / windowWidth
@@ -1167,7 +1167,7 @@ function Triangle_param(windowWidth){
 
         let offset = 0;
         for(let i=0;i<windowWidth;i++){
-            for(let j=0;j<windowWidth;j++,offset++){
+            for(let j=0;j<windowWidth;j++, offset++){
                 let p = {
                     x:(j + 0.5) * r[0] / windowWidth,
                     y:(i + 0.5) * r[1] / windowWidth
@@ -1245,7 +1245,7 @@ var matte = "void matte_attr(float matIndex,out float kd,out float sigma,out flo
 
 var mirror = "void mirror_attr(float matIndex,out float kr){\n    kr = readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 mirror(vec2 u,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    float kr;\n    mirror_attr(matIndex,kr);\n    SpecularR sr = SpecularR(kr*sc,createFresnelN());\n    f = specular_r_sample_f(sr,u,wo,wi,pdf);\n    return f * absCosTheta(wi)/pdf;\n}\nvec3 mirror_f(float matIndex,vec3 sc,vec3 wo,vec3 wi,bool into){\n    float kr;\n    mirror_attr(matIndex,kr);\n    SpecularR sr = SpecularR(kr*sc,createFresnelN());\n    return specular_r_f(sr,wo,wi);\n}";
 
-var glass = "void glass_attr(float matIndex,out float kr,out float kt,\n                out float eta,out float vroughness,out float vroughness){\n    kr= readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n    kt = readFloat(texParams,vec2(2.0,matIndex),TEX_PARAMS_LENGTH);\n    eta = readFloat(texParams,vec2(3.0,matIndex),TEX_PARAMS_LENGTH);\n    vroughness = readFloat(texParams,vec2(4.0,matIndex),TEX_PARAMS_LENGTH);\n    vroughness = readFloat(texParams,vec2(5.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 glass(vec2 u,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    float kr,kt,eta,vroughness,vroughness;\n    glass_attr(matIndex,kr,kt,eta,vroughness,vroughness);\n    bool isSpecular = urough < EPSILON&&vrough < EPSILON;\n    if(isSpecular){\n        SpecularFr sf = SpecularFr(kr*sc,kt*sc,1.0,eta,into);\n        f = specular_fr_sample_f(sf,u,wo,wi,pdf);\n    }else{\n        MicrofacetDistribution md = MicrofacetDistribution(vroughness,vroughness,TROWBRIDGEREITZ);\n        float p = u.x;\n        u.x = min(u.x * 2.0 - 1.0, ONEMINUSEPSILON);\n        if(p<0.5){\n            Fresnel fresnel = createFresnelD(1.0,eta);\n            MicrofacetR mr = MicrofacetR(kr*sc,fresnel,md);\n            f = microfacet_r_sample_f(mr,u,wo,wi,pdf);\n        }else{\n            MicrofacetT mt = MicrofacetT(kt*sc,1.0,eta,into,md);\n            f = microfacet_t_sample_f(mt,u,wo,wi,pdf);\n        }\n    }\n    return f * absCosTheta(wi)/pdf;\n}\nvec3 glass_f(float matIndex,vec3 sc,vec3 wo,vec3 wi,bool into){\n    float kr,kt,eta,vroughness,vroughness;\n    glass_attr(matIndex,kr,kt,eta,vroughness,vroughness);\n    bool isSpecular = vroughness == 0.0&&vroughness == 0.0;\n    if(isSpecular){\n        SpecularFr sf = SpecularFr(kr*sc,kt*sc,1.0,eta,into);\n        return specular_fr_f(sf,wo,wi);\n    }else{\n        MicrofacetDistribution md = MicrofacetDistribution(vroughness,vroughness,TROWBRIDGEREITZ);\n        if(sameHemisphere(wo,wi)){\n            Fresnel fresnel = createFresnelD(1.0,eta);\n            MicrofacetR mr = MicrofacetR(kr*sc,fresnel,md);\n            return microfacet_r_f(mr,wo,wi);\n        }else{\n            MicrofacetT mt = MicrofacetT(kt*sc,1.0,eta,into,md);\n            return microfacet_t_f(mt,wo,wi);\n        }\n    }\n}";
+var glass = "void glass_attr(float matIndex,out float kr,out float kt,\n                out float eta,out float uroughness,out float vroughness){\n    kr= readFloat(texParams,vec2(1.0,matIndex),TEX_PARAMS_LENGTH);\n    kt = readFloat(texParams,vec2(2.0,matIndex),TEX_PARAMS_LENGTH);\n    eta = readFloat(texParams,vec2(3.0,matIndex),TEX_PARAMS_LENGTH);\n    uroughness = readFloat(texParams,vec2(4.0,matIndex),TEX_PARAMS_LENGTH);\n    vroughness = readFloat(texParams,vec2(5.0,matIndex),TEX_PARAMS_LENGTH);\n}\nvec3 glass(vec2 u,float matIndex,vec3 sc,vec3 wo,out vec3 wi,bool into){\n    vec3 f;\n    float pdf;\n    float kr,kt,eta,uroughness,vroughness;\n    glass_attr(matIndex,kr,kt,eta,uroughness,vroughness);\n    bool isSpecular = uroughness < EPSILON&&vroughness < EPSILON;\n    if(isSpecular){\n        SpecularFr sf = SpecularFr(kr*sc,kt*sc,1.0,eta,into);\n        f = specular_fr_sample_f(sf,u,wo,wi,pdf);\n    }else{\n        MicrofacetDistribution md = MicrofacetDistribution(uroughness,vroughness,TROWBRIDGEREITZ);\n        float p = u.x;\n        u.x = min(u.x * 2.0 - 1.0, ONEMINUSEPSILON);\n        if(p<0.5){\n            Fresnel fresnel = createFresnelD(1.0,eta);\n            MicrofacetR mr = MicrofacetR(kr*sc,fresnel,md);\n            f = microfacet_r_sample_f(mr,u,wo,wi,pdf);\n        }else{\n            MicrofacetT mt = MicrofacetT(kt*sc,1.0,eta,into,md);\n            f = microfacet_t_sample_f(mt,u,wo,wi,pdf);\n        }\n    }\n    return f * absCosTheta(wi)/pdf;\n}\nvec3 glass_f(float matIndex,vec3 sc,vec3 wo,vec3 wi,bool into){\n    float kr,kt,eta,uroughness,vroughness;\n    glass_attr(matIndex,kr,kt,eta,uroughness,vroughness);\n    bool isSpecular = vroughness == 0.0 && uroughness == 0.0;\n    if(isSpecular){\n        SpecularFr sf = SpecularFr(kr*sc,kt*sc,1.0,eta,into);\n        return specular_fr_f(sf,wo,wi);\n    }else{\n        MicrofacetDistribution md = MicrofacetDistribution(uroughness,vroughness,TROWBRIDGEREITZ);\n        if(sameHemisphere(wo,wi)){\n            Fresnel fresnel = createFresnelD(1.0,eta);\n            MicrofacetR mr = MicrofacetR(kr*sc,fresnel,md);\n            return microfacet_r_f(mr,wo,wi);\n        }else{\n            MicrofacetT mt = MicrofacetT(kt*sc,1.0,eta,into,md);\n            return microfacet_t_f(mt,wo,wi);\n        }\n    }\n}";
 
 /**
  * Created by eason on 1/20/18.
@@ -1271,12 +1271,12 @@ let ep = new Export("material",head,tail,"ins.matCategory",function(plugin){
 
 var material = new Generator("material",[ssutility,fresnel,microfacet,bsdf],[""],plugins$2,ep);
 
-var shade$1 = "vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){\n    vec3 f,direct = BLACK,_fpdf;\n    vec3 ss = normalize(ins.dpdu),ts = cross(ins.normal,ss);\n    wo = worldToLocal(wo,ins.normal,ss,ts);\n    fpdf = material(ins,wo,wi,f);\n    wi = localToWorld(wi,ins.normal,ss,ts);\n    if(ins.index>=ln&&ins.matCategory==MATTE)\n        for(int i=0;i<ln;i++){\n            vec3 light = sampleGeometry(ins,i,_fpdf);\n            vec3 toLight = light - ins.hit;\n            float d = length(toLight);\n            if(!testShadow(Ray(ins.hit + 0.0001*ins.normal, toLight)))\n                direct +=  f * max(0.0, dot(normalize(toLight), ins.normal)) * _fpdf/(d * d);\n        }\n    return ins.emission+direct;\n}";
+var shade = "vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){\n    vec3 f,direct = BLACK,_fpdf;\n    vec3 ss = normalize(ins.dpdu),ts = cross(ins.normal,ss);\n    wo = worldToLocal(wo,ins.normal,ss,ts);\n    fpdf = material(ins,wo,wi,f);\n    wi = localToWorld(wi,ins.normal,ss,ts);\n    if(ins.index>=ln&&ins.matCategory==MATTE)\n        for(int i=0;i<ln;i++){\n            vec3 light = sampleGeometry(ins,i,_fpdf);\n            vec3 toLight = light - ins.hit;\n            float d = length(toLight);\n            if(!testShadow(Ray(ins.hit + 0.0001*ins.normal, toLight)))\n                direct +=  f * max(0.0, dot(normalize(toLight), ins.normal)) * _fpdf/(d * d);\n        }\n    return ins.emission+direct;\n}";
 
 /**
  * Created by eason on 1/21/18.
  */
-var shade = new Generator("shade",[shade$1],[""]);
+var shade$1 = new Generator("shade",[shade],[""]);
 
 var cube = "struct Cube{\n    vec3 min;\n    vec3 max;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nCube parseCube(float index){\n    Cube cube;\n    cube.min = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    cube.max = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    cube.reverseNormal = readBool(objects,vec2(7.0,index),OBJECTS_LENGTH);\n    cube.matIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cube.texIndex = readFloat(objects,vec2(9.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cube.emission = readVec3(objects,vec2(10.0,index),OBJECTS_LENGTH);\n    return cube;\n}\nvec3 normalForCube( vec3 hit, Cube cube){\n    float c = (cube.reverseNormal?-1.0:1.0);\n\tif ( hit.x < cube.min.x + 0.0001 )\n\t\treturn c*vec3( -1.0, 0.0, 0.0 );\n\telse if ( hit.x > cube.max.x - 0.0001 )\n\t\treturn c*vec3( 1.0, 0.0, 0.0 );\n\telse if ( hit.y < cube.min.y + 0.0001 )\n\t\treturn c*vec3( 0.0, -1.0, 0.0 );\n\telse if ( hit.y > cube.max.y - 0.0001 )\n\t\treturn c*vec3( 0.0, 1.0, 0.0 );\n\telse if ( hit.z < cube.min.z + 0.0001 )\n\t\treturn c*vec3( 0.0, 0.0, -1.0 );\n\telse return c*vec3( 0.0, 0.0, 1.0 );\n}\nvoid computeDpDForCube( vec3 normal,out vec3 dpdu,out vec3 dpdv){\n    if (abs(normal.x)<0.5) {\n        dpdu = cross(normal, vec3(1,0,0));\n    }else {\n        dpdu = cross(normal, vec3(0,1,0));\n    }\n    dpdv = cross(normal,dpdu);\n}\nvec3 sampleCube(float seed,Cube cube,out float pdf){\n    return BLACK;\n}\nIntersect intersectCube(Ray ray,Cube cube){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 tMin = (cube.min - ray.origin) / ray.dir;\n    vec3 tMax = (cube.max- ray.origin) / ray.dir;\n    vec3 t1 = min( tMin, tMax );\n    vec3 t2 = max( tMin, tMax );\n    float tNear = max( max( t1.x, t1.y ), t1.z );\n    float tFar = min( min( t2.x, t2.y ), t2.z );\n    float t=-1.0,f;\n    if(tNear>EPSILON&&tNear<tFar) t = tNear;\n    else if(tNear<tFar) t = tFar;\n    if(t > EPSILON){\n        result.d = t;\n        result.hit = ray.origin+t*ray.dir;\n        result.normal = normalForCube(ray.origin+t*ray.dir,cube);\n        computeDpDForCube(result.normal,result.dpdu,result.dpdv);\n        result.matIndex = cube.matIndex;\n        result.sc = getSurfaceColor(result.hit,vec2(0,0),cube.texIndex);\n        result.emission = cube.emission;\n    }\n    return result;\n}";
 
@@ -1476,7 +1476,7 @@ class TraceShader extends Shader{
             + texture.generate(...this.pluginsList.texture)
             + material.generate(...this.pluginsList.material)
             + shape.generate(...this.pluginsList.shape)
-            + shade.generate()
+            + shade$1.generate()
             + trace.generate(this.pluginsList.trace)
             + main.generate(new PluginParams("fstrace"))
     }

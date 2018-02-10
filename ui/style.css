@@ -1,0 +1,64 @@
+body {
+    max-width: 900px;
+    padding: 30px;
+    margin: 0 auto;
+    font: 16px/20px 'Lucida Grande', sans-serif;
+}
+
+#main {
+    position: relative;
+    left: 50%;
+    width:1024px;
+    height:512px;
+    margin-top: 80px;
+    margin-left: -512px;
+
+}
+
+#editor {
+    position: absolute;
+    height:100%;
+    width:50%;
+    left: 0;
+    top: 0;
+    border:1px dashed mediumaquamarine;
+}
+
+#canvas {
+    position: absolute;
+    left: 50%;
+    top: 0;
+}
+
+#run {
+    position: absolute;
+    width: 160px;
+    height: 30px;
+    margin-top: 10px;
+    left:50%;
+    transform: translate(-50%);
+    border:1px dashed mediumaquamarine;
+}
+
+header {
+    text-align: center;
+}
+
+footer {
+    margin: 180px 0 0 0;
+    text-align: center;
+}
+
+p, ul {
+    margin: 0 0 30px 0;
+}
+
+h1 {
+    font: bold italic 50px Georgia;
+    margin: 0 0 20px 0;
+    text-align: center;
+}
+
+a {
+    color: inherit;
+}
