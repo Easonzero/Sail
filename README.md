@@ -7,6 +7,18 @@ a path tracer using WebGL for realtime performance
 
 [Demo](https://easonzero.github.io/Sail/)
 
+1. 康奈尔盒子
+
+![cornellbox](./img/ex_cornellbox.png)
+
+2. 金属、镜面、漫反射表面材质
+
+![meterial](./img/ex_meterial.png)
+
+3. 只使用直接光照渲染
+
+![direct](./img/ex_direct.png)
+
 ## 特性
 
 1. 使用基本视线路径追踪方法
