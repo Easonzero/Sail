@@ -56,8 +56,8 @@ function glsl(shaderurl) {
             let reg = new RegExp(`${shaderurl}\/(.*?glsl)$`);
             let result = reg.exec( id );
             if ( !result ) return;
-            let url = path.normalize(result[1]);
-            code = compile(code,[url],path.dirname(url));
+            //let url = path.normalize(result[1]);
+            //code = compile(code,[url],path.dirname(url));
 
             let transformedCode = 'export default ' + JSON.stringify(
                 code.replace( /[ \t]*\/\/.*\n/g, '' ) // remove //
@@ -76,21 +76,22 @@ function glsl(shaderurl) {
 }
 
 export default {
-    entry: 'index.js',
-    indent: '\t',
+    input: 'index.js',
     plugins: [
         glsl('src/shader')
     ],
     // sourceMap: true,
-    targets: [
+    output: [
         {
             format: 'umd',
-            moduleName: 'Sail',
-            dest: 'bin/sail.js'
+            name: 'Sail',
+            file: 'bin/sail.js',
+            indent: '\t'
         },
         {
             format: 'es',
-            dest: 'bin/sail.module.js'
+            file: 'bin/sail.module.js',
+            indent: '\t'
         }
     ]
 };

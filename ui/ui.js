@@ -6,8 +6,8 @@ function initEditor(){
     });
 
     codeMirror.setSize(512,512);
-    codeMirror.getDoc().setValue(`
-scene = new Sail.Scene();
+    codeMirror.getDoc().setValue(
+`scene = new Sail.Scene();
 let camera = new Sail.Camera(
     [2.78,2.73,-6],[2.78,2.73,2.79]
 );
@@ -46,8 +46,7 @@ scene.add(camera);
 
 scene.filter = 'gamma';
 scene.filter.addParam('c','2.2');
-scene.trace = 'pathtrace';
-    `);
+scene.trace = 'pathtrace';`);
 }
 
 function run(){

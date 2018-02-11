@@ -71,7 +71,7 @@ Intersect intersectDisk(Ray ray,Disk disk){
 }
 
 vec3 sampleDisk(float seed,Disk disk,out float pdf){
-    vec2 pd = ConcentricSampleDisk(seed);
+    vec2 pd = concentricSampleDisk(seed);
     vec3 p = vec3(pd.x * disk.r + disk.p.x, disk.p.y, pd.y * disk.r + disk.p.z);
     float area = 2.0 * PI * 0.5 * (disk.r * disk.r - disk.innerR * disk.innerR);
     pdf = 1.0 / area;
