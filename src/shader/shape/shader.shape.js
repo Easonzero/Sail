@@ -49,7 +49,9 @@ let intersect = new Export("intersect",intersectHead,intersectTail,"category",fu
 });
 
 let sampleHead = `
-    vec3 sampleGeometry(Intersect ins,int i,out vec3 fpdf){
+vec3 sampleGeometry(Intersect ins,int i,out vec3 fpdf){
+    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), ins.seed );
+    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), ins.seed );
     fpdf = BLACK;
     int category = int(texture(objects,vec2(0.0,float(i)/float(ln+n-1))).r);
     vec3 result = BLACK;if(false){}
@@ -59,7 +61,7 @@ let sampleTail = `return result;}`;
 let sample = new Export("sample",sampleHead,sampleTail,"category",function(plugin){
     return `float pdf;
         ${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(ln+n-1));
-        result = sample${plugin.capitalName()}(ins.seed,${plugin.name},pdf);
+        result = sample${plugin.capitalName()}(vec2(u1,u2),${plugin.name},pdf);
         vec3 normal = normalFor${plugin.capitalName()}(result,${plugin.name});
         fpdf = ${plugin.name}.emission*max(0.0,dot(normal,ins.hit-result))/pdf;`
 });

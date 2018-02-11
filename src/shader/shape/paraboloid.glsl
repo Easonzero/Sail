@@ -92,7 +92,7 @@ Intersect intersectParaboloid(Ray ray,Paraboloid paraboloid){
     return result;
 }
 
-vec3 sampleParaboloid(float seed,Paraboloid paraboloid,out float pdf){
+vec3 sampleParaboloid(vec2 u,Paraboloid paraboloid,out float pdf){
     //todo
     return BLACK;
 }

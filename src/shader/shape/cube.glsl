@@ -43,7 +43,7 @@ void computeDpDForCube( vec3 normal,out vec3 dpdu,out vec3 dpdv){
     dpdv = cross(normal,dpdu);
 }
 
-vec3 sampleCube(float seed,Cube cube,out float pdf){
+vec3 sampleCube(vec2 u,Cube cube,out float pdf){
     return BLACK;
 }
 

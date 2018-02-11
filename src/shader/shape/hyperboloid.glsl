@@ -97,7 +97,7 @@ Intersect intersectHyperboloid(Ray ray,Hyperboloid hyperboloid){
     return result;
 }
 
-vec3 sampleHyperboloid(float seed,Hyperboloid hyperboloid,out float pdf){
+vec3 sampleHyperboloid(vec2 u,Hyperboloid hyperboloid,out float pdf){
     //todo
     return BLACK;
 }

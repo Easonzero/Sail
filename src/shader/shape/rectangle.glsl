@@ -58,11 +58,9 @@ Intersect intersectRectangle(Ray ray,Rectangle rectangle){
     return result;
 }
 
-vec3 sampleRectangle(float seed,Rectangle rectangle,out float pdf){
+vec3 sampleRectangle(vec2 u,Rectangle rectangle,out float pdf){
     vec3 x = vec3(rectangle.max.x-rectangle.min.x,0.0,0.0);
     vec3 y = vec3(0.0,(rectangle.max-rectangle.min).yz);
-    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), seed );
-    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), seed );
     pdf = 1.0/(length(x)*length(y));
-    return rectangle.min+x*u1+y*u2;
+    return rectangle.min+x*u.x+y*u.y;
 }

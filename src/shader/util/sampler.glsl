@@ -17,13 +17,13 @@ vec3 cosineSampleHemisphere2(vec2 u){
 	return vec3(u.x*cos(angle),u.x*sin(angle),cos(asin(u.x)));
 }
 
-vec2 uniformSampleDisk(vec2 u, float seed) {
+vec2 uniformSampleDisk(vec2 u) {
     float r = sqrt(u.x);
     float theta = 2.0 * PI * u.y;
     return vec2(r * cos(theta), r * sin(theta));
 }
 
-vec2 concentricSampleDisk(vec2 u, float seed){
+vec2 concentricSampleDisk(vec2 u){
     float uOffset = 2.0 * u.x - 1.0;
     float vOffset = 2.0 * u.y - 1.0;
 

@@ -81,7 +81,7 @@ Intersect intersectCylinder(Ray ray,Cylinder cylinder){
     return result;
 }
 
-vec3 sampleCylinder(float seed,Cylinder cylinder,out float pdf){
+vec3 sampleCylinder(vec2 u,Cylinder cylinder,out float pdf){
     //todo
     return BLACK;
 }

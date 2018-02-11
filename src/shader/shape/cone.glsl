@@ -90,7 +90,7 @@ Intersect intersectCone(Ray ray,Cone cone){
     return result;
 }
 
-vec3 sampleCone(float seed,Cone cone,out float pdf){
+vec3 sampleCone(vec2 u,Cone cone,out float pdf){
     //todo
     return BLACK;
 }

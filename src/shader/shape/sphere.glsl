@@ -77,7 +77,7 @@ Intersect intersectSphere(Ray ray,Sphere sphere){
     return result;
 }
 
-vec3 sampleSphere(float seed,Sphere sphere,out float pdf){
+vec3 sampleSphere(vec2 u,Sphere sphere,out float pdf){
     //todo
     return BLACK;
 }
