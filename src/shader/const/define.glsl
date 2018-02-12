@@ -3,7 +3,7 @@
 
 #define MAX_DISTANCE 1e5
 #define MAXBOUNCES 5
-#define EPSILON 1e-4
+#define EPSILON 1e-3
 #define ONEMINUSEPSILON 0.9999
 #define INF 1e5
 #define PI 3.141592653589793
@@ -42,8 +42,8 @@
 #define WHITE vec3(1.0,1.0,1.0)
 #define GREY vec3(0.5,0.5,0.5)
 #define RED vec3(0.75,0.25,0.25)
-#define BLUE vec3(0.1, 0.5, 1.0)
-#define YELLOW vec3(1.0, 0.9, 0.1)
+#define BLUE vec3(0.25, 0.25, 0.75)
+#define GREEN vec3(0.25, 0.75, 0.25)
 
 #define NC 1.0
 

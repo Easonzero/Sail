@@ -19,7 +19,7 @@ Cornellbox parseCornellbox(float index){
 vec3 getCornellboxColor(vec3 hit,vec3 min,vec3 max){
 
     if ( hit.x < min.x + 0.0001 )
-    	return YELLOW;
+    	return GREEN;
     else if ( hit.x > max.x - 0.0001 )
     	return BLUE;
     else if ( hit.y < min.y + 0.0001 )
