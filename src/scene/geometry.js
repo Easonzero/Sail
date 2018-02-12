@@ -3,6 +3,8 @@
  */
 import {ShaderProgram} from '../core/webgl';
 import {Vector} from '../utils/matrix';
+import {Matte} from "./material";
+import {Color} from "../utils/color";
 
 class Object{
     constructor(material,texture,emission=[0,0,0],reverseNormal=false){
@@ -38,10 +40,12 @@ class Cube extends Object{
 
         this.min = new Vector(min);
         this.max = new Vector(max);
+
+        this._pluginName = "cube";
     }
 
     get pluginName(){
-        return "cube";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -63,10 +67,12 @@ class Sphere extends Object{
         this.c = new Vector(c);
         this.r = r;
         this.material = material;
+
+        this._pluginName = "sphere";
     }
 
     get pluginName(){
-        return "sphere";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -86,10 +92,12 @@ class Rectangle extends Object{
 
         this.min = new Vector(min);
         this.max = new Vector(max);
+
+        this._pluginName = "rectangle";
     }
 
     get pluginName(){
-        return "rectangle";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -111,10 +119,12 @@ class Cone extends Object{
         this.position = new Vector(position);
         this.height = height;
         this.radius = radius;
+
+        this._pluginName = "cone";
     }
 
     get pluginName(){
-        return "cone";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -137,10 +147,12 @@ class Cylinder extends Object{
         this.position = new Vector(position);
         this.height = height;
         this.radius = radius;
+
+        this._pluginName = "cylinder";
     }
 
     get pluginName(){
-        return "cylinder";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -163,10 +175,12 @@ class Disk extends Object{
         this.position = new Vector(position);
         this.radius = radius;
         this.innerRadius = innerRadius;
+
+        this._pluginName = "disk";
     }
 
     get pluginName(){
-        return "disk";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -189,6 +203,9 @@ class Hyperboloid extends Object{
         this.position = new Vector(position);
         this.p1 = new Vector(p1);
         this.p2 = new Vector(p2);
+
+        this._pluginName = "hyperboloid";
+
         let pp = this.p1;
         if(this.p2.e(3) === 0){
             this.p1 = this.p2;
@@ -212,7 +229,7 @@ class Hyperboloid extends Object{
     }
 
     get pluginName(){
-        return "hyperboloid";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -238,10 +255,12 @@ class Paraboloid extends Object{
         this.z0 = z0;
         this.z1 = z1;
         this.radius = radius;
+
+        this._pluginName = "paraboloid";
     }
 
     get pluginName(){
-        return "paraboloid";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -257,4 +276,24 @@ class Paraboloid extends Object{
     }
 }
 
-export {Cube,Sphere,Rectangle,Cone,Cylinder,Disk,Hyperboloid,Paraboloid};
+class Cornellbox extends Object{
+    constructor(){
+        super(new Matte(1),Color.BLACK);
+        this._pluginName = "cornellbox"
+    }
+
+    get pluginName(){
+        return this._pluginName;
+    }
+
+    set pluginName(name){}
+
+    gen(texparamID){
+        let tmp = [
+            9
+        ];
+        return super.gen(tmp,texparamID);
+    }
+}
+
+export {Cube,Sphere,Rectangle,Cone,Cylinder,Disk,Hyperboloid,Paraboloid,Cornellbox};

@@ -18,7 +18,7 @@ Cube parseCube(float index){
     return cube;
 }
 
-vec3 normalForCube( vec3 hit, Cube cube){
+vec3 normalForCube(vec3 hit, Cube cube){
     float c = (cube.reverseNormal?-1.0:1.0);
 	if ( hit.x < cube.min.x + 0.0001 )
 		return c*vec3( -1.0, 0.0, 0.0 );
@@ -47,6 +47,17 @@ vec3 sampleCube(vec2 u,Cube cube,out float pdf){
     return BLACK;
 }
 
+vec2 getCubeUV(vec3 hit, Cube cube){
+    vec3 tr = cube.max-cube.min;
+    hit = hit - cube.min;
+    if ( hit.x < cube.min.x + 0.0001||hit.x > cube.max.x - 0.0001 )
+		return hit.yz/tr.yz;
+	else if ( hit.y < cube.min.y + 0.0001||hit.y > cube.max.y - 0.0001 )
+		return hit.xz/tr.xz;
+	else
+		return hit.xy/tr.xy;
+}
+
 Intersect intersectCube(Ray ray,Cube cube){
     Intersect result;
     result.d = MAX_DISTANCE;
@@ -65,7 +76,7 @@ Intersect intersectCube(Ray ray,Cube cube){
         result.normal = normalForCube(ray.origin+t*ray.dir,cube);
         computeDpDForCube(result.normal,result.dpdu,result.dpdv);
         result.matIndex = cube.matIndex;
-        result.sc = getSurfaceColor(result.hit,vec2(0,0),cube.texIndex);
+        result.sc = getSurfaceColor(result.hit,getCubeUV(result.hit,cube),cube.texIndex);
         result.emission = cube.emission;
     }
     return result;

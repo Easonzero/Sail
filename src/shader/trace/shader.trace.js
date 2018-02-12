@@ -2,10 +2,10 @@
  * Created by eason on 1/21/18.
  */
 import {Generator,Plugin} from '../generator';
-import pathtrace from './pathtrace.glsl';
+import path from './path.glsl';
 
 let plugins = {
-    "pathtrace":new Plugin("pathtrace",pathtrace)
+    "path":new Plugin("path",path)
 };
 
 export default new Generator("trace",[""],[""],plugins);

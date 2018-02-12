@@ -10,6 +10,7 @@ import cylinder from './cylinder.glsl';
 import disk from './disk.glsl';
 import hyperboloid from './hyperboloid.glsl';
 import paraboloid from './paraboloid.glsl';
+import cornellbox from './cornellbox.glsl';
 
 let plugins = {
     "cube":new Plugin("cube",cube),
@@ -19,7 +20,8 @@ let plugins = {
     "cylinder":new Plugin("cylinder",cylinder),
     "disk":new Plugin("disk",disk),
     "hyperboloid":new Plugin("hyperboloid",hyperboloid),
-    "paraboloid":new Plugin("paraboloid",paraboloid)
+    "paraboloid":new Plugin("paraboloid",paraboloid),
+    "cornellbox":new Plugin("cornellbox",cornellbox)
 };
 
 let intersectHead = `Intersect intersectObjects(Ray ray){
@@ -34,9 +36,7 @@ let intersectTail = `if(tmp.d < ins.d) ins = tmp;}
 
 ins.matCategory = readInt(texParams,vec2(0.0,ins.matIndex),TEX_PARAMS_LENGTH);
 ins.into = dot(ins.normal,ray.dir) < -EPSILON;
-if(!ins.into) {
-    ins.normal = -ins.normal;
-}
+if(!ins.into) ins.normal = -ins.normal;
 return ins;}`;
 
 let intersect = new Export("intersect",intersectHead,intersectTail,"category",function(plugin){

@@ -22,6 +22,7 @@
 #define DISK 6
 #define HYPERBOLOID 7
 #define PARABOLOID 8
+#define CORNELLBOX 9
 
 #define MATTE 1
 #define MIRROR 2
@@ -31,7 +32,6 @@
 //纹理1-4空出来用于图片纹理索引
 #define UNIFORM_COLOR 0
 #define CHECKERBOARD 5
-#define CORNELLBOX 6
 #define CHECKERBOARD2 7
 #define BILERP 8
 #define MIXF 9

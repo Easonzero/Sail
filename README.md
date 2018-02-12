@@ -15,10 +15,6 @@ a path tracer using WebGL for realtime performance
 
 ![meterial](./img/ex_meterial.png)
 
-3. 只使用直接光照渲染
-
-![direct](./img/ex_direct.png)
-
 ## 特性
 
 1. 使用基本视线路径追踪方法

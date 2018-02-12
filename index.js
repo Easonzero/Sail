@@ -3,10 +3,10 @@
  */
 import {Renderer} from './src/core/renderer'
 import {Scene} from './src/scene/scene'
-import {Cube,Sphere,Rectangle,Cone,Cylinder,Disk,Hyperboloid,Paraboloid} from './src/scene/geometry'
+import {Cube,Sphere,Rectangle,Cone,Cylinder,Disk,Hyperboloid,Paraboloid,Cornellbox} from './src/scene/geometry'
 import {Camera} from './src/scene/camera'
 import {Matte,Mirror,Metal,Glass} from './src/scene/material'
-import {UniformColor,Checkerboard,CornellBox,Checkerboard2,Bilerp,Mix,Scale,UV} from './src/scene/texture'
+import {UniformColor,Checkerboard,Checkerboard2,Bilerp,Mix,Scale,UV} from './src/scene/texture'
 import {Control} from './src/utils/control'
 import {Matrix,Vector} from './src/utils/matrix';
 import {Color} from './src/utils/color';
@@ -22,6 +22,7 @@ window.Sail = {
     Disk:Disk,
     Hyperboloid:Hyperboloid,
     Paraboloid:Paraboloid,
+    Cornellbox:Cornellbox,
     Camera:Camera,
     Control:Control,
     Matte:Matte,
@@ -36,7 +37,6 @@ window.Sail = {
     Scale:Scale,
     UV:UV,
     Color:Color,
-    CornellBox:CornellBox,
     Matrix:Matrix,
     Vector:Vector
 };

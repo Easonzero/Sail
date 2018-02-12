@@ -17,10 +17,12 @@ class UniformColor extends Texture{
         super();
 
         this.color = new Vector(color);
+
+        this._pluginName = undefined;
     }
 
     get pluginName(){
-        return undefined;
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -35,7 +37,7 @@ class UniformColor extends Texture{
 }
 
 class Checkerboard extends Texture{
-    constructor(size=0.3,lineWidth=0.03){
+    constructor(size=0.1,lineWidth=0.01){
         super();
 
         if(size<=0) size=0.3;
@@ -43,10 +45,12 @@ class Checkerboard extends Texture{
 
         this.size = size;
         this.lineWidth = lineWidth;
+
+        this._pluginName = "checkerboard";
     }
 
     get pluginName(){
-        return "checkerboard";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -60,40 +64,19 @@ class Checkerboard extends Texture{
     }
 }
 
-class CornellBox extends Texture{
-    constructor(min,max){
-        super();
-
-        this.min = new Vector(min);
-        this.max = new Vector(max);
-    }
-
-    get pluginName(){
-        return "cornellbox";
-    }
-
-    set pluginName(name){}
-
-    gen(){
-        let tmp = [
-            6,this.min.e(1),this.min.e(2),this.min.e(3),
-            this.max.e(1),this.max.e(2),this.max.e(3)
-        ];
-
-        return super.gen(tmp);
-    }
-}
-
 class Checkerboard2 extends Texture{
-    constructor(color1=[1,1,1],color2=[0,0,0]){
+    constructor(color1=[1,1,1],color2=[0,0,0],size=0.1){
         super();
 
         this.color1 = new Vector(color1);
         this.color2 = new Vector(color2);
+        this.size = size;
+
+        this._pluginName = "checkerboard2";
     }
 
     get pluginName(){
-        return "checkerboard2";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -103,6 +86,7 @@ class Checkerboard2 extends Texture{
             7,
             this.color1.e(1),this.color1.e(2),this.color1.e(3),
             this.color2.e(1),this.color2.e(2),this.color2.e(3),
+            this.size
         ];
 
         return super.gen(tmp);
@@ -117,10 +101,12 @@ class Bilerp extends Texture{
         this.color01 = new Vector(color01);
         this.color10 = new Vector(color10);
         this.color11 = new Vector(color11);
+
+        this._pluginName = "bilerp";
     }
 
     get pluginName(){
-        return "bilerp";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -145,10 +131,12 @@ class Mix extends Texture{
         this.color1 = new Vector(color1);
         this.color2 = new Vector(color2);
         this.amount = amount;
+
+        this._pluginName = "mixf";
     }
 
     get pluginName(){
-        return "mixf";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -171,10 +159,12 @@ class Scale extends Texture{
 
         this.color1 = new Vector(color1);
         this.color2 = new Vector(color2);
+
+        this._pluginName = "scale";
     }
 
     get pluginName(){
-        return "scale";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -193,10 +183,11 @@ class Scale extends Texture{
 class UV extends Texture{
     constructor(){
         super();
+        this._pluginName = "uvf";
     }
 
     get pluginName(){
-        return "uvf";
+        return this._pluginName;
     }
 
     set pluginName(name){}
@@ -210,4 +201,4 @@ class UV extends Texture{
     }
 }
 
-export {UniformColor,Checkerboard,CornellBox,Checkerboard2,Bilerp,Mix,Scale,UV};
+export {UniformColor,Checkerboard,Checkerboard2,Bilerp,Mix,Scale,UV};

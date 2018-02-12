@@ -14,7 +14,7 @@ class Scene {
         this.sampleCount = 0;
         this.lgcount = 0;
         this.obcount = 0;
-        this._trace = new PluginParams("pathtrace");
+        this._trace = new PluginParams("path");
         this._filter = new PluginParams("none");
     }
 

@@ -7,7 +7,6 @@ import c from '../shader/const/shader.const'
 import filter from '../shader/filter/shader.filter'
 import main from '../shader/main/shader.main'
 import material from '../shader/material/shader.material'
-import shade from '../shader/shade/shader.shade'
 import shape from '../shader/shape/shader.shape'
 import texture from '../shader/texture/shader.texture'
 import trace from '../shader/trace/shader.trace'
@@ -55,7 +54,6 @@ class TraceShader extends Shader{
             + texture.generate(...this.pluginsList.texture)
             + material.generate(...this.pluginsList.material)
             + shape.generate(...this.pluginsList.shape)
-            + shade.generate()
             + trace.generate(this.pluginsList.trace)
             + main.generate(new PluginParams("fstrace"))
     }
