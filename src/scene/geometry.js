@@ -277,9 +277,16 @@ class Paraboloid extends Object{
 }
 
 class Cornellbox extends Object{
-    constructor(){
+    constructor(min=[0,0,-5],max=[5.560,5.488,5.592]){
         super(new Matte(1),Color.BLACK);
+        this.min = new Vector(min);
+        this.max = new Vector(max);
         this._pluginName = "cornellbox"
+    }
+
+    scale(k){
+        this.min = this.min.x(k);
+        this.max = this.max.x(k);
     }
 
     get pluginName(){
@@ -290,7 +297,9 @@ class Cornellbox extends Object{
 
     gen(texparamID){
         let tmp = [
-            9
+            9,
+            this.min.e(1),this.min.e(2),this.min.e(3),
+            this.max.e(1),this.max.e(2),this.max.e(3)
         ];
         return super.gen(tmp,texparamID);
     }

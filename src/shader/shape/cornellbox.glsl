@@ -8,9 +8,9 @@ struct Cornellbox{
 
 Cornellbox parseCornellbox(float index){
     Cornellbox box;
-    box.min = vec3(0,0,-7);
-    box.max = vec3(5.560,5.488,5.592);
-    box.matIndex = readFloat(objects,vec2(2.0,index),OBJECTS_LENGTH)/float(tn-1);
+    box.min = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);
+    box.max = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);
+    box.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);
     box.reverseNormal = false;
     box.emission = BLACK;
     return box;
