@@ -21,9 +21,8 @@ class Renderer {
 
     render(scene){
         WebglHelper.clearScreen();
-        this.tracer.render(scene.mat,scene.eye,scene.sampleCount);
+        this.tracer.render(scene.mat,scene.eye,scene.sampleCount++);
         this.shader.render();
-        scene.sampleCount++;
     }
 }
 

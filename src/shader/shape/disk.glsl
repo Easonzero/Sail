@@ -26,7 +26,7 @@ void computeDpDForDisk(vec3 hit,float r,float innerR,float dist2,out vec3 dpdu,o
 }
 
 vec3 normalForDisk(vec3 hit,Disk disk){
-    return (disk.reverseNormal?-1.0:1.0)*vec3(0,-1,0);
+    return (disk.reverseNormal?-1.0:1.0)*vec3(0,1,0);
 }
 
 Intersect intersectDisk(Ray ray,Disk disk){

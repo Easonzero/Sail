@@ -1,6 +1,5 @@
 vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){
     vec3 f,direct = BLACK,_fpdf;
-
     vec3 ss = normalize(ins.dpdu),ts = cross(ins.normal,ss);
     wo = worldToLocal(wo,ins.normal,ss,ts);
 
@@ -16,14 +15,13 @@ vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){
             if(!testShadow(Ray(ins.hit + 0.0001*ins.normal, toLight)))
                 direct +=  f * max(0.0, dot(normalize(toLight), ins.normal)) * _fpdf/(d * d);
         }
-
     return ins.emission+direct;
 }
 
 void trace(Ray ray,out vec3 e,int maxDeepth){
     vec3 fpdf = WHITE;e = BLACK;
     int deepth=0;
-    while(++deepth<=maxDeepth){
+    while(deepth++<maxDeepth){
         Intersect ins = intersectObjects(ray);
         ins.seed = timeSinceStart + float(deepth);
         if(ins.d>=MAX_DISTANCE) break;

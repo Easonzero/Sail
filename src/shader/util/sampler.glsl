@@ -1,4 +1,4 @@
-vec3 uniformlyRandomDirection(vec2 u){
+vec3 uniformSampleSphere(vec2 u){
 	float z = 1.0 - 2.0 * u.x;   float r = sqrt( 1.0 - z * z );
 	float angle = 2.0 * PI * u.y;
 	return vec3( r * cos( angle ), r * sin( angle ), z );

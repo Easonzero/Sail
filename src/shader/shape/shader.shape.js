@@ -50,8 +50,8 @@ let intersect = new Export("intersect",intersectHead,intersectTail,"category",fu
 
 let sampleHead = `
 vec3 sampleGeometry(Intersect ins,int i,out vec3 fpdf){
-    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), ins.seed );
-    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), ins.seed );
+    float u1 = random( vec3( 43.3234, 12.6533, 51.6212 ), ins.seed );
+    float u2 = random( vec3( 111.734, 63.3433, 123.2336 ), ins.seed );
     fpdf = BLACK;
     int category = int(texture(objects,vec2(0.0,float(i)/float(ln+n-1))).r);
     vec3 result = BLACK;if(false){}

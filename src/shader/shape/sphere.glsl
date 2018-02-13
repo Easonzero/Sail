@@ -78,6 +78,7 @@ Intersect intersectSphere(Ray ray,Sphere sphere){
 }
 
 vec3 sampleSphere(vec2 u,Sphere sphere,out float pdf){
-    //todo
-    return BLACK;
+    vec3 p = uniformSampleSphere(u);
+    pdf = INVPI / (sphere.r * sphere.r);
+    return p*sphere.r+sphere.c;
 }
