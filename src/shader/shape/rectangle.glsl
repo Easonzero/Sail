@@ -7,6 +7,10 @@ struct Rectangle{
     bool reverseNormal;
 };
 
+bool testBoundboxForRectangle(Ray ray,Rectangle rectangle){
+    return true;
+}
+
 Rectangle parseRectangle(float index){
     Rectangle rectangle;
     rectangle.min = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);

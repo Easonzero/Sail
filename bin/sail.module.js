@@ -6,14 +6,8 @@ class ShaderProgram {
         this.hasFrameBuffer = hasFrameBuffer;
         this.run = false;
 
-        this.vertexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-            -1, -1,
-            -1, +1,
-            +1, -1,
-            +1, +1
-        ]), gl.STATIC_DRAW);
+        this.vbo = [];
+        this.indexl = 0;
 
         if(hasFrameBuffer){
             this.framebuffer = gl.createFramebuffer();
@@ -35,16 +29,23 @@ class ShaderProgram {
         }
     }
 
+    addVBO(type,data){
+        let buffer = gl.createBuffer();
+        gl.bindBuffer(type,buffer);
+        gl.bufferData(type,data,gl.STATIC_DRAW);
+        this.vbo.push({name:buffer,type:type});
+        if(type===gl.ELEMENT_ARRAY_BUFFER) this.indexl = data.length;
+    }
+
     setProgram(shader){
         this.shader = shader;
 
         this.program = WebglHelper.createProgram(shader.combinevs(), shader.combinefs());
-
         this.vertexAttribute = gl.getAttribLocation(this.program, 'vertex');
         gl.enableVertexAttribArray(this.vertexAttribute);
     }
 
-    render(uniforms=true,textures=true){
+    render(type='triangle',uniforms=true,textures=true){
         if(!this.program||!this.shader) return;
 
         gl.useProgram(this.program);
@@ -52,7 +53,6 @@ class ShaderProgram {
         if(!this.run) {
             this._updateUniforms();
             this._updateTextures();
-            this._updateVBO();
             this.run = true;
         }else{
             if(uniforms) this._updateUniforms();
@@ -66,7 +66,16 @@ class ShaderProgram {
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ShaderProgram.frameCache[1], 0);
         }
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        for(let buffer of this.vbo){
+            gl.bindBuffer(buffer.type,buffer.name);
+        }
+        if(type==='line'){
+            gl.vertexAttribPointer(this.vertexAttribute, 3, gl.FLOAT, false, 0, 0);
+            gl.drawElements(gl.LINES,this.indexl, gl.UNSIGNED_SHORT, 0);
+        } else {
+            gl.vertexAttribPointer(this.vertexAttribute, 2, gl.FLOAT, false, 0, 0);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
 
         gl.bindFramebuffer(gl.FRAMEBUFFER,null);
 
@@ -100,11 +109,6 @@ class ShaderProgram {
 
             gl.uniform1i(location,entry[1]);
         }
-    }
-
-    _updateVBO(){
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.vertexAttribPointer(this.vertexAttribute, 2, gl.FLOAT, false, 0, 0);
     }
 
     set uniform(uniform){}
@@ -300,6 +304,10 @@ class Vector{
         return this.map(function(x) { return x*k; });
     }
 
+    divide(k){
+        return this.map(function(x) { return x/k; });
+    }
+
     x(k) { return this.multiply(k); }
 
     dot(vector) {
@@ -333,6 +341,31 @@ class Vector{
         return Math.sqrt(sum);
     }
 
+    length(){
+        return Math.sqrt(
+            this.elements[0]*this.elements[0]+
+            this.elements[1]*this.elements[1]+
+            this.elements[2]*this.elements[2]
+        );
+    }
+
+    ensure3() {
+        return new Vector([this.elements[0], this.elements[1], this.elements[2]]);
+    };
+
+    ensure4(w) {
+        return new Vector([this.elements[0], this.elements[1], this.elements[2], w]);
+    };
+
+    divideByW(){
+        let w = this.elements[this.elements.length - 1];
+        let newElements = [];
+        for(let i = 0; i < this.elements.length; i++) {
+            newElements.push(this.elements[i] / w);
+        }
+        return new Vector(newElements);
+    }
+
     setElements(els) {
         this.elements = (els.elements || els).slice();
         return this;
@@ -340,6 +373,33 @@ class Vector{
 
     flatten(){
         return this.elements;
+    };
+
+    componentDivide(vector){
+        if(this.elements.length !== vector.elements.length) {
+            return null;
+        }
+        let newElements = [];
+        for(let i = 0; i < this.elements.length; i++) {
+            newElements.push(this.elements[i] / vector.elements[i]);
+        }
+        return new Vector(newElements);
+    };
+
+    maxComponent() {
+        let value = -100000;
+        for(let i = 0; i < this.elements.length; i++) {
+            value = Math.max(value, this.elements[i]);
+        }
+        return value;
+    };
+
+    minComponent() {
+        let value = 100000;
+        for(let i = 0; i < this.elements.length; i++) {
+            value = Math.min(value, this.elements[i]);
+        }
+        return value;
     };
 
     static get i(){return new Vector([1,0,0]);}
@@ -358,6 +418,28 @@ class Vector{
         do { elements.push(0);
         } while (--n);
         return new Vector(elements);
+    }
+
+    static min(a,b){
+        if(a.length !== b.length) {
+            return null;
+        }
+        let newElements = [];
+        for(let i = 0; i < a.elements.length; i++) {
+            newElements.push(Math.min(a.elements[i], b.elements[i]));
+        }
+        return new Vector(newElements);
+    }
+
+    static max(a, b){
+        if(a.length !== b.length) {
+            return null;
+        }
+        let newElements = [];
+        for(let i = 0; i < a.elements.length; i++) {
+            newElements.push(Math.max(a.elements[i], b.elements[i]));
+        }
+        return new Vector(newElements);
     }
 }
 
@@ -1219,6 +1301,10 @@ var fstrace = "in vec3 raydir;\nout vec4 out_color;\nvoid main() {\n    int deep
 
 var vstrace = "in vec3 vertex;\nout vec3 raydir;\nvoid main() {\n    gl_Position = vec4(vertex, 1.0);\n    raydir = normalize(ensure3byW(matrix*gl_Position)-eye);\n}";
 
+var fsline = "out vec4 color;\nvoid main() {\n    color = vec4(1.0);\n}";
+
+var vsline = "in vec3 vertex;\nvoid main() {\n    gl_Position = modelviewProjection * vec4(mix(cubeMin, cubeMax, vertex), 1.0);\n}";
+
 /**
  * Created by eason on 1/20/18.
  */
@@ -1226,7 +1312,9 @@ let plugins$1 = {
     "fsrender":new Plugin("fsrender",fsrender),
     "vsrender":new Plugin("vsrender",vsrender),
     "fstrace":new Plugin("fstrace",fstrace),
-    "vstrace":new Plugin("vstrace",vstrace)
+    "vstrace":new Plugin("vstrace",vstrace),
+    "fsline":new Plugin("fsline",fsline),
+    "vsline":new Plugin("vsline",vsline)
 };
 
 var main = new Generator("main",[""],[""],plugins$1);
@@ -1271,23 +1359,25 @@ let ep = new Export("material",head,tail,"ins.matCategory",function(plugin){
 
 var material = new Generator("material",[ssutility,fresnel,microfacet,bsdf],[""],plugins$2,ep);
 
-var cube = "struct Cube{\n    vec3 min;\n    vec3 max;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nCube parseCube(float index){\n    Cube cube;\n    cube.min = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    cube.max = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    cube.reverseNormal = readBool(objects,vec2(7.0,index),OBJECTS_LENGTH);\n    cube.matIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cube.texIndex = readFloat(objects,vec2(9.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cube.emission = readVec3(objects,vec2(10.0,index),OBJECTS_LENGTH);\n    return cube;\n}\nvec3 normalForCube(vec3 hit, Cube cube){\n    float c = (cube.reverseNormal?-1.0:1.0);\n\tif ( hit.x < cube.min.x + 0.0001 )\n\t\treturn c*vec3( -1.0, 0.0, 0.0 );\n\telse if ( hit.x > cube.max.x - 0.0001 )\n\t\treturn c*vec3( 1.0, 0.0, 0.0 );\n\telse if ( hit.y < cube.min.y + 0.0001 )\n\t\treturn c*vec3( 0.0, -1.0, 0.0 );\n\telse if ( hit.y > cube.max.y - 0.0001 )\n\t\treturn c*vec3( 0.0, 1.0, 0.0 );\n\telse if ( hit.z < cube.min.z + 0.0001 )\n\t\treturn c*vec3( 0.0, 0.0, -1.0 );\n\telse return c*vec3( 0.0, 0.0, 1.0 );\n}\nvoid computeDpDForCube( vec3 normal,out vec3 dpdu,out vec3 dpdv){\n    if (abs(normal.x)<0.5) {\n        dpdu = cross(normal, vec3(1,0,0));\n    }else {\n        dpdu = cross(normal, vec3(0,1,0));\n    }\n    dpdv = cross(normal,dpdu);\n}\nvec3 sampleCube(vec2 u,Cube cube,out float pdf){\n    return BLACK;\n}\nvec2 getCubeUV(vec3 hit, Cube cube){\n    vec3 tr = cube.max-cube.min;\n    hit = hit - cube.min;\n    if ( hit.x < cube.min.x + 0.0001||hit.x > cube.max.x - 0.0001 )\n\t\treturn hit.yz/tr.yz;\n\telse if ( hit.y < cube.min.y + 0.0001||hit.y > cube.max.y - 0.0001 )\n\t\treturn hit.xz/tr.xz;\n\telse\n\t\treturn hit.xy/tr.xy;\n}\nIntersect intersectCube(Ray ray,Cube cube){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 tMin = (cube.min - ray.origin) / ray.dir;\n    vec3 tMax = (cube.max- ray.origin) / ray.dir;\n    vec3 t1 = min( tMin, tMax );\n    vec3 t2 = max( tMin, tMax );\n    float tNear = max( max( t1.x, t1.y ), t1.z );\n    float tFar = min( min( t2.x, t2.y ), t2.z );\n    float t=-1.0,f;\n    if(tNear>EPSILON&&tNear<tFar) t = tNear;\n    else if(tNear<tFar) t = tFar;\n    if(t > EPSILON){\n        result.d = t;\n        result.hit = ray.origin+t*ray.dir;\n        result.normal = normalForCube(ray.origin+t*ray.dir,cube);\n        computeDpDForCube(result.normal,result.dpdu,result.dpdv);\n        result.matIndex = cube.matIndex;\n        result.sc = getSurfaceColor(result.hit,getCubeUV(result.hit,cube),cube.texIndex);\n        result.emission = cube.emission;\n    }\n    return result;\n}";
+var boundbox = "struct Boundbox{\n    vec3 max;\n    vec3 min;\n};\nbool testBoundbox(Ray ray,Boundbox box){\n    vec3 tMin = (box.min-ray.origin)/ray.dir;\n    vec3 tMax = (box.max-ray.origin)/ray.dir;\n    vec3 t1 = min( tMin, tMax );\n    vec3 t2 = max( tMin, tMax );\n    float tNear = max( max( t1.x, t1.y ), t1.z );\n    float tFar = min( min( t2.x, t2.y ), t2.z );\n    if(tNear<0.0&&tFar<0.0) return false;\n    return tNear < tFar;\n}";
 
-var sphere = "struct Sphere{\n    vec3 c;\n    float r;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nSphere parseSphere(float index){\n    Sphere sphere;\n    sphere.c = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    sphere.r = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    sphere.reverseNormal = readBool(objects,vec2(5.0,index),OBJECTS_LENGTH);\n    sphere.matIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);\n    sphere.texIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    sphere.emission = readVec3(objects,vec2(8.0,index),OBJECTS_LENGTH);\n    return sphere;\n}\nvec3 normalForSphere( vec3 hit, Sphere sphere ){\n\treturn (sphere.reverseNormal?-1.0:1.0)*(hit - sphere.c) / sphere.r;\n}\nvoid computeDpDForSphere(vec3 hit,float radius,out vec3 dpdu,out vec3 dpdv){\n    float theta = acos(clamp(hit.z / radius, -1.0, 1.0));\n    float zRadius = sqrt(hit.x * hit.x + hit.y * hit.y);\n    float invZRadius = 1.0 / zRadius;\n    float cosPhi = hit.x * invZRadius;\n    float sinPhi = hit.y * invZRadius;\n    dpdu = vec3(-2.0*PI * hit.y, 2.0*PI * hit.x,0.0);\n    dpdv = PI * vec3(hit.z * cosPhi, hit.z * sinPhi,-radius * sin(theta));\n}\nIntersect intersectSphere(Ray ray,Sphere sphere){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    ray.dir = worldToLocal(ray.dir,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    ray.origin = worldToLocal(ray.origin - sphere.c,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n\tfloat a = dot( ray.dir, ray.dir );\n\tfloat b = 2.0 * dot( ray.origin, ray.dir );\n\tfloat c = dot( ray.origin, ray.origin ) - sphere.r * sphere.r;\n\tfloat t1,t2,t;\n\tif(!quadratic(a,b,c,t1,t2)) return result;\n\tif(t2 < EPSILON) return result;\n    t = t1;\n    if(t1 < EPSILON) t = t2;\n    if(t >= MAX_DISTANCE) return result;\n    vec3 hit = ray.origin+t*ray.dir;\n    if (hit.x == 0.0 && hit.y == 0.0) hit.x = 1e-5f * sphere.r;\n    float phi = atan(hit.y, hit.x);\n    if (phi < 0.0) phi += 2.0 * PI;\n    float u = phi / (2.0 * PI);\n    float theta = acos(clamp(hit.z / sphere.r, -1.0, 1.0));\n    float v = theta / PI;\n    result.d = t;\n    result.hit = ray.origin+t*ray.dir;\n    computeDpDForSphere(result.hit,sphere.r,result.dpdu,result.dpdv);\n    result.normal = normalize(cross(result.dpdv,result.dpdu));\n    result.matIndex = sphere.matIndex;\n    result.sc = getSurfaceColor(result.hit,vec2(u,v),sphere.texIndex);\n    result.emission = sphere.emission;\n    result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+sphere.c;\n    result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdu = localToWorld(result.dpdu,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdv = localToWorld(result.dpdv,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return result;\n}\nvec3 sampleSphere(vec2 u,Sphere sphere,out float pdf){\n    vec3 p = uniformSampleSphere(u);\n    pdf = INVPI / (sphere.r * sphere.r);\n    return p*sphere.r+sphere.c;\n}";
+var cube = "struct Cube{\n    vec3 min;\n    vec3 max;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nbool testBoundboxForCube(Ray ray,Cube cube){\n    return true;\n}\nCube parseCube(float index){\n    Cube cube;\n    cube.min = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    cube.max = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    cube.reverseNormal = readBool(objects,vec2(7.0,index),OBJECTS_LENGTH);\n    cube.matIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cube.texIndex = readFloat(objects,vec2(9.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cube.emission = readVec3(objects,vec2(10.0,index),OBJECTS_LENGTH);\n    return cube;\n}\nvec3 normalForCube(vec3 hit, Cube cube){\n    float c = (cube.reverseNormal?-1.0:1.0);\n\tif ( hit.x < cube.min.x + 0.0001 )\n\t\treturn c*vec3( -1.0, 0.0, 0.0 );\n\telse if ( hit.x > cube.max.x - 0.0001 )\n\t\treturn c*vec3( 1.0, 0.0, 0.0 );\n\telse if ( hit.y < cube.min.y + 0.0001 )\n\t\treturn c*vec3( 0.0, -1.0, 0.0 );\n\telse if ( hit.y > cube.max.y - 0.0001 )\n\t\treturn c*vec3( 0.0, 1.0, 0.0 );\n\telse if ( hit.z < cube.min.z + 0.0001 )\n\t\treturn c*vec3( 0.0, 0.0, -1.0 );\n\telse return c*vec3( 0.0, 0.0, 1.0 );\n}\nvoid computeDpDForCube( vec3 normal,out vec3 dpdu,out vec3 dpdv){\n    if (abs(normal.x)<0.5) {\n        dpdu = cross(normal, vec3(1,0,0));\n    }else {\n        dpdu = cross(normal, vec3(0,1,0));\n    }\n    dpdv = cross(normal,dpdu);\n}\nvec3 sampleCube(vec2 u,Cube cube,out float pdf){\n    return BLACK;\n}\nvec2 getCubeUV(vec3 hit, Cube cube){\n    vec3 tr = cube.max-cube.min;\n    hit = hit - cube.min;\n    if ( hit.x < cube.min.x + 0.0001||hit.x > cube.max.x - 0.0001 )\n\t\treturn hit.yz/tr.yz;\n\telse if ( hit.y < cube.min.y + 0.0001||hit.y > cube.max.y - 0.0001 )\n\t\treturn hit.xz/tr.xz;\n\telse\n\t\treturn hit.xy/tr.xy;\n}\nIntersect intersectCube(Ray ray,Cube cube){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 tMin = (cube.min - ray.origin) / ray.dir;\n    vec3 tMax = (cube.max- ray.origin) / ray.dir;\n    vec3 t1 = min( tMin, tMax );\n    vec3 t2 = max( tMin, tMax );\n    float tNear = max( max( t1.x, t1.y ), t1.z );\n    float tFar = min( min( t2.x, t2.y ), t2.z );\n    float t=-1.0,f;\n    if(tNear>EPSILON&&tNear<tFar) t = tNear;\n    else if(tNear<tFar) t = tFar;\n    if(t > EPSILON){\n        result.d = t;\n        result.hit = ray.origin+t*ray.dir;\n        result.normal = normalForCube(ray.origin+t*ray.dir,cube);\n        computeDpDForCube(result.normal,result.dpdu,result.dpdv);\n        result.matIndex = cube.matIndex;\n        result.sc = getSurfaceColor(result.hit,getCubeUV(result.hit,cube),cube.texIndex);\n        result.emission = cube.emission;\n    }\n    return result;\n}";
 
-var rectangle = "struct Rectangle{\n    vec3 min;\n    vec3 max;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nRectangle parseRectangle(float index){\n    Rectangle rectangle;\n    rectangle.min = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    rectangle.max = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    rectangle.reverseNormal = readBool(objects,vec2(7.0,index),OBJECTS_LENGTH);\n    rectangle.matIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    rectangle.texIndex = readFloat(objects,vec2(9.0,index),OBJECTS_LENGTH)/float(tn-1);\n    rectangle.emission = readVec3(objects,vec2(10.0,index),OBJECTS_LENGTH);\n    return rectangle;\n}\nvec3 normalForRectangle(vec3 hit,Rectangle rectangle){\n    vec3 x = vec3(rectangle.max.x-rectangle.min.x,0.0,0.0);\n    vec3 y = vec3(0.0,(rectangle.max-rectangle.min).yz);\n    vec3 normal = normalize(cross(x,y));\n    return (rectangle.reverseNormal?-1.0:1.0)*normal;\n}\nIntersect intersectRectangle(Ray ray,Rectangle rectangle){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    result.dpdu = vec3(rectangle.max.x-rectangle.min.x,0.0,0.0);\n    result.dpdv = vec3(0.0,(rectangle.max-rectangle.min).yz);\n    result.normal = normalize(cross(result.dpdu,result.dpdv));\n    float maxX = length(result.dpdu);\n    float maxY = length(result.dpdv);\n    vec3 ss = result.dpdu/maxX,ts = cross(result.normal,ss);\n    ray.dir = worldToLocal(ray.dir,result.normal,ss,ts);\n    ray.origin = worldToLocal(ray.origin - rectangle.min,result.normal,ss,ts);\n    if(ray.dir.z == 0.0) return result;\n    float t = -ray.origin.z/ray.dir.z;\n    if(t < EPSILON) return result;\n    vec3 hit = ray.origin+t*ray.dir;\n    if(hit.x > maxX || hit.y > maxY ||\n        hit.x < -EPSILON || hit.y < -EPSILON) return result;\n    result.d = t;\n    result.matIndex = rectangle.matIndex;\n    result.sc = getSurfaceColor(hit,vec2(hit.x/maxX,hit.y/maxY),rectangle.texIndex);\n    result.emission = rectangle.emission;\n    result.hit = localToWorld(hit,result.normal,ss,ts)+rectangle.min;\n    return result;\n}\nvec3 sampleRectangle(vec2 u,Rectangle rectangle,out float pdf){\n    vec3 x = vec3(rectangle.max.x-rectangle.min.x,0.0,0.0);\n    vec3 y = vec3(0.0,(rectangle.max-rectangle.min).yz);\n    pdf = 1.0/(length(x)*length(y));\n    return rectangle.min+x*u.x+y*u.y;\n}";
+var sphere = "struct Sphere{\n    vec3 c;\n    float r;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nbool testBoundboxForSphere(Ray ray,Sphere sphere){\n    Boundbox box = Boundbox(\n        sphere.c-vec3(sphere.r),\n        sphere.c+vec3(sphere.r)\n    );\n    return testBoundbox(ray,box);\n}\nSphere parseSphere(float index){\n    Sphere sphere;\n    sphere.c = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    sphere.r = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    sphere.reverseNormal = readBool(objects,vec2(5.0,index),OBJECTS_LENGTH);\n    sphere.matIndex = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH)/float(tn-1);\n    sphere.texIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    sphere.emission = readVec3(objects,vec2(8.0,index),OBJECTS_LENGTH);\n    return sphere;\n}\nvec3 normalForSphere( vec3 hit, Sphere sphere ){\n\treturn (sphere.reverseNormal?-1.0:1.0)*(hit - sphere.c) / sphere.r;\n}\nvoid computeDpDForSphere(vec3 hit,float radius,out vec3 dpdu,out vec3 dpdv){\n    float theta = acos(clamp(hit.z / radius, -1.0, 1.0));\n    float zRadius = sqrt(hit.x * hit.x + hit.y * hit.y);\n    float invZRadius = 1.0 / zRadius;\n    float cosPhi = hit.x * invZRadius;\n    float sinPhi = hit.y * invZRadius;\n    dpdu = vec3(-2.0*PI * hit.y, 2.0*PI * hit.x,0.0);\n    dpdv = PI * vec3(hit.z * cosPhi, hit.z * sinPhi,-radius * sin(theta));\n}\nIntersect intersectSphere(Ray ray,Sphere sphere){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    ray.dir = worldToLocal(ray.dir,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    ray.origin = worldToLocal(ray.origin - sphere.c,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n\tfloat a = dot( ray.dir, ray.dir );\n\tfloat b = 2.0 * dot( ray.origin, ray.dir );\n\tfloat c = dot( ray.origin, ray.origin ) - sphere.r * sphere.r;\n\tfloat t1,t2,t;\n\tif(!quadratic(a,b,c,t1,t2)) return result;\n\tif(t2 < EPSILON) return result;\n    t = t1;\n    if(t1 < EPSILON) t = t2;\n    if(t >= MAX_DISTANCE) return result;\n    vec3 hit = ray.origin+t*ray.dir;\n    if (hit.x == 0.0 && hit.y == 0.0) hit.x = 1e-5f * sphere.r;\n    float phi = atan(hit.y, hit.x);\n    if (phi < 0.0) phi += 2.0 * PI;\n    float u = phi / (2.0 * PI);\n    float theta = acos(clamp(hit.z / sphere.r, -1.0, 1.0));\n    float v = theta / PI;\n    result.d = t;\n    result.hit = ray.origin+t*ray.dir;\n    computeDpDForSphere(result.hit,sphere.r,result.dpdu,result.dpdv);\n    result.normal = normalize(cross(result.dpdv,result.dpdu));\n    result.matIndex = sphere.matIndex;\n    result.sc = getSurfaceColor(result.hit,vec2(u,v),sphere.texIndex);\n    result.emission = sphere.emission;\n    result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+sphere.c;\n    result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdu = localToWorld(result.dpdu,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdv = localToWorld(result.dpdv,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return result;\n}\nvec3 sampleSphere(vec2 u,Sphere sphere,out float pdf){\n    vec3 p = uniformSampleSphere(u);\n    pdf = INVPI / (sphere.r * sphere.r);\n    return p*sphere.r+sphere.c;\n}";
 
-var cone = "struct Cone{\n    vec3 p;\n    float h;\n    float r;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nCone parseCone(float index){\n    Cone cone;\n    cone.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    cone.h = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    cone.r = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);\n    cone.reverseNormal = readBool(objects,vec2(6.0,index),OBJECTS_LENGTH);\n    cone.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cone.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cone.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);\n    return cone;\n}\nvoid computeDpDForCone(vec3 hit,float h,out vec3 dpdu,out vec3 dpdv){\n    float v = hit.z / h;\n    dpdu = vec3(-2.0 * PI * hit.y, 2.0 * PI * hit.x, 0);\n    dpdv = vec3(-hit.x / (1.0 - v), -hit.y / (1.0 - v), h);\n}\nvec3 normalForCone(vec3 hit,Cone cone){\n    hit = hit-cone.p;\n    float tana = cone.r/cone.h;\n    float d = sqrt(hit.x*hit.x+hit.y*hit.y);\n    float x1 = d/tana;\n    float x2 = d*tana;\n    vec3 no = vec3(0,0,cone.h-x1-x2);\n    return (cone.reverseNormal?-1.0:1.0)*normalize(hit-no);\n}\nIntersect intersectCone(Ray ray,Cone cone){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    ray.dir = worldToLocal(ray.dir,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    ray.origin = worldToLocal(ray.origin - cone.p,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    float k = cone.r / cone.h;\n    k = k * k;\n    float a = ray.dir.x * ray.dir.x + ray.dir.y * ray.dir.y - k * ray.dir.z * ray.dir.z;\n    float b = 2.0 * (ray.dir.x * ray.origin.x + ray.dir.y * ray.origin.y - k * ray.dir.z * (ray.origin.z - cone.h));\n    float c = ray.origin.x * ray.origin.x + ray.origin.y * ray.origin.y - k * (ray.origin.z - cone.h) * (ray.origin.z - cone.h);\n    float t1,t2,t;\n    if(!quadratic(a,b,c,t1,t2)) return result;\n    if(t2 < -EPSILON) return result;\n    t = t1;\n    if(t1 < EPSILON) t = t2;\n    vec3 hit = ray.origin+t*ray.dir;\n    if (hit.z < -EPSILON || hit.z > cone.h){\n        if (t == t2) return result;\n        t = t2;\n        hit = ray.origin+t*ray.dir;\n        if (hit.z < -EPSILON || hit.z > cone.h) return result;\n    }\n    if(t >= MAX_DISTANCE) return result;\n    float phi = atan(hit.y, hit.x);\n    if (phi < 0.0) phi += 2.0 * PI;\n    float u = phi / (2.0 * PI);\n    float v = hit.z / cone.h;\n    result.d = t;\n    computeDpDForCone(hit,cone.h,result.dpdu,result.dpdv);\n    result.normal = normalize(cross(result.dpdu,result.dpdv));\n    result.hit = hit;\n    result.matIndex = cone.matIndex;\n    result.sc = getSurfaceColor(result.hit,vec2(u,v),cone.texIndex);\n    result.emission = cone.emission;\n    result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+cone.p;\n    result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdu = localToWorld(result.dpdu,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdv = localToWorld(result.dpdv,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return result;\n}\nvec3 sampleCone(vec2 u,Cone cone,out float pdf){\n    return BLACK;\n}";
+var rectangle = "struct Rectangle{\n    vec3 min;\n    vec3 max;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nbool testBoundboxForRectangle(Ray ray,Rectangle rectangle){\n    return true;\n}\nRectangle parseRectangle(float index){\n    Rectangle rectangle;\n    rectangle.min = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    rectangle.max = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    rectangle.reverseNormal = readBool(objects,vec2(7.0,index),OBJECTS_LENGTH);\n    rectangle.matIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    rectangle.texIndex = readFloat(objects,vec2(9.0,index),OBJECTS_LENGTH)/float(tn-1);\n    rectangle.emission = readVec3(objects,vec2(10.0,index),OBJECTS_LENGTH);\n    return rectangle;\n}\nvec3 normalForRectangle(vec3 hit,Rectangle rectangle){\n    vec3 x = vec3(rectangle.max.x-rectangle.min.x,0.0,0.0);\n    vec3 y = vec3(0.0,(rectangle.max-rectangle.min).yz);\n    vec3 normal = normalize(cross(x,y));\n    return (rectangle.reverseNormal?-1.0:1.0)*normal;\n}\nIntersect intersectRectangle(Ray ray,Rectangle rectangle){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    result.dpdu = vec3(rectangle.max.x-rectangle.min.x,0.0,0.0);\n    result.dpdv = vec3(0.0,(rectangle.max-rectangle.min).yz);\n    result.normal = normalize(cross(result.dpdu,result.dpdv));\n    float maxX = length(result.dpdu);\n    float maxY = length(result.dpdv);\n    vec3 ss = result.dpdu/maxX,ts = cross(result.normal,ss);\n    ray.dir = worldToLocal(ray.dir,result.normal,ss,ts);\n    ray.origin = worldToLocal(ray.origin - rectangle.min,result.normal,ss,ts);\n    if(ray.dir.z == 0.0) return result;\n    float t = -ray.origin.z/ray.dir.z;\n    if(t < EPSILON) return result;\n    vec3 hit = ray.origin+t*ray.dir;\n    if(hit.x > maxX || hit.y > maxY ||\n        hit.x < -EPSILON || hit.y < -EPSILON) return result;\n    result.d = t;\n    result.matIndex = rectangle.matIndex;\n    result.sc = getSurfaceColor(hit,vec2(hit.x/maxX,hit.y/maxY),rectangle.texIndex);\n    result.emission = rectangle.emission;\n    result.hit = localToWorld(hit,result.normal,ss,ts)+rectangle.min;\n    return result;\n}\nvec3 sampleRectangle(vec2 u,Rectangle rectangle,out float pdf){\n    vec3 x = vec3(rectangle.max.x-rectangle.min.x,0.0,0.0);\n    vec3 y = vec3(0.0,(rectangle.max-rectangle.min).yz);\n    pdf = 1.0/(length(x)*length(y));\n    return rectangle.min+x*u.x+y*u.y;\n}";
 
-var cylinder = "struct Cylinder{\n    vec3 p;\n    float h;\n    float r;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nCylinder parseCylinder(float index){\n    Cylinder cylinder;\n    cylinder.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    cylinder.h = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    cylinder.r = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);\n    cylinder.reverseNormal = readBool(objects,vec2(6.0,index),OBJECTS_LENGTH);\n    cylinder.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cylinder.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cylinder.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);\n    return cylinder;\n}\nvoid computeDpDForCylinder(vec3 hit,float h,out vec3 dpdu,out vec3 dpdv){\n    dpdu = vec3(-2.0 * PI * hit.y, 2.0 * PI * hit.x, 0);\n    dpdv = vec3(0, 0, h);\n}\nvec3 normalForCylinder(vec3 hit,Cylinder cylinder){\n    return (cylinder.reverseNormal?-1.0:1.0)*normalize(vec3(hit.xy-cylinder.p.xy,0));\n}\nIntersect intersectCylinder(Ray ray,Cylinder cylinder){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    ray.dir = worldToLocal(ray.dir,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    ray.origin = worldToLocal(ray.origin - cylinder.p,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    float a = ray.dir.x * ray.dir.x + ray.dir.y * ray.dir.y;\n    float b = 2.0 * (ray.dir.x * ray.origin.x + ray.dir.y * ray.origin.y);\n    float c = ray.origin.x * ray.origin.x + ray.origin.y * ray.origin.y - cylinder.r * cylinder.r;\n    float t1,t2,t;\n    if(!quadratic(a,b,c,t1,t2)) return result;\n    if(t2 < -EPSILON) return result;\n    t = t1;\n    if(t1 < EPSILON) t = t2;\n    vec3 hit = ray.origin+t*ray.dir;\n    if (hit.z < -EPSILON || hit.z > cylinder.h){\n        if (t == t2) return result;\n        t = t2;\n        hit = ray.origin+t*ray.dir;\n        if (hit.z < -EPSILON || hit.z > cylinder.h) return result;\n    }\n    if(t >= MAX_DISTANCE) return result;\n    float phi = atan(hit.y, hit.x);\n    if (phi < 0.0) phi += 2.0 * PI;\n    float u = phi / (2.0 * PI);\n    float v = hit.z / cylinder.h;\n    result.d = t;\n    computeDpDForCylinder(hit,cylinder.h,result.dpdu,result.dpdv);\n    result.normal = normalize(cross(result.dpdu,result.dpdv));\n    result.hit = hit;\n    result.matIndex = cylinder.matIndex;\n    result.sc = getSurfaceColor(result.hit,vec2(u,v),cylinder.texIndex);\n    result.emission = cylinder.emission;\n    result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+cylinder.p;\n    result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdu = localToWorld(result.dpdu,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdv = localToWorld(result.dpdv,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return result;\n}\nvec3 sampleCylinder(vec2 u,Cylinder cylinder,out float pdf){\n    return BLACK;\n}";
+var cone = "struct Cone{\n    vec3 p;\n    float h;\n    float r;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nbool testBoundboxForCone(Ray ray,Cone cone){\n    Boundbox box = Boundbox(\n        cone.p-vec3(cone.r,0,cone.r),\n        cone.p+vec3(cone.r,cone.h,cone.r)\n    );\n    return testBoundbox(ray,box);\n}\nCone parseCone(float index){\n    Cone cone;\n    cone.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    cone.h = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    cone.r = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);\n    cone.reverseNormal = readBool(objects,vec2(6.0,index),OBJECTS_LENGTH);\n    cone.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cone.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cone.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);\n    return cone;\n}\nvoid computeDpDForCone(vec3 hit,float h,out vec3 dpdu,out vec3 dpdv){\n    float v = hit.z / h;\n    dpdu = vec3(-2.0 * PI * hit.y, 2.0 * PI * hit.x, 0);\n    dpdv = vec3(-hit.x / (1.0 - v), -hit.y / (1.0 - v), h);\n}\nvec3 normalForCone(vec3 hit,Cone cone){\n    hit = hit-cone.p;\n    float tana = cone.r/cone.h;\n    float d = sqrt(hit.x*hit.x+hit.y*hit.y);\n    float x1 = d/tana;\n    float x2 = d*tana;\n    vec3 no = vec3(0,0,cone.h-x1-x2);\n    return (cone.reverseNormal?-1.0:1.0)*normalize(hit-no);\n}\nIntersect intersectCone(Ray ray,Cone cone){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    ray.dir = worldToLocal(ray.dir,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    ray.origin = worldToLocal(ray.origin - cone.p,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    float k = cone.r / cone.h;\n    k = k * k;\n    float a = ray.dir.x * ray.dir.x + ray.dir.y * ray.dir.y - k * ray.dir.z * ray.dir.z;\n    float b = 2.0 * (ray.dir.x * ray.origin.x + ray.dir.y * ray.origin.y - k * ray.dir.z * (ray.origin.z - cone.h));\n    float c = ray.origin.x * ray.origin.x + ray.origin.y * ray.origin.y - k * (ray.origin.z - cone.h) * (ray.origin.z - cone.h);\n    float t1,t2,t;\n    if(!quadratic(a,b,c,t1,t2)) return result;\n    if(t2 < -EPSILON) return result;\n    t = t1;\n    if(t1 < EPSILON) t = t2;\n    vec3 hit = ray.origin+t*ray.dir;\n    if (hit.z < -EPSILON || hit.z > cone.h){\n        if (t == t2) return result;\n        t = t2;\n        hit = ray.origin+t*ray.dir;\n        if (hit.z < -EPSILON || hit.z > cone.h) return result;\n    }\n    if(t >= MAX_DISTANCE) return result;\n    float phi = atan(hit.y, hit.x);\n    if (phi < 0.0) phi += 2.0 * PI;\n    float u = phi / (2.0 * PI);\n    float v = hit.z / cone.h;\n    result.d = t;\n    computeDpDForCone(hit,cone.h,result.dpdu,result.dpdv);\n    result.normal = normalize(cross(result.dpdu,result.dpdv));\n    result.hit = hit;\n    result.matIndex = cone.matIndex;\n    result.sc = getSurfaceColor(result.hit,vec2(u,v),cone.texIndex);\n    result.emission = cone.emission;\n    result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+cone.p;\n    result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdu = localToWorld(result.dpdu,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdv = localToWorld(result.dpdv,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return result;\n}\nvec3 sampleCone(vec2 u,Cone cone,out float pdf){\n    return BLACK;\n}";
 
-var disk = "struct Disk{\n    vec3 p;\n    float r;\n    float innerR;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nDisk parseDisk(float index){\n    Disk disk;\n    disk.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    disk.r = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    disk.innerR = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);\n    disk.reverseNormal = readBool(objects,vec2(6.0,index),OBJECTS_LENGTH);\n    disk.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    disk.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    disk.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);\n    return disk;\n}\nvoid computeDpDForDisk(vec3 hit,float r,float innerR,float dist2,out vec3 dpdu,out vec3 dpdv){\n    dpdu = vec3(-2.0 * PI * hit.y, 2.0 * PI * hit.x, 0);\n    dpdv = vec3(hit.x, hit.y, 0) * (innerR - r) / sqrt(dist2);\n}\nvec3 normalForDisk(vec3 hit,Disk disk){\n    return (disk.reverseNormal?-1.0:1.0)*vec3(0,1,0);\n}\nIntersect intersectDisk(Ray ray,Disk disk){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    ray.dir = worldToLocal(ray.dir,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    ray.origin = worldToLocal(ray.origin - disk.p,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    if (ray.dir.z == 0.0) return result;\n    float t = -ray.origin.z / ray.dir.z;\n    if (t <= 0.0) return result;\n    vec3 hit = ray.origin+t*ray.dir;\n    float dist2 = hit.x * hit.x + hit.y * hit.y;\n    if (dist2 > disk.r * disk.r || dist2 < disk.innerR * disk.innerR)\n        return result;\n    if(t >= MAX_DISTANCE) return result;\n    float phi = atan(hit.y, hit.x);\n    if(phi < 0.0) phi += 2.0 * PI;\n    float u = phi / (2.0 * PI);\n    float rHit = sqrt(dist2);\n    float oneMinusV = ((rHit - disk.innerR) / (disk.r - disk.innerR));\n    float v = 1.0 - oneMinusV;\n    result.d = t;\n    computeDpDForDisk(hit,disk.r,disk.innerR,dist2,result.dpdu,result.dpdv);\n    result.normal = normalize(cross(result.dpdu,result.dpdv));\n    result.hit = hit;\n    result.matIndex = disk.matIndex;\n    result.sc = getSurfaceColor(result.hit,vec2(u,v),disk.texIndex);\n    result.emission = disk.emission;\n    result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+disk.p;\n    result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdu = localToWorld(result.dpdu,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdv = localToWorld(result.dpdv,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return result;\n}\nvec3 sampleDisk(vec2 u,Disk disk,out float pdf){\n    vec2 pd = concentricSampleDisk(u);\n    vec3 p = vec3(pd.x * disk.r + disk.p.x, disk.p.y, pd.y * disk.r + disk.p.z);\n    float area = 2.0 * PI * 0.5 * (disk.r * disk.r - disk.innerR * disk.innerR);\n    pdf = 1.0 / area;\n    return p;\n}";
+var cylinder = "struct Cylinder{\n    vec3 p;\n    float h;\n    float r;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nbool testBoundboxForCylinder(Ray ray,Cylinder cylinder){\n    Boundbox box = Boundbox(\n        cylinder.p-vec3(cylinder.r,0,cylinder.r),\n        cylinder.p+vec3(cylinder.r,cylinder.h,cylinder.r)\n    );\n    return testBoundbox(ray,box);\n}\nCylinder parseCylinder(float index){\n    Cylinder cylinder;\n    cylinder.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    cylinder.h = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    cylinder.r = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);\n    cylinder.reverseNormal = readBool(objects,vec2(6.0,index),OBJECTS_LENGTH);\n    cylinder.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cylinder.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    cylinder.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);\n    return cylinder;\n}\nvoid computeDpDForCylinder(vec3 hit,float h,out vec3 dpdu,out vec3 dpdv){\n    dpdu = vec3(-2.0 * PI * hit.y, 2.0 * PI * hit.x, 0);\n    dpdv = vec3(0, 0, h);\n}\nvec3 normalForCylinder(vec3 hit,Cylinder cylinder){\n    return (cylinder.reverseNormal?-1.0:1.0)*normalize(vec3(hit.xy-cylinder.p.xy,0));\n}\nIntersect intersectCylinder(Ray ray,Cylinder cylinder){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    ray.dir = worldToLocal(ray.dir,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    ray.origin = worldToLocal(ray.origin - cylinder.p,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    float a = ray.dir.x * ray.dir.x + ray.dir.y * ray.dir.y;\n    float b = 2.0 * (ray.dir.x * ray.origin.x + ray.dir.y * ray.origin.y);\n    float c = ray.origin.x * ray.origin.x + ray.origin.y * ray.origin.y - cylinder.r * cylinder.r;\n    float t1,t2,t;\n    if(!quadratic(a,b,c,t1,t2)) return result;\n    if(t2 < -EPSILON) return result;\n    t = t1;\n    if(t1 < EPSILON) t = t2;\n    vec3 hit = ray.origin+t*ray.dir;\n    if (hit.z < -EPSILON || hit.z > cylinder.h){\n        if (t == t2) return result;\n        t = t2;\n        hit = ray.origin+t*ray.dir;\n        if (hit.z < -EPSILON || hit.z > cylinder.h) return result;\n    }\n    if(t >= MAX_DISTANCE) return result;\n    float phi = atan(hit.y, hit.x);\n    if (phi < 0.0) phi += 2.0 * PI;\n    float u = phi / (2.0 * PI);\n    float v = hit.z / cylinder.h;\n    result.d = t;\n    computeDpDForCylinder(hit,cylinder.h,result.dpdu,result.dpdv);\n    result.normal = normalize(cross(result.dpdu,result.dpdv));\n    result.hit = hit;\n    result.matIndex = cylinder.matIndex;\n    result.sc = getSurfaceColor(result.hit,vec2(u,v),cylinder.texIndex);\n    result.emission = cylinder.emission;\n    result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+cylinder.p;\n    result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdu = localToWorld(result.dpdu,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdv = localToWorld(result.dpdv,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return result;\n}\nvec3 sampleCylinder(vec2 u,Cylinder cylinder,out float pdf){\n    return BLACK;\n}";
 
-var hyperboloid = "struct Hyperboloid{\n    vec3 p;\n    vec3 p1;\n    vec3 p2;\n    float ah;\n    float ch;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nHyperboloid parseHyperboloid(float index){\n    Hyperboloid hyperboloid;\n    hyperboloid.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    hyperboloid.p1 = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    hyperboloid.p2 = readVec3(objects,vec2(7.0,index),OBJECTS_LENGTH);\n    hyperboloid.ah = readFloat(objects,vec2(10.0,index),OBJECTS_LENGTH);\n    hyperboloid.ch = readFloat(objects,vec2(11.0,index),OBJECTS_LENGTH);\n    hyperboloid.reverseNormal = readBool(objects,vec2(12.0,index),OBJECTS_LENGTH);\n    hyperboloid.matIndex = readFloat(objects,vec2(13.0,index),OBJECTS_LENGTH)/float(tn-1);\n    hyperboloid.texIndex = readFloat(objects,vec2(14.0,index),OBJECTS_LENGTH)/float(tn-1);\n    hyperboloid.emission = readVec3(objects,vec2(15.0,index),OBJECTS_LENGTH);\n    return hyperboloid;\n}\nvoid computeDpDForHyperboloid(vec3 hit,vec3 p1,vec3 p2,float phi,out vec3 dpdu,out vec3 dpdv){\n    float sinPhi = sin(phi),cosPhi = cos(phi);\n    dpdu = vec3(-2.0 * PI * hit.y, 2.0 * PI * hit.x, 0);\n    dpdv = vec3((p2.x - p1.x) * cosPhi - (p2.y - p1.y) * sinPhi,\n                      (p2.x - p1.x) * sinPhi + (p2.y - p1.y) * cosPhi, p2.z - p1.z);\n}\nvec3 normalForHyperboloid(vec3 hit,Hyperboloid hyperboloid){\n    float v = (hit.z - hyperboloid.p1.z) / (hyperboloid.p2.z - hyperboloid.p1.z);\n    vec3 pr = (1.0 - v) * hyperboloid.p1 + v * hyperboloid.p2;\n    float phi = atan(pr.x * hit.y - hit.x * pr.y,\n                         hit.x * pr.x + hit.y * pr.y);\n    if (phi < 0.0) phi += 2.0 * PI;\n    vec3 dpdu,dpdv;\n    computeDpDForHyperboloid(hit,hyperboloid.p1,hyperboloid.p2,phi,dpdu,dpdv);\n    vec3 normal = localToWorld(normalize(cross(dpdu,dpdv)),OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return (hyperboloid.reverseNormal?-1.0:1.0)*normal;\n}\nIntersect intersectHyperboloid(Ray ray,Hyperboloid hyperboloid){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    ray.dir = worldToLocal(ray.dir,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    ray.origin = worldToLocal(ray.origin - hyperboloid.p,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    float a = hyperboloid.ah * ray.dir.x * ray.dir.x + hyperboloid.ah * ray.dir.y * ray.dir.y - hyperboloid.ch * ray.dir.z * ray.dir.z;\n    float b = 2.0 * (hyperboloid.ah * ray.dir.x * ray.origin.x + hyperboloid.ah * ray.dir.y * ray.origin.y - hyperboloid.ch * ray.dir.z * ray.origin.z);\n    float c = hyperboloid.ah * ray.origin.x * ray.origin.x + hyperboloid.ah * ray.origin.y * ray.origin.y - hyperboloid.ch * ray.origin.z * ray.origin.z - 1.0;\n    float t1,t2,t;\n    if(!quadratic(a,b,c,t1,t2)) return result;\n    if(t2 < -EPSILON) return result;\n    t = t1;\n    if(t1 < EPSILON) t = t2;\n    vec3 hit = ray.origin+t*ray.dir;\n    float zMin = min(hyperboloid.p1.z, hyperboloid.p2.z);\n    float zMax = max(hyperboloid.p1.z, hyperboloid.p2.z);\n    if (hit.z < zMin || hit.z > zMax){\n        if (t == t2) return result;\n        t = t2;\n        hit = ray.origin+t*ray.dir;\n        if (hit.z < zMin || hit.z > zMax) return result;\n    }\n    if(t >= MAX_DISTANCE) return result;\n    float v = (hit.z - hyperboloid.p1.z) / (hyperboloid.p2.z - hyperboloid.p1.z);\n    vec3 pr = (1.0 - v) * hyperboloid.p1 + v * hyperboloid.p2;\n    float phi = atan(pr.x * hit.y - hit.x * pr.y,\n                             hit.x * pr.x + hit.y * pr.y);\n    if (phi < 0.0) phi += 2.0 * PI;\n    float u = phi / (2.0*PI);\n    result.d = t;\n    computeDpDForHyperboloid(hit,hyperboloid.p1,hyperboloid.p2,phi,result.dpdu,result.dpdv);\n    result.normal = normalize(cross(result.dpdu,result.dpdv));\n    result.hit = hit;\n    result.matIndex = hyperboloid.matIndex;\n    result.sc = getSurfaceColor(result.hit,vec2(u,v),hyperboloid.texIndex);\n    result.emission = hyperboloid.emission;\n    result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+hyperboloid.p;\n    result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdu = localToWorld(result.dpdu,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdv = localToWorld(result.dpdv,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return result;\n}\nvec3 sampleHyperboloid(vec2 u,Hyperboloid hyperboloid,out float pdf){\n    return BLACK;\n}";
+var disk = "struct Disk{\n    vec3 p;\n    float r;\n    float innerR;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nbool testBoundboxForDisk(Ray ray,Disk disk){\n    return true;\n}\nDisk parseDisk(float index){\n    Disk disk;\n    disk.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    disk.r = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    disk.innerR = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);\n    disk.reverseNormal = readBool(objects,vec2(6.0,index),OBJECTS_LENGTH);\n    disk.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    disk.texIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    disk.emission = readVec3(objects,vec2(9.0,index),OBJECTS_LENGTH);\n    return disk;\n}\nvoid computeDpDForDisk(vec3 hit,float r,float innerR,float dist2,out vec3 dpdu,out vec3 dpdv){\n    dpdu = vec3(-2.0 * PI * hit.y, 2.0 * PI * hit.x, 0);\n    dpdv = vec3(hit.x, hit.y, 0) * (innerR - r) / sqrt(dist2);\n}\nvec3 normalForDisk(vec3 hit,Disk disk){\n    return (disk.reverseNormal?-1.0:1.0)*vec3(0,1,0);\n}\nIntersect intersectDisk(Ray ray,Disk disk){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    ray.dir = worldToLocal(ray.dir,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    ray.origin = worldToLocal(ray.origin - disk.p,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    if (ray.dir.z == 0.0) return result;\n    float t = -ray.origin.z / ray.dir.z;\n    if (t <= 0.0) return result;\n    vec3 hit = ray.origin+t*ray.dir;\n    float dist2 = hit.x * hit.x + hit.y * hit.y;\n    if (dist2 > disk.r * disk.r || dist2 < disk.innerR * disk.innerR)\n        return result;\n    if(t >= MAX_DISTANCE) return result;\n    float phi = atan(hit.y, hit.x);\n    if(phi < 0.0) phi += 2.0 * PI;\n    float u = phi / (2.0 * PI);\n    float rHit = sqrt(dist2);\n    float oneMinusV = ((rHit - disk.innerR) / (disk.r - disk.innerR));\n    float v = 1.0 - oneMinusV;\n    result.d = t;\n    computeDpDForDisk(hit,disk.r,disk.innerR,dist2,result.dpdu,result.dpdv);\n    result.normal = normalize(cross(result.dpdu,result.dpdv));\n    result.hit = hit;\n    result.matIndex = disk.matIndex;\n    result.sc = getSurfaceColor(result.hit,vec2(u,v),disk.texIndex);\n    result.emission = disk.emission;\n    result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+disk.p;\n    result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdu = localToWorld(result.dpdu,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdv = localToWorld(result.dpdv,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return result;\n}\nvec3 sampleDisk(vec2 u,Disk disk,out float pdf){\n    vec2 pd = concentricSampleDisk(u);\n    vec3 p = vec3(pd.x * disk.r + disk.p.x, disk.p.y, pd.y * disk.r + disk.p.z);\n    float area = 2.0 * PI * 0.5 * (disk.r * disk.r - disk.innerR * disk.innerR);\n    pdf = 1.0 / area;\n    return p;\n}";
 
-var paraboloid = "struct Paraboloid{\n    vec3 p;\n    float z0;\n    float z1;\n    float r;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nParaboloid parseParaboloid(float index){\n    Paraboloid paraboloid;\n    paraboloid.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    paraboloid.z0 = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    paraboloid.z1 = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);\n    paraboloid.r = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH);\n    paraboloid.reverseNormal = readBool(objects,vec2(7.0,index),OBJECTS_LENGTH);\n    paraboloid.matIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    paraboloid.texIndex = readFloat(objects,vec2(9.0,index),OBJECTS_LENGTH)/float(tn-1);\n    paraboloid.emission = readVec3(objects,vec2(10.0,index),OBJECTS_LENGTH);\n    return paraboloid;\n}\nvoid computeDpDForParaboloid(vec3 hit,float zMax,float zMin,out vec3 dpdu,out vec3 dpdv){\n    dpdu = vec3(-2.0 * PI * hit.y, 2.0 * PI * hit.x, 0);\n    dpdv = (zMax - zMin) *\n                vec3(hit.x / (2.0 * hit.z), hit.y / (2.0 * hit.z), 1);\n}\nvec3 normalForParaboloid(vec3 hit,Paraboloid paraboloid){\n    float zMin = min(paraboloid.z0, paraboloid.z1);\n    float zMax = max(paraboloid.z0, paraboloid.z1);\n    vec3 dpdu,dpdv;\n    computeDpDForParaboloid(hit,zMax,zMin,dpdu,dpdv);\n    vec3 normal = localToWorld(normalize(cross(dpdu,dpdv)),OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return (paraboloid.reverseNormal?-1.0:1.0)*normal;\n}\nIntersect intersectParaboloid(Ray ray,Paraboloid paraboloid){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    ray.dir = worldToLocal(ray.dir,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    ray.origin = worldToLocal(ray.origin - paraboloid.p,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    float zMin = min(paraboloid.z0, paraboloid.z1);\n    float zMax = max(paraboloid.z0, paraboloid.z1);\n    float k = zMax / (paraboloid.r * paraboloid.r);\n    float a = k * (ray.dir.x * ray.dir.x + ray.dir.y * ray.dir.y);\n    float b = 2.0 * k * (ray.dir.x * ray.origin.x + ray.dir.y * ray.origin.y) - ray.dir.z;\n    float c = k * (ray.origin.x * ray.origin.x + ray.origin.y * ray.origin.y) - ray.origin.z;\n    float t1,t2,t;\n    if(!quadratic(a,b,c,t1,t2)) return result;\n    if(t2 < -EPSILON) return result;\n    t = t1;\n    if(t1 < EPSILON) t = t2;\n    vec3 hit = ray.origin+t*ray.dir;\n    if (hit.z < zMin || hit.z > zMax){\n        if (t == t2) return result;\n        t = t2;\n        hit = ray.origin+t*ray.dir;\n        if (hit.z < zMin || hit.z > zMax) return result;\n    }\n    if(t >= MAX_DISTANCE) return result;\n    float phi = atan(hit.y, hit.x);\n    if (phi < 0.0) phi += 2.0 * PI;\n    float u = phi / (2.0*PI);\n    float v = (hit.z - zMin) / (zMax - zMin);\n    result.d = t;\n    computeDpDForParaboloid(hit,zMax,zMin,result.dpdu,result.dpdv);\n    result.normal = normalize(cross(result.dpdu,result.dpdv));\n    result.hit = hit;\n    result.matIndex = paraboloid.matIndex;\n    result.sc = getSurfaceColor(result.hit,vec2(u,v),paraboloid.texIndex);\n    result.emission = paraboloid.emission;\n    result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+paraboloid.p;\n    result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdu = localToWorld(result.dpdu,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdv = localToWorld(result.dpdv,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return result;\n}\nvec3 sampleParaboloid(vec2 u,Paraboloid paraboloid,out float pdf){\n    return BLACK;\n}";
+var hyperboloid = "struct Hyperboloid{\n    vec3 p;\n    vec3 p1;\n    vec3 p2;\n    float ah;\n    float ch;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nbool testBoundboxForHyperboloid(Ray ray,Hyperboloid hyperboloid){\n    float r1 = sqrt(hyperboloid.p1.x*hyperboloid.p1.x+hyperboloid.p1.y*hyperboloid.p1.y);\n    float r2 = sqrt(hyperboloid.p2.x*hyperboloid.p2.x+hyperboloid.p2.y*hyperboloid.p2.y);\n    float rMax = max(r1,r2);\n    float zMin = min(hyperboloid.p1.z,hyperboloid.p2.z);\n    float zMax = max(hyperboloid.p1.z,hyperboloid.p2.z);\n    Boundbox box = Boundbox(\n        hyperboloid.p-vec3(rMax,-zMin,rMax),\n        hyperboloid.p+vec3(rMax,zMax,rMax)\n    );\n    return testBoundbox(ray,box);\n}\nHyperboloid parseHyperboloid(float index){\n    Hyperboloid hyperboloid;\n    hyperboloid.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    hyperboloid.p1 = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    hyperboloid.p2 = readVec3(objects,vec2(7.0,index),OBJECTS_LENGTH);\n    hyperboloid.ah = readFloat(objects,vec2(10.0,index),OBJECTS_LENGTH);\n    hyperboloid.ch = readFloat(objects,vec2(11.0,index),OBJECTS_LENGTH);\n    hyperboloid.reverseNormal = readBool(objects,vec2(12.0,index),OBJECTS_LENGTH);\n    hyperboloid.matIndex = readFloat(objects,vec2(13.0,index),OBJECTS_LENGTH)/float(tn-1);\n    hyperboloid.texIndex = readFloat(objects,vec2(14.0,index),OBJECTS_LENGTH)/float(tn-1);\n    hyperboloid.emission = readVec3(objects,vec2(15.0,index),OBJECTS_LENGTH);\n    return hyperboloid;\n}\nvoid computeDpDForHyperboloid(vec3 hit,vec3 p1,vec3 p2,float phi,out vec3 dpdu,out vec3 dpdv){\n    float sinPhi = sin(phi),cosPhi = cos(phi);\n    dpdu = vec3(-2.0 * PI * hit.y, 2.0 * PI * hit.x, 0);\n    dpdv = vec3((p2.x - p1.x) * cosPhi - (p2.y - p1.y) * sinPhi,\n                      (p2.x - p1.x) * sinPhi + (p2.y - p1.y) * cosPhi, p2.z - p1.z);\n}\nvec3 normalForHyperboloid(vec3 hit,Hyperboloid hyperboloid){\n    float v = (hit.z - hyperboloid.p1.z) / (hyperboloid.p2.z - hyperboloid.p1.z);\n    vec3 pr = (1.0 - v) * hyperboloid.p1 + v * hyperboloid.p2;\n    float phi = atan(pr.x * hit.y - hit.x * pr.y,\n                         hit.x * pr.x + hit.y * pr.y);\n    if (phi < 0.0) phi += 2.0 * PI;\n    vec3 dpdu,dpdv;\n    computeDpDForHyperboloid(hit,hyperboloid.p1,hyperboloid.p2,phi,dpdu,dpdv);\n    vec3 normal = localToWorld(normalize(cross(dpdu,dpdv)),OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return (hyperboloid.reverseNormal?-1.0:1.0)*normal;\n}\nIntersect intersectHyperboloid(Ray ray,Hyperboloid hyperboloid){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    ray.dir = worldToLocal(ray.dir,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    ray.origin = worldToLocal(ray.origin - hyperboloid.p,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    float a = hyperboloid.ah * ray.dir.x * ray.dir.x + hyperboloid.ah * ray.dir.y * ray.dir.y - hyperboloid.ch * ray.dir.z * ray.dir.z;\n    float b = 2.0 * (hyperboloid.ah * ray.dir.x * ray.origin.x + hyperboloid.ah * ray.dir.y * ray.origin.y - hyperboloid.ch * ray.dir.z * ray.origin.z);\n    float c = hyperboloid.ah * ray.origin.x * ray.origin.x + hyperboloid.ah * ray.origin.y * ray.origin.y - hyperboloid.ch * ray.origin.z * ray.origin.z - 1.0;\n    float t1,t2,t;\n    if(!quadratic(a,b,c,t1,t2)) return result;\n    if(t2 < -EPSILON) return result;\n    t = t1;\n    if(t1 < EPSILON) t = t2;\n    vec3 hit = ray.origin+t*ray.dir;\n    float zMin = min(hyperboloid.p1.z, hyperboloid.p2.z);\n    float zMax = max(hyperboloid.p1.z, hyperboloid.p2.z);\n    if (hit.z < zMin || hit.z > zMax){\n        if (t == t2) return result;\n        t = t2;\n        hit = ray.origin+t*ray.dir;\n        if (hit.z < zMin || hit.z > zMax) return result;\n    }\n    if(t >= MAX_DISTANCE) return result;\n    float v = (hit.z - hyperboloid.p1.z) / (hyperboloid.p2.z - hyperboloid.p1.z);\n    vec3 pr = (1.0 - v) * hyperboloid.p1 + v * hyperboloid.p2;\n    float phi = atan(pr.x * hit.y - hit.x * pr.y,\n                             hit.x * pr.x + hit.y * pr.y);\n    if (phi < 0.0) phi += 2.0 * PI;\n    float u = phi / (2.0*PI);\n    result.d = t;\n    computeDpDForHyperboloid(hit,hyperboloid.p1,hyperboloid.p2,phi,result.dpdu,result.dpdv);\n    result.normal = normalize(cross(result.dpdu,result.dpdv));\n    result.hit = hit;\n    result.matIndex = hyperboloid.matIndex;\n    result.sc = getSurfaceColor(result.hit,vec2(u,v),hyperboloid.texIndex);\n    result.emission = hyperboloid.emission;\n    result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+hyperboloid.p;\n    result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdu = localToWorld(result.dpdu,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdv = localToWorld(result.dpdv,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return result;\n}\nvec3 sampleHyperboloid(vec2 u,Hyperboloid hyperboloid,out float pdf){\n    return BLACK;\n}";
 
-var cornellbox = "struct Cornellbox{\n    vec3 min;\n    vec3 max;\n    float matIndex;\n    bool reverseNormal;\n    vec3 emission;\n};\nCornellbox parseCornellbox(float index){\n    Cornellbox box;\n    box.min = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    box.max = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    box.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    box.reverseNormal = false;\n    box.emission = BLACK;\n    return box;\n}\nvec3 getCornellboxColor(vec3 hit,vec3 min,vec3 max){\n    if ( hit.x < min.x + 0.0001 )\n    \treturn GREEN;\n    else if ( hit.x > max.x - 0.0001 )\n    \treturn BLUE;\n    else if ( hit.y < min.y + 0.0001 )\n    \treturn WHITE;\n    else if ( hit.y > max.y - 0.0001 )\n    \treturn WHITE;\n    else if ( hit.z > min.z + 0.0001 )\n    \treturn WHITE;\n    return BLACK;\n}\nvec3 normalForCornellbox(vec3 hit, Cornellbox box){\n\tif ( hit.x < box.min.x + 0.0001 )\n\t\treturn vec3( -1.0, 0.0, 0.0 );\n\telse if ( hit.x > box.max.x - 0.0001 )\n\t\treturn vec3( 1.0, 0.0, 0.0 );\n\telse if ( hit.y < box.min.y + 0.0001 )\n\t\treturn vec3( 0.0, -1.0, 0.0 );\n\telse if ( hit.y > box.max.y - 0.0001 )\n\t\treturn vec3( 0.0, 1.0, 0.0 );\n\telse if ( hit.z < box.min.z + 0.0001 )\n\t\treturn vec3( 0.0, 0.0, -1.0 );\n\telse return vec3( 0.0, 0.0, 1.0 );\n}\nvoid computeDpDForCornellbox( vec3 normal,out vec3 dpdu,out vec3 dpdv){\n    if (abs(normal.x)<0.5) {\n        dpdu = cross(normal, vec3(1,0,0));\n    }else {\n        dpdu = cross(normal, vec3(0,1,0));\n    }\n    dpdv = cross(normal,dpdu);\n}\nvec3 sampleCornellbox(vec2 u,Cornellbox box,out float pdf){\n    return BLACK;\n}\nIntersect intersectCornellbox(Ray ray,Cornellbox box){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 tMin = (box.min - ray.origin) / ray.dir;\n    vec3 tMax = (box.max- ray.origin) / ray.dir;\n    vec3 t1 = min( tMin, tMax );\n    vec3 t2 = max( tMin, tMax );\n    float tNear = max( max( t1.x, t1.y ), t1.z );\n    float tFar = min( min( t2.x, t2.y ), t2.z );\n    float t=-1.0,f;\n    if(tNear<tFar) t = tFar;\n    if(t > EPSILON){\n        result.d = t;\n        result.hit = ray.origin+t*ray.dir;\n        result.normal = -normalForCornellbox(ray.origin+t*ray.dir,box);\n        computeDpDForCornellbox(result.normal,result.dpdu,result.dpdv);\n        result.matIndex = box.matIndex;\n        result.sc = getCornellboxColor(result.hit,box.min,box.max);\n        result.emission = BLACK;\n    }\n    return result;\n}";
+var paraboloid = "struct Paraboloid{\n    vec3 p;\n    float z0;\n    float z1;\n    float r;\n    float matIndex;\n    float texIndex;\n    vec3 emission;\n    bool reverseNormal;\n};\nbool testBoundboxForParaboloid(Ray ray,Paraboloid paraboloid){\n    float zMin = min(paraboloid.z0,paraboloid.z1);\n    float zMax = max(paraboloid.z0,paraboloid.z1);\n    Boundbox box = Boundbox(\n        paraboloid.p-vec3(paraboloid.r,-zMin,paraboloid.r),\n        paraboloid.p+vec3(paraboloid.r,zMax,paraboloid.r)\n    );\n    return testBoundbox(ray,box);\n}\nParaboloid parseParaboloid(float index){\n    Paraboloid paraboloid;\n    paraboloid.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    paraboloid.z0 = readFloat(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    paraboloid.z1 = readFloat(objects,vec2(5.0,index),OBJECTS_LENGTH);\n    paraboloid.r = readFloat(objects,vec2(6.0,index),OBJECTS_LENGTH);\n    paraboloid.reverseNormal = readBool(objects,vec2(7.0,index),OBJECTS_LENGTH);\n    paraboloid.matIndex = readFloat(objects,vec2(8.0,index),OBJECTS_LENGTH)/float(tn-1);\n    paraboloid.texIndex = readFloat(objects,vec2(9.0,index),OBJECTS_LENGTH)/float(tn-1);\n    paraboloid.emission = readVec3(objects,vec2(10.0,index),OBJECTS_LENGTH);\n    return paraboloid;\n}\nvoid computeDpDForParaboloid(vec3 hit,float zMax,float zMin,out vec3 dpdu,out vec3 dpdv){\n    dpdu = vec3(-2.0 * PI * hit.y, 2.0 * PI * hit.x, 0);\n    dpdv = (zMax - zMin) *\n                vec3(hit.x / (2.0 * hit.z), hit.y / (2.0 * hit.z), 1);\n}\nvec3 normalForParaboloid(vec3 hit,Paraboloid paraboloid){\n    float zMin = min(paraboloid.z0, paraboloid.z1);\n    float zMax = max(paraboloid.z0, paraboloid.z1);\n    vec3 dpdu,dpdv;\n    computeDpDForParaboloid(hit,zMax,zMin,dpdu,dpdv);\n    vec3 normal = localToWorld(normalize(cross(dpdu,dpdv)),OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return (paraboloid.reverseNormal?-1.0:1.0)*normal;\n}\nIntersect intersectParaboloid(Ray ray,Paraboloid paraboloid){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    ray.dir = worldToLocal(ray.dir,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    ray.origin = worldToLocal(ray.origin - paraboloid.p,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    float zMin = min(paraboloid.z0, paraboloid.z1);\n    float zMax = max(paraboloid.z0, paraboloid.z1);\n    float k = zMax / (paraboloid.r * paraboloid.r);\n    float a = k * (ray.dir.x * ray.dir.x + ray.dir.y * ray.dir.y);\n    float b = 2.0 * k * (ray.dir.x * ray.origin.x + ray.dir.y * ray.origin.y) - ray.dir.z;\n    float c = k * (ray.origin.x * ray.origin.x + ray.origin.y * ray.origin.y) - ray.origin.z;\n    float t1,t2,t;\n    if(!quadratic(a,b,c,t1,t2)) return result;\n    if(t2 < -EPSILON) return result;\n    t = t1;\n    if(t1 < EPSILON) t = t2;\n    vec3 hit = ray.origin+t*ray.dir;\n    if (hit.z < zMin || hit.z > zMax){\n        if (t == t2) return result;\n        t = t2;\n        hit = ray.origin+t*ray.dir;\n        if (hit.z < zMin || hit.z > zMax) return result;\n    }\n    if(t >= MAX_DISTANCE) return result;\n    float phi = atan(hit.y, hit.x);\n    if (phi < 0.0) phi += 2.0 * PI;\n    float u = phi / (2.0*PI);\n    float v = (hit.z - zMin) / (zMax - zMin);\n    result.d = t;\n    computeDpDForParaboloid(hit,zMax,zMin,result.dpdu,result.dpdv);\n    result.normal = normalize(cross(result.dpdu,result.dpdv));\n    result.hit = hit;\n    result.matIndex = paraboloid.matIndex;\n    result.sc = getSurfaceColor(result.hit,vec2(u,v),paraboloid.texIndex);\n    result.emission = paraboloid.emission;\n    result.hit = localToWorld(result.hit,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T)+paraboloid.p;\n    result.normal = localToWorld(result.normal,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdu = localToWorld(result.dpdu,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    result.dpdv = localToWorld(result.dpdv,OBJECT_SPACE_N,OBJECT_SPACE_S,OBJECT_SPACE_T);\n    return result;\n}\nvec3 sampleParaboloid(vec2 u,Paraboloid paraboloid,out float pdf){\n    return BLACK;\n}";
+
+var cornellbox = "struct Cornellbox{\n    vec3 min;\n    vec3 max;\n    float matIndex;\n    bool reverseNormal;\n    vec3 emission;\n};\nbool testBoundboxForCornellbox(Ray ray,Cornellbox cornellbox){\n    return true;\n}\nCornellbox parseCornellbox(float index){\n    Cornellbox box;\n    box.min = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);\n    box.max = readVec3(objects,vec2(4.0,index),OBJECTS_LENGTH);\n    box.matIndex = readFloat(objects,vec2(7.0,index),OBJECTS_LENGTH)/float(tn-1);\n    box.reverseNormal = false;\n    box.emission = BLACK;\n    return box;\n}\nvec3 getCornellboxColor(vec3 hit,vec3 min,vec3 max){\n    if ( hit.x < min.x + 0.0001 )\n    \treturn GREEN;\n    else if ( hit.x > max.x - 0.0001 )\n    \treturn BLUE;\n    else if ( hit.y < min.y + 0.0001 )\n    \treturn WHITE;\n    else if ( hit.y > max.y - 0.0001 )\n    \treturn WHITE;\n    else if ( hit.z > min.z + 0.0001 )\n    \treturn WHITE;\n    return BLACK;\n}\nvec3 normalForCornellbox(vec3 hit, Cornellbox box){\n\tif ( hit.x < box.min.x + 0.0001 )\n\t\treturn vec3( -1.0, 0.0, 0.0 );\n\telse if ( hit.x > box.max.x - 0.0001 )\n\t\treturn vec3( 1.0, 0.0, 0.0 );\n\telse if ( hit.y < box.min.y + 0.0001 )\n\t\treturn vec3( 0.0, -1.0, 0.0 );\n\telse if ( hit.y > box.max.y - 0.0001 )\n\t\treturn vec3( 0.0, 1.0, 0.0 );\n\telse if ( hit.z < box.min.z + 0.0001 )\n\t\treturn vec3( 0.0, 0.0, -1.0 );\n\telse return vec3( 0.0, 0.0, 1.0 );\n}\nvoid computeDpDForCornellbox( vec3 normal,out vec3 dpdu,out vec3 dpdv){\n    if (abs(normal.x)<0.5) {\n        dpdu = cross(normal, vec3(1,0,0));\n    }else {\n        dpdu = cross(normal, vec3(0,1,0));\n    }\n    dpdv = cross(normal,dpdu);\n}\nvec3 sampleCornellbox(vec2 u,Cornellbox box,out float pdf){\n    return BLACK;\n}\nIntersect intersectCornellbox(Ray ray,Cornellbox box){\n    Intersect result;\n    result.d = MAX_DISTANCE;\n    vec3 tMin = (box.min - ray.origin) / ray.dir;\n    vec3 tMax = (box.max- ray.origin) / ray.dir;\n    vec3 t1 = min( tMin, tMax );\n    vec3 t2 = max( tMin, tMax );\n    float tNear = max( max( t1.x, t1.y ), t1.z );\n    float tFar = min( min( t2.x, t2.y ), t2.z );\n    float t=-1.0,f;\n    if(tNear<tFar) t = tFar;\n    if(t > EPSILON){\n        result.d = t;\n        result.hit = ray.origin+t*ray.dir;\n        result.normal = -normalForCornellbox(ray.origin+t*ray.dir,box);\n        computeDpDForCornellbox(result.normal,result.dpdu,result.dpdv);\n        result.matIndex = box.matIndex;\n        result.sc = getCornellboxColor(result.hit,box.min,box.max);\n        result.emission = BLACK;\n    }\n    return result;\n}";
 
 /**
  * Created by eason on 1/21/18.
@@ -1321,6 +1411,7 @@ return ins;}`;
 
 let intersect = new Export("intersect",intersectHead,intersectTail,"category",function(plugin){
     return `${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(ln+n-1));
+    if(!testBoundboxFor${plugin.capitalName()}(ray,${plugin.name})) continue;
     tmp = intersect${plugin.capitalName()}(ray,${plugin.name});
     vec3 n = (${plugin.name}.reverseNormal?-1.0:1.0)*tmp.normal;
     bool faceObj = dot(n,ray.dir)<-EPSILON;
@@ -1354,7 +1445,7 @@ bool testShadow(Ray ray){
     return false;
 }
 `;
-var shape = new Generator("shape",[""],[testShadow],plugins$3,intersect,sample);
+var shape = new Generator("shape",[boundbox],[testShadow],plugins$3,intersect,sample);
 
 var noise = "const int NoisePermSize = 256;\nint NoisePerm[] = int[2 * NoisePermSize](\n    151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140,\n    36, 103, 30, 69, 142,\n    8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62,\n    94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33, 88, 237, 149, 56, 87, 174,\n    20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77,\n    146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55,\n    46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73, 209, 76,\n    132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86, 164, 100,\n    109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38, 147,\n    118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189, 28,\n    42, 223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101,\n    155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232,\n    178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12,\n    191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31,\n    181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254,\n    138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66,\n    215, 61, 156, 180, 151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194,\n    233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6,\n    148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32,\n    57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74,\n    165, 71, 134, 139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60,\n    211, 133, 230, 220, 105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25,\n    63, 161, 1, 216, 80, 73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135,\n    130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226,\n    250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206, 59,\n    227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248, 152, 2,\n    44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9, 129, 22, 39, 253, 19,\n    98, 108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218, 246, 97, 228, 251,\n    34, 242, 193, 238, 210, 144, 12, 191, 179, 162, 241, 81, 51, 145, 235, 249,\n    14, 239, 107, 49, 192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115,\n    121, 50, 45, 127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72,\n    243, 141, 128, 195, 78, 66, 215, 61, 156, 180);\nfloat Grad(int x, int y, int z, float dx, float dy, float dz) {\n    int h = NoisePerm[NoisePerm[NoisePerm[x] + y] + z];\n    h &= 15;\n    float u = h < 8 || h == 12 || h == 13 ? dx : dy;\n    float v = h < 4 || h == 12 || h == 13 ? dy : dz;\n    return ((h & 1)!=0 ? -u : u) + ((h & 2)!=0 ? -v : v);\n}\nfloat noiseWeight(float t) {\n    float t3 = t * t * t;\n    float t4 = t3 * t;\n    return 6.0 * t4 * t - 15.0 * t4 + 10.0 * t3;\n}\nfloat noise(float x, float y, float z) {\n    int ix = int(floor(x)), iy = int(floor(y)), iz = int(floor(z));\n    float dx = x - float(ix), dy = y - float(iy), dz = z - float(iz);\n    ix &= NoisePermSize - 1;\n    iy &= NoisePermSize - 1;\n    iz &= NoisePermSize - 1;\n    float w000 = Grad(ix, iy, iz, dx, dy, dz);\n    float w100 = Grad(ix + 1, iy, iz, dx - 1.0, dy, dz);\n    float w010 = Grad(ix, iy + 1, iz, dx, dy - 1.0, dz);\n    float w110 = Grad(ix + 1, iy + 1, iz, dx - 1.0, dy - 1.0, dz);\n    float w001 = Grad(ix, iy, iz + 1, dx, dy, dz - 1.0);\n    float w101 = Grad(ix + 1, iy, iz + 1, dx - 1.0, dy, dz - 1.0);\n    float w011 = Grad(ix, iy + 1, iz + 1, dx, dy - 1.0, dz - 1.0);\n    float w111 = Grad(ix + 1, iy + 1, iz + 1, dx - 1.0, dy - 1.0, dz - 1.0);\n    float wx = noiseWeight(dx), wy = noiseWeight(dy), wz = noiseWeight(dz);\n    float x00 = mix(w000, w100, wx);\n    float x10 = mix(w010, w110, wx);\n    float x01 = mix(w001, w101, wx);\n    float x11 = mix(w011, w111, wx);\n    float y0 = mix(x00, x10, wy);\n    float y1 = mix(x01, x11, wy);\n    return mix(y0, y1, wz);\n}\nfloat noise(vec3 p){\n    return noise(p.x,p.y,p.z);\n}\nfloat fbm(vec3 p, float omega, int maxOctaves) {\n    int nInt = maxOctaves/2;\n    float sum = 0.0, lambda = 1.0, o = 1.0;\n    for (int i = 0; i < nInt; ++i) {\n        sum += o * noise(lambda * p);\n        lambda *= 1.99f;\n        o *= omega;\n    }\n    float nPartial = float(maxOctaves - nInt);\n    sum += o * smoothstep(0.3, 0.7, nPartial) * noise(lambda * p);\n    return sum;\n}\nfloat turbulence(vec3 p, float omega, int maxOctaves) {\n    int nInt = maxOctaves/2;\n    float sum = 0.0, lambda = 1.0, o = 1.0;\n    for (int i = 0; i < nInt; ++i) {\n        sum += o * abs(noise(lambda * p));\n        lambda *= 1.99;\n        o *= omega;\n    }\n    float nPartial = float(maxOctaves - nInt);\n    sum += o * mix(0.2, abs(noise(lambda * p)),smoothstep(0.3, 0.7, nPartial));\n    for (int i = nInt; i < maxOctaves; ++i) {\n        sum += o * 0.2;\n        o *= omega;\n    }\n    return sum;\n}";
 
@@ -1431,6 +1522,20 @@ class Shader{
     constructor(pluginsList){
         this.pluginsList = pluginsList;
         this.glslv = "300 es";
+
+        this.uniform = {};
+        this.texture = {};
+    }
+
+    uniformstr(){
+        let result = "";
+        for(let entry of Object.entries(this.uniform)){
+            result += `uniform ${entry[1].type} ${entry[0]};\n`;
+        }
+        for(let entry of Object.entries(this.texture)){
+            result += `uniform sampler2D ${entry[0]};\n`;
+        }
+        return result;
     }
 }
 
@@ -1481,17 +1586,6 @@ class TraceShader extends Shader{
             + util.generate(new PluginParams("utility"))
             + main.generate(new PluginParams("vstrace"))
     }
-
-    uniformstr(){
-        let result = "";
-        for(let entry of Object.entries(this.uniform)){
-            result += `uniform ${entry[1].type} ${entry[0]};\n`;
-        }
-        for(let entry of Object.entries(this.texture)){
-            result += `uniform sampler2D ${entry[0]};\n`;
-        }
-        return result;
-    }
 }
 
 
@@ -1517,8 +1611,30 @@ class RenderShader extends Shader{
             + this.uniformstr()
             + main.generate(new PluginParams("vsrender"))
     }
+}
 
-    uniformstr(){return `uniform sampler2D tex;\n`}
+class LineShader extends Shader{
+    constructor(pluginsList={}){
+        super(pluginsList);
+
+        this.uniform = {
+            cubeMin:{type:"vec3",value:Vector.Zero(3)},
+            cubeMax:{type:"vec3",value:Vector.Zero(3)},
+            modelviewProjection:{type:"mat4",value:Matrix.I(4)}
+        };
+    }
+
+    combinefs(){
+        return `#version ${this.glslv}\n`
+            + `precision highp float;\n`
+            + main.generate(new PluginParams("fsline"));
+    }
+
+    combinevs(){
+        return `#version ${this.glslv}\n`
+            + this.uniformstr()
+            + main.generate(new PluginParams("vsline"))
+    }
 }
 
 /**
@@ -1531,6 +1647,29 @@ class Tracer {
 
         this.objects_tex = {};
         this.params_tex = {};
+
+        this.shader.addVBO(gl.ARRAY_BUFFER,new Float32Array([
+            -1, -1,
+            -1, +1,
+            +1, -1,
+            +1, +1
+        ]));
+
+    }
+
+    updateObjects(scene){
+        let objects = [];
+        for(let object of scene.objects){
+            objects.push(...object.gen());
+        }
+        let data_objects = new Float32Array(objects);
+        let n = parseInt(objects.length/ShaderProgram.OBJECTS_LENGTH);
+        this.objects_tex = WebglHelper.createTexture();
+        WebglHelper.setTexture(
+            this.objects_tex,1,
+            ShaderProgram.OBJECTS_LENGTH, n,
+            gl.R32F,gl.RED,gl.FLOAT,data_objects,true
+        );
     }
 
     update(scene){
@@ -1574,7 +1713,7 @@ class Tracer {
         this.shader.uniform.textureWeight.value = sampleCount / (sampleCount + 1);
         this.shader.uniform.timeSinceStart.value = (new Date() - this.timeStart) * 0.001;
 
-        this.shader.render();
+        this.shader.render('triangle');
     }
 }
 
@@ -1585,20 +1724,62 @@ class Renderer {
     constructor(canvas){
         WebglHelper.initWebgl(canvas);
 
-        this.shader = new ShaderProgram();
+        this.renderShader = new ShaderProgram();
+        this.lineShader = new ShaderProgram();
+
+        this.lineShader.addVBO(gl.ARRAY_BUFFER,new Float32Array([
+            0, 0, 0,
+            1, 0, 0,
+            0, 1, 0,
+            1, 1, 0,
+            0, 0, 1,
+            1, 0, 1,
+            0, 1, 1,
+            1, 1, 1
+        ]));
+        this.lineShader.addVBO(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array([
+            0, 1, 1, 3, 3, 2, 2, 0,
+            4, 5, 5, 7, 7, 6, 6, 4,
+            0, 4, 1, 5, 2, 6, 3, 7
+        ]));
+        this.renderShader.addVBO(gl.ARRAY_BUFFER,new Float32Array([
+            -1, -1,
+            -1, +1,
+            +1, -1,
+            +1, +1
+        ]));
+        this.lineShader.setProgram(new LineShader());
 
         this.tracer = new Tracer();
     }
 
+    updateObjects(scene){
+        this.tracer.updateObjects(scene);
+    }
+
     update(scene){
-        this.shader.setProgram(new RenderShader(scene.rendererConfig()));
+        this.renderShader.setProgram(new RenderShader(scene.rendererConfig()));
         this.tracer.update(scene);
     }
 
     render(scene){
         WebglHelper.clearScreen();
+
+        if(scene.moving){
+            scene.sampleCount = 0;
+            this.updateObjects(scene);
+        }
+
         this.tracer.render(scene.mat,scene.eye,scene.sampleCount++);
-        this.shader.render();
+        this.renderShader.render('triangle');
+
+        if(scene.select){
+            let boundbox = scene.select.boundbox();
+            this.lineShader.uniform.cubeMin.value = boundbox.min;
+            this.lineShader.uniform.cubeMax.value = boundbox.max;
+            this.lineShader.uniform.modelviewProjection.value = scene.mat;
+            this.lineShader.render('line');
+        }
     }
 }
 
@@ -1615,7 +1796,7 @@ class Camera {
         this.makeLookAt();
     }
 
-    makePerspective(fovy=55, aspect=1, znear=10, zfar=100){
+    makePerspective(fovy=55, aspect=1, znear=1, zfar=100){
         let top = znear * Math.tan(fovy * Math.PI / 360.0);
         let bottom = -top;
         let left = bottom * aspect;
@@ -2020,17 +2201,186 @@ class Color {
     }
 }
 
+class Ray{
+    constructor(origin,dir){
+        this.origin = origin;
+        this.dir = dir;
+    }
+
+    static generate(eye,inmp,x,y){
+        let dir = inmp.multiply(new Vector([x, y, 0, 1])).divideByW().ensure3().subtract(eye);
+        return new Ray(eye,dir);
+    }
+
+    testBoundBox(boundbox){
+        let tMin = boundbox.min.subtract(this.origin).componentDivide(this.dir);
+        let tMax = boundbox.max.subtract(this.origin).componentDivide(this.dir);
+        let t1 = Vector.min(tMin, tMax);
+        let t2 = Vector.max(tMin, tMax);
+        let tNear = t1.maxComponent();
+        let tFar = t2.minComponent();
+
+        if(tNear<-0.0001&&tFar<-0.0001) return false;
+
+        return tNear < tFar;
+    }
+
+    intersectBoundBox(boundbox){
+        let tMin = boundbox.min.subtract(this.origin).componentDivide(this.dir);
+        let tMax = boundbox.max.subtract(this.origin).componentDivide(this.dir);
+        let t1 = Vector.min(tMin, tMax);
+        let t2 = Vector.max(tMin, tMax);
+        let tNear = t1.maxComponent();
+        let tFar = t2.minComponent();
+        if(tNear > 0.0001 && tNear < tFar) {
+            return tNear;
+        }else if(tNear < tFar) return tFar;
+        return 100000;
+    }
+}
+
+class Pickup{
+    constructor(scene){
+        this.scene = scene;
+    }
+
+    pick(x,y){
+        let ray = Ray.generate(
+            this.scene.eye,
+            this.scene.mat.inverse(),
+            (x / 512) * 2 - 1,
+            1 - (y / 512) * 2
+        );
+        this.scene.select = null;
+        let near = 100000;
+        for(let object of this.scene.objects){
+            let boundbox = object.boundbox();
+            if(boundbox&&ray.testBoundBox(boundbox)){
+                let t = object.intersect(ray);
+                if(t < near){
+                    near = t;
+                    this.scene.select = object;
+                }
+            }
+        }
+        return near < 100000;
+    }
+
+    movingBegin(x,y){
+        let boundbox = scene.select.boundbox();
+        let ray = Ray.generate(
+            this.scene.eye,
+            this.scene.mat.inverse(),
+            (x / 512) * 2 - 1,
+            1 - (y / 512) * 2
+        );
+        let t = ray.intersectBoundBox(boundbox);
+
+        if(t < 100000){
+            let hit = ray.origin.add(ray.dir.x(t));
+            if(Math.abs(hit.elements[0] - boundbox.min.elements[0]) < 0.0001) this.movementNormal = new Vector([-1, 0, 0]);
+            else if(Math.abs(hit.elements[0] - boundbox.max.elements[0]) < 0.0001) this.movementNormal = new Vector([1, 0, 0]);
+            else if(Math.abs(hit.elements[1] - boundbox.min.elements[1]) < 0.0001) this.movementNormal = new Vector([0, -1, 0]);
+            else if(Math.abs(hit.elements[1] - boundbox.max.elements[1]) < 0.0001) this.movementNormal = new Vector([0, 1, 0]);
+            else if(Math.abs(hit.elements[2] - boundbox.min.elements[2]) < 0.0001) this.movementNormal = new Vector([0, 0, -1]);
+            else this.movementNormal = new Vector([0, 0, 1]);
+
+            this.movementDistance = this.movementNormal.dot(hit);
+            this.originalHit = hit;
+            this.scene.moving = true;
+            return true;
+        }
+        return false;
+    }
+
+    moving(x,y){
+        let ray = Ray.generate(
+            this.scene.eye,
+            this.scene.mat.inverse(),
+            (x / 512) * 2 - 1,
+            1 - (y / 512) * 2
+        );
+
+        let t = (this.movementDistance - this.movementNormal.dot(ray.origin)) / this.movementNormal.dot(ray.dir);
+        let hit = ray.origin.add(ray.dir.multiply(t));
+        this.scene.select.temporaryTranslate(hit.subtract(this.originalHit));
+        this.originalHit = hit;
+    }
+
+    movingEnd(x,y){
+        let ray = Ray.generate(
+            this.scene.eye,
+            this.scene.mat.inverse(),
+            (x / 512) * 2 - 1,
+            1 - (y / 512) * 2
+        );
+
+        let t = (this.movementDistance - this.movementNormal.dot(ray.origin)) / this.movementNormal.dot(ray.dir);
+
+        let hit = ray.origin.add(ray.dir.multiply(t));
+        this.scene.select.temporaryTranslate(hit.subtract(this.originalHit));
+        this.scene.moving = false;
+    }
+}
+
 /**
  * Created by eason on 17-4-11.
  */
+function quadratic(A,B,C) {
+    let t0,t1;
+    let discrim = B * B - 4.0 * A * C;
+    if (discrim < 0.0) return [-1,-1];
+    let rootDiscrim = Math.sqrt(discrim);
+
+    let q;
+    if (B < 0.0)
+        q = -0.5 * (B - rootDiscrim);
+    else
+        q = -0.5 * (B + rootDiscrim);
+    t0 = q / A;
+    t1 = C / q;
+    if (t0 > t1) [t0,t1]=[t1,t0];
+    return [t0,t1];
+}
+
 class Object$1{
     constructor(material,texture,emission=[0,0,0],reverseNormal=false){
         this.material = material;
         this.texture = texture;
         this.emission = new Vector(emission);
         this.reverseNormal = reverseNormal?1:0;
+        this.texparamsID = 0;
+        this.temporaryTranslation = Vector.Zero(3);
 
         this.light = !this.emission.eql(new Vector([0,0,0]));
+    }
+
+    static get _n(){return Vector.j};
+    static get _s(){return Vector.k.x(-1)};
+    static get _t(){return Vector.i};
+
+    boundbox(){
+        return false;
+    }
+
+    static toObjectSpace(v,offset,n,s,t){
+        v = v.subtract(offset);
+        return new Vector([v.dot(s),v.dot(t),v.dot(n)]);
+    }
+
+    static rayToObjectSpace(ray,offset,n=Object$1._n,s=Object$1._s,t=Object$1._t){
+        let origin = Object$1.toObjectSpace(ray.origin,offset,n,s,t);
+        let dir = Object$1.toObjectSpace(ray.dir,Vector.Zero(3),n,s,t);
+
+        return new Ray(origin,dir);
+    }
+
+    temporaryTranslate(vector){
+        this.temporaryTranslation = vector;
+    }
+
+    translate(){
+        this.temporaryTranslation = Vector.Zero(3);
     }
 
     genTexparams(){
@@ -2067,7 +2417,35 @@ class Cube extends Object$1{
 
     set pluginName(name){}
 
-    gen(texparamID){
+    boundbox(){
+        return {
+            min:this.min,
+            max:this.max
+        }
+    }
+
+    intersect(ray){
+        let tMin = this.min.subtract(ray.origin).componentDivide(ray.dir);
+        let tMax = this.max.subtract(ray.origin).componentDivide(ray.dir);
+        let t1 = Vector.min(tMin, tMax);
+        let t2 = Vector.max(tMin, tMax);
+        let tNear = t1.maxComponent();
+        let tFar = t2.minComponent();
+        if(tNear > 0.0001 && tNear < tFar) {
+            return tNear;
+        }else if(tNear < tFar) return tFar;
+        return 100000;
+    }
+
+    translate(){
+        this.min = this.min.add(this.temporaryTranslation);
+        this.max = this.max.add(this.temporaryTranslation);
+        super.translate();
+    }
+
+    gen(texparamID=this.texparamID){
+        this.texparamID = texparamID;
+        this.translate();
         let tmp = [
             1,
             this.min.e(1),this.min.e(2),this.min.e(3),
@@ -2094,7 +2472,38 @@ class Sphere extends Object$1{
 
     set pluginName(name){}
 
-    gen(texparamID){
+    boundbox(){
+        let r = new Vector([this.r,this.r,this.r]);
+        return {
+            min:this.c.subtract(r),
+            max:this.c.add(r)
+        }
+    }
+
+    intersect(_ray){
+        let ray = Object$1.rayToObjectSpace(_ray,this.c);
+        let a = ray.dir.dot(ray.dir);
+        let b = 2.0*ray.origin.dot(ray.dir);
+        let c = ray.origin.dot(ray.origin) - this.r * this.r;
+
+        let t;
+        let [t1,t2] = quadratic(a,b,c);
+        if(t2 < 0.0001) return 100000;
+
+        t = t1;
+        if(t1 < 0.0001) t = t2;
+
+        return t;
+    }
+
+    translate(){
+        this.c = this.c.add(this.temporaryTranslation);
+        super.translate();
+    }
+
+    gen(texparamID=this.texparamID){
+        this.texparamID = texparamID;
+        this.translate();
         let tmp = [
             2,
             this.c.e(1),this.c.e(2),this.c.e(3),this.r
@@ -2119,7 +2528,63 @@ class Rectangle extends Object$1{
 
     set pluginName(name){}
 
-    gen(texparamID){
+    boundbox(){
+        let max = this.max.dup();
+        let min = this.min.dup();
+        if(this.max.e(1)===this.min.e(1)) {
+            max.elements[0]+=0.05;
+            min.elements[0]-=0.05;
+        }
+        if(this.max.e(2)===this.min.e(2)) {
+            max.elements[1] += 0.05;
+            min.elements[1]-=0.05;
+        }
+        if(this.max.e(3)===this.min.e(3)) {
+            max.elements[2]+=0.05;
+            min.elements[2]-=0.05;
+        }
+
+        return {
+            min:min,
+            max:max
+        }
+    }
+
+    intersect(_ray){
+        let x = new Vector([this.max.e(1)-this.min.e(1),0,0]);
+        let y = new Vector([0,this.max.e(2)-this.min.e(2),this.max.e(3)-this.min.e(3)]);
+
+        let lx = x.length();
+        let ly = y.length();
+
+        let s = x.divide(lx);
+        let t = y.divide(ly);
+        let n = s.cross(t);
+
+        let ray = Object$1.rayToObjectSpace(_ray,this.min,n,s,t);
+
+        if(ray.dir.e(3) === 0.0) return 100000;
+
+        let tt = -ray.origin.e(3)/ray.dir.e(3);
+        if(tt < 0.0001) return 100000;
+
+        let hit = ray.origin.add(ray.dir.x(tt));
+
+        if(hit.x > lx || hit.y > ly ||
+            hit.x < -0.0001 || hit.y < -0.0001) return 100000;
+
+        return tt;
+    }
+
+    translate(){
+        this.min = this.min.add(this.temporaryTranslation);
+        this.max = this.max.add(this.temporaryTranslation);
+        super.translate();
+    }
+
+    gen(texparamID=this.texparamID){
+        this.texparamID = texparamID;
+        this.translate();
         let tmp = [
             3,
             this.min.e(1),this.min.e(2),this.min.e(3),
@@ -2146,8 +2611,52 @@ class Cone extends Object$1{
 
     set pluginName(name){}
 
+    boundbox(){
+        return {
+            min:this.position.subtract(new Vector([this.radius,0,this.radius])),
+            max:this.position.add(new Vector([this.radius,this.height,this.radius]))
+        }
+    }
 
-    gen(texparamID){
+    intersect(_ray){
+        let ray = Object$1.rayToObjectSpace(_ray,this.position);
+        let k = this.radius / this.height;
+        k = k * k;
+        let a = ray.dir.e(1) * ray.dir.e(1) + ray.dir.e(2) * ray.dir.e(2) - k * ray.dir.e(3) * ray.dir.e(3);
+        let b = 2.0 * (ray.dir.e(1) * ray.origin.e(1) + ray.dir.e(2) * ray.origin.e(2) - k * ray.dir.e(3) * (ray.origin.e(3) - this.height));
+        let c = ray.origin.e(1) * ray.origin.e(1) + ray.origin.e(2) * ray.origin.e(2) - k * (ray.origin.e(3) - this.height) * (ray.origin.e(3) - this.height);
+
+        let t;
+        let [t1,t2] = quadratic(a,b,c);
+
+        if(t2 < -0.0001) return 100000;
+
+        t = t1;
+        if(t1 < 0.0001) t = t2;
+
+        let hit = ray.origin.add(ray.dir.x(t));
+
+        if (hit.e(3) < -0.0001 || hit.e(3) > this.height){
+            if (t === t2) return 100000;
+            t = t2;
+
+            hit = ray.origin.add(ray.dir.x(t));
+            if (hit.e(3) < -0.0001 || hit.e(3) > this.height) return 100000;
+        }
+
+        if(t >= 100000) return 100000;
+
+        return t;
+    }
+
+    translate(){
+        this.position = this.position.add(this.temporaryTranslation);
+        super.translate();
+    }
+
+    gen(texparamID=this.texparamID){
+        this.texparamID = texparamID;
+        this.translate();
         let tmp = [
             4,
             this.position.e(1),this.position.e(2),this.position.e(3),
@@ -2174,8 +2683,51 @@ class Cylinder extends Object$1{
 
     set pluginName(name){}
 
+    boundbox(){
+        return {
+            min:this.position.subtract(new Vector([this.radius,0,this.radius])),
+            max:this.position.add(new Vector([this.radius,this.height,this.radius]))
+        }
+    }
 
-    gen(texparamID){
+    intersect(_ray){
+        let ray = Object$1.rayToObjectSpace(_ray,this.position);
+        let a = ray.dir.e(1) * ray.dir.e(1) + ray.dir.e(2) * ray.dir.e(2);
+        let b = 2.0 * (ray.dir.e(1) * ray.origin.e(1) + ray.dir.e(2) * ray.origin.e(2));
+        let c = ray.origin.e(1) * ray.origin.e(1) + ray.origin.e(2) * ray.origin.e(2) - this.radius * this.radius;
+
+
+        let t;
+        let [t1,t2] = quadratic(a,b,c);
+
+        if(t2 < 0.0001) return 100000;
+
+        t = t1;
+        if(t1 < 0.0001) t = t2;
+
+        let hit = ray.origin.add(ray.dir.x(t));
+
+        if (hit.e(3) < -0.0001 || hit.e(3) > this.height){
+            if (t === t2) return 100000;
+            t = t2;
+
+            hit = ray.origin.add(ray.dir.x(t));
+            if (hit.e(3) < -0.0001 || hit.e(3) > this.height) return 100000;
+        }
+
+        if(t >= 100000) return 100000;
+
+        return t;
+    }
+
+    translate(){
+        this.position = this.position.add(this.temporaryTranslation);
+        super.translate();
+    }
+
+    gen(texparamID=this.texparamID){
+        this.texparamID = texparamID;
+        this.translate();
         let tmp = [
             5,
             this.position.e(1),this.position.e(2),this.position.e(3),
@@ -2202,8 +2754,38 @@ class Disk extends Object$1{
 
     set pluginName(name){}
 
+    boundbox(){
+        return {
+            min:this.position.subtract(new Vector([this.radius,0.05,this.radius])),
+            max:this.position.add(new Vector([this.radius,0.05,this.radius]))
+        }
+    }
 
-    gen(texparamID){
+    intersect(_ray){
+        let ray = Object$1.rayToObjectSpace(_ray,this.position);
+
+        if (ray.dir.e(3) === 0.0) return 100000;
+        let t = -ray.origin.e(3) / ray.dir.e(3);
+        if (t <= 0.0001) return 100000;
+
+        let hit = ray.origin.add(ray.dir.x(t));
+        let dist2 = hit.e(1) * hit.e(1) + hit.e(2) * hit.e(2);
+        if (dist2 > this.radius * this.radius || dist2 < this.innerRadius * this.innerRadius)
+            return 100000;
+
+        if(t >= 100000) return 100000;
+
+        return t;
+    }
+
+    translate(){
+        this.position = this.position.add(this.temporaryTranslation);
+        super.translate();
+    }
+
+    gen(texparamID=this.texparamID){
+        this.texparamID = texparamID;
+        this.translate();
         let tmp = [
             6,
             this.position.e(1),this.position.e(2),this.position.e(3),
@@ -2220,6 +2802,12 @@ class Hyperboloid extends Object$1{
         this.position = new Vector(position);
         this.p1 = new Vector(p1);
         this.p2 = new Vector(p2);
+
+        let r1 = Math.sqrt(p1[0]*p1[0]+p1[1]*p1[1]);
+        let r2 = Math.sqrt(p2[0]*p2[0]+p2[1]*p2[1]);
+        this.rMax = Math.max(r1,r2);
+        this.zMin = Math.min(p1[2],p2[2]);
+        this.zMax = Math.max(p1[2],p2[2]);
 
         this._pluginName = "hyperboloid";
 
@@ -2251,8 +2839,48 @@ class Hyperboloid extends Object$1{
 
     set pluginName(name){}
 
+    boundbox(){
+        return {
+            min:this.position.subtract(new Vector([this.rMax,-this.zMin,this.rMax])),
+            max:this.position.add(new Vector([this.rMax,this.zMax,this.rMax]))
+        }
+    }
 
-    gen(texparamID){
+    intersect(_ray){
+        let ray = Object$1.rayToObjectSpace(_ray,this.position);
+        let a = this.ah * ray.dir.e(1) * ray.dir.e(1) + this.ah * ray.dir.e(2) * ray.dir.e(2) - this.ch * ray.dir.e(3) * ray.dir.e(3);
+        let b = 2.0 * (this.ah * ray.dir.e(1) * ray.origin.e(1) + this.ah * ray.dir.e(2) * ray.origin.e(2) - this.ch * ray.dir.e(3) * ray.origin.e(3));
+        let c = this.ah * ray.origin.e(1) * ray.origin.e(1) + this.ah * ray.origin.e(2) * ray.origin.e(2) - this.ch * ray.origin.e(3) * ray.origin.e(3) - 1.0;
+
+        let t;
+        let [t1,t2] = quadratic(a,b,c);
+        if(t2 < -0.0001) return 100000;
+
+        t = t1;
+        if(t1 < 0.0001) t = t2;
+
+        let hit = ray.origin.add(ray.dir.x(t));
+        if (hit.e(3) < this.zMin || hit.e(3) > this.zMax){
+            if (t === t2) return 100000;
+            t = t2;
+
+            hit = ray.origin.add(ray.dir.x(t));
+            if (hit.e(3) < this.zMin || hit.e(3) > this.zMax) return 100000;
+        }
+
+        if(t >= 100000) return 100000;
+
+        return t;
+    }
+
+    translate(){
+        this.position = this.position.add(this.temporaryTranslation);
+        super.translate();
+    }
+
+    gen(texparamID=this.texparamID){
+        this.texparamID = texparamID;
+        this.translate();
         let tmp = [
             7,
             this.position.e(1),this.position.e(2),this.position.e(3),
@@ -2273,6 +2901,9 @@ class Paraboloid extends Object$1{
         this.z1 = z1;
         this.radius = radius;
 
+        this.zMin = Math.min(z0,z1);
+        this.zMax = Math.max(z0,z1);
+
         this._pluginName = "paraboloid";
     }
 
@@ -2282,8 +2913,50 @@ class Paraboloid extends Object$1{
 
     set pluginName(name){}
 
+    boundbox(){
+        return {
+            min:this.position.subtract(new Vector([this.radius,-this.zMin,this.radius])),
+            max:this.position.add(new Vector([this.radius,this.zMax,this.radius]))
+        }
+    }
 
-    gen(texparamID){
+    intersect(_ray){
+        let ray = Object$1.rayToObjectSpace(_ray,this.position);
+        let k = this.zMax / (this.radius * this.radius);
+        let a = k * (ray.dir.e(1) * ray.dir.e(1) + ray.dir.e(2) * ray.dir.e(2));
+        let b = 2.0 * k * (ray.dir.e(1) * ray.origin.e(1) + ray.dir.e(2) * ray.origin.e(2)) - ray.dir.e(3);
+        let c = k * (ray.origin.e(1) * ray.origin.e(1) + ray.origin.e(2) * ray.origin.e(2)) - ray.origin.e(3);
+
+        let t;
+        let [t1,t2] = quadratic(a,b,c);
+        if(t2 < -0.0001) return 100000;
+
+        t = t1;
+        if(t1 < 0.0001) t = t2;
+
+        let hit = ray.origin.add(ray.dir.x(t));
+        if (hit.e(3) < this.zMin || hit.e(3) > this.zMax){
+            if (t === t2) return 100000;
+            t = t2;
+
+            hit = ray.origin.add(ray.dir.x(t));
+            if (hit.e(3) < this.zMin || hit.e(3) > this.zMax) return 100000;
+        }
+
+        if(t >= 100000) return 100000;
+
+        return t;
+
+    }
+
+    translate(){
+        this.position = this.position.add(this.temporaryTranslation);
+        super.translate();
+    }
+
+    gen(texparamID=this.texparamID){
+        this.texparamID = texparamID;
+        this.translate();
         let tmp = [
             8,
             this.position.e(1),this.position.e(2),this.position.e(3),
@@ -2312,7 +2985,8 @@ class Cornellbox extends Object$1{
 
     set pluginName(name){}
 
-    gen(texparamID){
+    gen(texparamID=this.texparamID){
+        this.texparamID = texparamID;
         let tmp = [
             9,
             this.min.e(1),this.min.e(2),this.min.e(3),
@@ -2334,6 +3008,9 @@ class Scene {
         this.obcount = 0;
         this._trace = new PluginParams("path");
         this._filter = new PluginParams("none");
+
+        this.select = null;
+        this.moving = false;
     }
 
     set filter(plugin){
@@ -2463,90 +3140,106 @@ function canvasMousePos(event,canvas) {
 }
 
 class Control{
-    constructor(canvas,scene){
-        this.scene = scene;
-        this.canvas = canvas;
+    static init(canvas){
+        Control.canvas = canvas;
 
-        this.mouseDown = false;
-        this.R = this.scene.camera.eye.distanceFrom(this.scene.camera.center);
-        this.angleX = Math.asin((this.scene.camera.eye.e(2)-this.scene.camera.center.e(2))/this.R);
-        this.angleY = Math.acos((this.scene.camera.eye.e(3)-this.scene.camera.center.e(3))/(this.R*Math.cos(this.angleX)));
-        if(this.scene.camera.eye.e(1)-this.scene.camera.center.e(1)<0) this.angleY = -this.angleY;
-
-        this.onmousedown();
-        this.onmousemove();
-        this.onmouseup();
-        this.onmousewheel();
+        Control.onmousedown();
+        Control.onmousemove();
+        Control.onmouseup();
+        Control.onmousewheel();
     }
 
-    __onmousedown(fn){
+    static update(scene){
+        Control.scene = scene;
+
+        Control.pick = new Pickup(scene);
+
+        Control.mouseDown = false;
+        Control.R = Control.scene.camera.eye.distanceFrom(Control.scene.camera.center);
+        Control.angleX = Math.asin((Control.scene.camera.eye.e(2)-Control.scene.camera.center.e(2))/Control.R);
+        Control.angleY = Math.acos((Control.scene.camera.eye.e(3)-Control.scene.camera.center.e(3))/(Control.R*Math.cos(Control.angleX)));
+        if(Control.scene.camera.eye.e(1)-Control.scene.camera.center.e(1)<0) Control.angleY = -Control.angleY;
+    }
+
+    static __onmousedown(fn){
         return (event)=>{
-            let mouse = canvasMousePos(event,this.canvas);
-            this.oldX = mouse.x;
-            this.oldY = mouse.y;
+            let mouse = canvasMousePos(event,Control.canvas);
+            Control.oldX = mouse.x;
+            Control.oldY = mouse.y;
             if(mouse.x >= 0 && mouse.x < 512 && mouse.y >= 0 && mouse.y < 512) {
-                this.mouseDown = true;
+                Control.mouseDown = true;
+                if(scene.select!==null)
+                    Control.mouseDown = !Control.pick.movingBegin(mouse.x,mouse.y);
+                if(Control.mouseDown)
+                    Control.mouseDown = !Control.pick.pick(mouse.x,mouse.y);
+
                 fn();
             }
-
             return true;
         };
     }
 
-    __onmousemove(fn){
+    static __onmousemove(fn){
         return (event)=>{
-            let mouse = canvasMousePos(event,this.canvas);
-            if(this.mouseDown) {
-                this.angleY += -(this.oldX-mouse.x) * 0.01;
-                this.angleX += -(this.oldY-mouse.y) * 0.01;
+            let mouse = canvasMousePos(event,Control.canvas);
+            if(Control.mouseDown) {
+                Control.angleY += -(Control.oldX-mouse.x) * 0.01;
+                Control.angleX += -(Control.oldY-mouse.y) * 0.01;
 
-                this.angleX = Math.max(this.angleX, -Math.PI / 2 + 0.01);
-                this.angleX = Math.min(this.angleX, Math.PI / 2 - 0.01);
+                Control.angleX = Math.max(Control.angleX, -Math.PI / 2 + 0.01);
+                Control.angleX = Math.min(Control.angleX, Math.PI / 2 - 0.01);
 
-                this.scene.camera.eye = new Vector([
-                    this.R * Math.sin(this.angleY) * Math.cos(this.angleX),
-                    this.R * Math.sin(this.angleX),
-                    this.R * Math.cos(this.angleY) * Math.cos(this.angleX)
-                ]).add(this.scene.camera.center);
-
-                this.oldX = mouse.x;
-                this.oldY = mouse.y;
-
+                Control.scene.camera.eye = new Vector([
+                    Control.R * Math.sin(Control.angleY) * Math.cos(Control.angleX),
+                    Control.R * Math.sin(Control.angleX),
+                    Control.R * Math.cos(Control.angleY) * Math.cos(Control.angleX)
+                ]).add(Control.scene.camera.center);
                 fn();
-                this.scene.update();
+                Control.oldX = mouse.x;
+                Control.oldY = mouse.y;
+                Control.scene.update();
+            }else{
+                if(Control.scene.moving){
+                    Control.pick.moving(mouse.x,mouse.y);
+                }
             }
         };
     }
 
-    __onmouseup(fn){
+    static __onmouseup(fn){
         return (event)=>{
-            this.mouseDown = false;
+            let mouse = canvasMousePos(event,Control.canvas);
+            Control.mouseDown = false;
+            if(Control.scene.moving){
+                Control.pick.movingEnd(mouse.x,mouse.y);
+            }
+
             fn();
         }
     }
 
-    __onmousewheel(fn){
+    static __onmousewheel(fn){
         return (event)=>{
             let ev = event || window.event;
             let down = true;
             down = ev.wheelDelta?ev.wheelDelta<0:ev.detail>0;
             if(!down){
-                this.R*=0.9;
-                this.scene.camera.eye = new Vector([
-                    this.R * Math.sin(this.angleY) * Math.cos(this.angleX),
-                    this.R * Math.sin(this.angleX),
-                    this.R * Math.cos(this.angleY) * Math.cos(this.angleX)
-                ]).add(this.scene.camera.center);
+                Control.R*=0.9;
+                Control.scene.camera.eye = new Vector([
+                    Control.R * Math.sin(Control.angleY) * Math.cos(Control.angleX),
+                    Control.R * Math.sin(Control.angleX),
+                    Control.R * Math.cos(Control.angleY) * Math.cos(Control.angleX)
+                ]).add(Control.scene.camera.center);
             }else{
-                this.R*=1.1;
-                this.scene.camera.eye = new Vector([
-                    this.R * Math.sin(this.angleY) * Math.cos(this.angleX),
-                    this.R * Math.sin(this.angleX),
-                    this.R * Math.cos(this.angleY) * Math.cos(this.angleX)
-                ]).add(this.scene.camera.center);
+                Control.R*=1.1;
+                Control.scene.camera.eye = new Vector([
+                    Control.R * Math.sin(Control.angleY) * Math.cos(Control.angleX),
+                    Control.R * Math.sin(Control.angleX),
+                    Control.R * Math.cos(Control.angleY) * Math.cos(Control.angleX)
+                ]).add(Control.scene.camera.center);
             }
             fn();
-            this.scene.update();
+            Control.scene.update();
             if(ev.preventDefault){
                 ev.preventDefault();
             }
@@ -2554,21 +3247,21 @@ class Control{
         }
     }
 
-    onmousedown(fn=()=>{}){
-        addEvent(document,'mousedown',this.__onmousedown(fn));
+    static onmousedown(fn=()=>{}){
+        addEvent(document,'mousedown',Control.__onmousedown(fn));
     }
 
-    onmousemove(fn=()=>{}){
-        addEvent(document,'mousemove',this.__onmousemove(fn));
+    static onmousemove(fn=()=>{}){
+        addEvent(document,'mousemove',Control.__onmousemove(fn));
     }
 
-    onmouseup(fn=()=>{}){
-        addEvent(document,'mouseup',this.__onmouseup(fn));
+    static onmouseup(fn=()=>{}){
+        addEvent(document,'mouseup',Control.__onmouseup(fn));
     }
 
-    onmousewheel(fn=()=>{}){
-        addEvent(this.canvas,'mousewheel',this.__onmousewheel(fn));
-        addEvent(this.canvas,'DOMMouseScroll',this.__onmousewheel(fn));
+    static onmousewheel(fn=()=>{}){
+        addEvent(Control.canvas,'mousewheel',Control.__onmousewheel(fn));
+        addEvent(Control.canvas,'DOMMouseScroll',Control.__onmousewheel(fn));
     }
 }
 

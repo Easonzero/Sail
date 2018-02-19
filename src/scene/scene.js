@@ -16,6 +16,9 @@ class Scene {
         this.obcount = 0;
         this._trace = new PluginParams("path");
         this._filter = new PluginParams("none");
+
+        this.select = null;
+        this.moving = false;
     }
 
     set filter(plugin){

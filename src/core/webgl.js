@@ -6,14 +6,8 @@ class ShaderProgram {
         this.hasFrameBuffer = hasFrameBuffer;
         this.run = false;
 
-        this.vertexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-            -1, -1,
-            -1, +1,
-            +1, -1,
-            +1, +1
-        ]), gl.STATIC_DRAW);
+        this.vbo = [];
+        this.indexl = 0;
 
         if(hasFrameBuffer){
             this.framebuffer = gl.createFramebuffer();
@@ -35,16 +29,23 @@ class ShaderProgram {
         }
     }
 
+    addVBO(type,data){
+        let buffer = gl.createBuffer();
+        gl.bindBuffer(type,buffer);
+        gl.bufferData(type,data,gl.STATIC_DRAW);
+        this.vbo.push({name:buffer,type:type});
+        if(type===gl.ELEMENT_ARRAY_BUFFER) this.indexl = data.length;
+    }
+
     setProgram(shader){
         this.shader = shader;
 
         this.program = WebglHelper.createProgram(shader.combinevs(), shader.combinefs());
-
         this.vertexAttribute = gl.getAttribLocation(this.program, 'vertex');
         gl.enableVertexAttribArray(this.vertexAttribute);
     }
 
-    render(uniforms=true,textures=true){
+    render(type='triangle',uniforms=true,textures=true){
         if(!this.program||!this.shader) return;
 
         gl.useProgram(this.program);
@@ -52,7 +53,6 @@ class ShaderProgram {
         if(!this.run) {
             this._updateUniforms();
             this._updateTextures();
-            this._updateVBO();
             this.run = true;
         }else{
             if(uniforms) this._updateUniforms();
@@ -66,7 +66,16 @@ class ShaderProgram {
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ShaderProgram.frameCache[1], 0);
         }
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        for(let buffer of this.vbo){
+            gl.bindBuffer(buffer.type,buffer.name);
+        }
+        if(type==='line'){
+            gl.vertexAttribPointer(this.vertexAttribute, 3, gl.FLOAT, false, 0, 0);
+            gl.drawElements(gl.LINES,this.indexl, gl.UNSIGNED_SHORT, 0);
+        } else {
+            gl.vertexAttribPointer(this.vertexAttribute, 2, gl.FLOAT, false, 0, 0);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
 
         gl.bindFramebuffer(gl.FRAMEBUFFER,null);
 
@@ -100,11 +109,6 @@ class ShaderProgram {
 
             gl.uniform1i(location,entry[1]);
         }
-    }
-
-    _updateVBO(){
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.vertexAttribPointer(this.vertexAttribute, 2, gl.FLOAT, false, 0, 0);
     }
 
     set uniform(uniform){}

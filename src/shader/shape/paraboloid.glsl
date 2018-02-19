@@ -9,6 +9,16 @@ struct Paraboloid{
     bool reverseNormal;
 };
 
+bool testBoundboxForParaboloid(Ray ray,Paraboloid paraboloid){
+    float zMin = min(paraboloid.z0,paraboloid.z1);
+    float zMax = max(paraboloid.z0,paraboloid.z1);
+    Boundbox box = Boundbox(
+        paraboloid.p-vec3(paraboloid.r,-zMin,paraboloid.r),
+        paraboloid.p+vec3(paraboloid.r,zMax,paraboloid.r)
+    );
+    return testBoundbox(ray,box);
+}
+
 Paraboloid parseParaboloid(float index){
     Paraboloid paraboloid;
     paraboloid.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);

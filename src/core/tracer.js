@@ -12,6 +12,29 @@ class Tracer {
 
         this.objects_tex = {};
         this.params_tex = {};
+
+        this.shader.addVBO(gl.ARRAY_BUFFER,new Float32Array([
+            -1, -1,
+            -1, +1,
+            +1, -1,
+            +1, +1
+        ]));
+
+    }
+
+    updateObjects(scene){
+        let objects = [];
+        for(let object of scene.objects){
+            objects.push(...object.gen());
+        }
+        let data_objects = new Float32Array(objects);
+        let n = parseInt(objects.length/ShaderProgram.OBJECTS_LENGTH);
+        this.objects_tex = WebglHelper.createTexture();
+        WebglHelper.setTexture(
+            this.objects_tex,1,
+            ShaderProgram.OBJECTS_LENGTH, n,
+            gl.R32F,gl.RED,gl.FLOAT,data_objects,true
+        );
     }
 
     update(scene){
@@ -55,7 +78,7 @@ class Tracer {
         this.shader.uniform.textureWeight.value = sampleCount / (sampleCount + 1);
         this.shader.uniform.timeSinceStart.value = (new Date() - this.timeStart) * 0.001;
 
-        this.shader.render();
+        this.shader.render('triangle');
     }
 }
 

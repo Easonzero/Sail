@@ -6,6 +6,10 @@ struct Cornellbox{
     vec3 emission;
 };
 
+bool testBoundboxForCornellbox(Ray ray,Cornellbox cornellbox){
+    return true;
+}
+
 Cornellbox parseCornellbox(float index){
     Cornellbox box;
     box.min = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);

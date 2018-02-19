@@ -7,9 +7,9 @@ import {Cube,Sphere,Rectangle,Cone,Cylinder,Disk,Hyperboloid,Paraboloid,Cornellb
 import {Camera} from './src/scene/camera'
 import {Matte,Mirror,Metal,Glass} from './src/scene/material'
 import {UniformColor,Checkerboard,Checkerboard2,Bilerp,Mix,Scale,UV} from './src/scene/texture'
-import {Control} from './src/utils/control'
+import {Control} from './src/core/control'
 import {Matrix,Vector} from './src/utils/matrix';
-import {Color} from './src/utils/color';
+import {Color} from './src/core/color';
 
 window.Sail = {
     Renderer:Renderer,

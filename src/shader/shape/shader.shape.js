@@ -2,6 +2,7 @@
  * Created by eason on 1/21/18.
  */
 import {Generator,Export,Plugin} from '../generator';
+import boundbox from './boundbox.glsl';
 import cube from './cube.glsl';
 import sphere from './sphere.glsl';
 import rectangle from './rectangle.glsl';
@@ -41,6 +42,7 @@ return ins;}`;
 
 let intersect = new Export("intersect",intersectHead,intersectTail,"category",function(plugin){
     return `${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(ln+n-1));
+    if(!testBoundboxFor${plugin.capitalName()}(ray,${plugin.name})) continue;
     tmp = intersect${plugin.capitalName()}(ray,${plugin.name});
     vec3 n = (${plugin.name}.reverseNormal?-1.0:1.0)*tmp.normal;
     bool faceObj = dot(n,ray.dir)<-EPSILON;
@@ -74,4 +76,4 @@ bool testShadow(Ray ray){
     return false;
 }
 `;
-export default new Generator("shape",[""],[testShadow],plugins,intersect,sample);
+export default new Generator("shape",[boundbox],[testShadow],plugins,intersect,sample);

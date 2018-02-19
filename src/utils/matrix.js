@@ -88,6 +88,10 @@ class Vector{
         return this.map(function(x) { return x*k; });
     }
 
+    divide(k){
+        return this.map(function(x) { return x/k; });
+    }
+
     x(k) { return this.multiply(k); }
 
     dot(vector) {
@@ -121,6 +125,31 @@ class Vector{
         return Math.sqrt(sum);
     }
 
+    length(){
+        return Math.sqrt(
+            this.elements[0]*this.elements[0]+
+            this.elements[1]*this.elements[1]+
+            this.elements[2]*this.elements[2]
+        );
+    }
+
+    ensure3() {
+        return new Vector([this.elements[0], this.elements[1], this.elements[2]]);
+    };
+
+    ensure4(w) {
+        return new Vector([this.elements[0], this.elements[1], this.elements[2], w]);
+    };
+
+    divideByW(){
+        let w = this.elements[this.elements.length - 1];
+        let newElements = [];
+        for(let i = 0; i < this.elements.length; i++) {
+            newElements.push(this.elements[i] / w);
+        }
+        return new Vector(newElements);
+    }
+
     setElements(els) {
         this.elements = (els.elements || els).slice();
         return this;
@@ -128,6 +157,33 @@ class Vector{
 
     flatten(){
         return this.elements;
+    };
+
+    componentDivide(vector){
+        if(this.elements.length !== vector.elements.length) {
+            return null;
+        }
+        let newElements = [];
+        for(let i = 0; i < this.elements.length; i++) {
+            newElements.push(this.elements[i] / vector.elements[i]);
+        }
+        return new Vector(newElements);
+    };
+
+    maxComponent() {
+        let value = -MAXVALUE;
+        for(let i = 0; i < this.elements.length; i++) {
+            value = Math.max(value, this.elements[i]);
+        }
+        return value;
+    };
+
+    minComponent() {
+        let value = MAXVALUE;
+        for(let i = 0; i < this.elements.length; i++) {
+            value = Math.min(value, this.elements[i]);
+        }
+        return value;
     };
 
     static get i(){return new Vector([1,0,0]);}
@@ -146,6 +202,28 @@ class Vector{
         do { elements.push(0);
         } while (--n);
         return new Vector(elements);
+    }
+
+    static min(a,b){
+        if(a.length !== b.length) {
+            return null;
+        }
+        let newElements = [];
+        for(let i = 0; i < a.elements.length; i++) {
+            newElements.push(Math.min(a.elements[i], b.elements[i]));
+        }
+        return new Vector(newElements);
+    }
+
+    static max(a, b){
+        if(a.length !== b.length) {
+            return null;
+        }
+        let newElements = [];
+        for(let i = 0; i < a.elements.length; i++) {
+            newElements.push(Math.max(a.elements[i], b.elements[i]));
+        }
+        return new Vector(newElements);
     }
 }
 

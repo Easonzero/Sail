@@ -1,5 +1,7 @@
 let rf = require('fs');
 let path = require('path');
+let replace = require('rollup-plugin-replace');
+let uglify = require('rollup-plugin-uglify');
 
 function glsl(shaderurl) {
     if(shaderurl.charAt(shaderurl.length)=='/') shaderurl = shaderurl.substr(0,shaderurl.length-1);
@@ -78,7 +80,12 @@ function glsl(shaderurl) {
 export default {
     input: 'index.js',
     plugins: [
-        glsl('src/shader')
+        glsl('src/shader'),
+        replace({
+            MAXVALUE:1e5,
+            MINVALUE:1e-4
+        }),
+        //uglify(),
     ],
     // sourceMap: true,
     output: [

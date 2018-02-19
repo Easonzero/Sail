@@ -8,6 +8,14 @@ struct Cylinder{
     bool reverseNormal;
 };
 
+bool testBoundboxForCylinder(Ray ray,Cylinder cylinder){
+    Boundbox box = Boundbox(
+        cylinder.p-vec3(cylinder.r,0,cylinder.r),
+        cylinder.p+vec3(cylinder.r,cylinder.h,cylinder.r)
+    );
+    return testBoundbox(ray,box);
+}
+
 Cylinder parseCylinder(float index){
     Cylinder cylinder;
     cylinder.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);

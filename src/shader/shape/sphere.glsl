@@ -7,6 +7,14 @@ struct Sphere{
     bool reverseNormal;
 };
 
+bool testBoundboxForSphere(Ray ray,Sphere sphere){
+    Boundbox box = Boundbox(
+        sphere.c-vec3(sphere.r),
+        sphere.c+vec3(sphere.r)
+    );
+    return testBoundbox(ray,box);
+}
+
 Sphere parseSphere(float index){
     Sphere sphere;
     sphere.c = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);

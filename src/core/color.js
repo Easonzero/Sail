@@ -2,7 +2,7 @@
  * Created by eason on 2/4/18.
  */
 import {UniformColor} from '../scene/texture';
-import {Vector} from './matrix';
+import {Vector} from '../utils/matrix';
 
 class Color {
     static createTexture(color){

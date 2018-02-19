@@ -8,6 +8,14 @@ struct Cone{
     bool reverseNormal;
 };
 
+bool testBoundboxForCone(Ray ray,Cone cone){
+    Boundbox box = Boundbox(
+        cone.p-vec3(cone.r,0,cone.r),
+        cone.p+vec3(cone.r,cone.h,cone.r)
+    );
+    return testBoundbox(ray,box);
+}
+
 Cone parseCone(float index){
     Cone cone;
     cone.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);

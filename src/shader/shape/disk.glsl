@@ -8,6 +8,10 @@ struct Disk{
     bool reverseNormal;
 };
 
+bool testBoundboxForDisk(Ray ray,Disk disk){
+    return true;
+}
+
 Disk parseDisk(float index){
     Disk disk;
     disk.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);

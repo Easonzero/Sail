@@ -10,6 +10,19 @@ struct Hyperboloid{
     bool reverseNormal;
 };
 
+bool testBoundboxForHyperboloid(Ray ray,Hyperboloid hyperboloid){
+    float r1 = sqrt(hyperboloid.p1.x*hyperboloid.p1.x+hyperboloid.p1.y*hyperboloid.p1.y);
+    float r2 = sqrt(hyperboloid.p2.x*hyperboloid.p2.x+hyperboloid.p2.y*hyperboloid.p2.y);
+    float rMax = max(r1,r2);
+    float zMin = min(hyperboloid.p1.z,hyperboloid.p2.z);
+    float zMax = max(hyperboloid.p1.z,hyperboloid.p2.z);
+    Boundbox box = Boundbox(
+        hyperboloid.p-vec3(rMax,-zMin,rMax),
+        hyperboloid.p+vec3(rMax,zMax,rMax)
+    );
+    return testBoundbox(ray,box);
+}
+
 Hyperboloid parseHyperboloid(float index){
     Hyperboloid hyperboloid;
     hyperboloid.p = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);

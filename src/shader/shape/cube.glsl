@@ -7,6 +7,10 @@ struct Cube{
     bool reverseNormal;
 };
 
+bool testBoundboxForCube(Ray ray,Cube cube){
+    return true;
+}
+
 Cube parseCube(float index){
     Cube cube;
     cube.min = readVec3(objects,vec2(1.0,index),OBJECTS_LENGTH);

@@ -16,6 +16,20 @@ class Shader{
     constructor(pluginsList){
         this.pluginsList = pluginsList;
         this.glslv = "300 es";
+
+        this.uniform = {};
+        this.texture = {};
+    }
+
+    uniformstr(){
+        let result = "";
+        for(let entry of Object.entries(this.uniform)){
+            result += `uniform ${entry[1].type} ${entry[0]};\n`;
+        }
+        for(let entry of Object.entries(this.texture)){
+            result += `uniform sampler2D ${entry[0]};\n`;
+        }
+        return result;
     }
 }
 
@@ -66,17 +80,6 @@ class TraceShader extends Shader{
             + util.generate(new PluginParams("utility"))
             + main.generate(new PluginParams("vstrace"))
     }
-
-    uniformstr(){
-        let result = "";
-        for(let entry of Object.entries(this.uniform)){
-            result += `uniform ${entry[1].type} ${entry[0]};\n`;
-        }
-        for(let entry of Object.entries(this.texture)){
-            result += `uniform sampler2D ${entry[0]};\n`;
-        }
-        return result;
-    }
 }
 
 
@@ -102,8 +105,30 @@ class RenderShader extends Shader{
             + this.uniformstr()
             + main.generate(new PluginParams("vsrender"))
     }
-
-    uniformstr(){return `uniform sampler2D tex;\n`}
 }
 
-export {TraceShader,RenderShader}
+class LineShader extends Shader{
+    constructor(pluginsList={}){
+        super(pluginsList);
+
+        this.uniform = {
+            cubeMin:{type:"vec3",value:Vector.Zero(3)},
+            cubeMax:{type:"vec3",value:Vector.Zero(3)},
+            modelviewProjection:{type:"mat4",value:Matrix.I(4)}
+        }
+    }
+
+    combinefs(){
+        return `#version ${this.glslv}\n`
+            + `precision highp float;\n`
+            + main.generate(new PluginParams("fsline"));
+    }
+
+    combinevs(){
+        return `#version ${this.glslv}\n`
+            + this.uniformstr()
+            + main.generate(new PluginParams("vsline"))
+    }
+}
+
+export {TraceShader,RenderShader,LineShader}

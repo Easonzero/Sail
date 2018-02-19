@@ -13,7 +13,7 @@ class Camera {
         this.makeLookAt();
     }
 
-    makePerspective(fovy=55, aspect=1, znear=10, zfar=100){
+    makePerspective(fovy=55, aspect=1, znear=1, zfar=100){
         let top = znear * Math.tan(fovy * Math.PI / 360.0);
         let bottom = -top;
         let left = bottom * aspect;
