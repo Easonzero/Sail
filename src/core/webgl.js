@@ -2,14 +2,14 @@
  * Created by eason on 17-3-15.
  */
 class ShaderProgram {
-    constructor(hasFrameBuffer=false) {
-        this.hasFrameBuffer = hasFrameBuffer;
+    constructor(frameBufferNum) {
+        this.frameBufferNum = frameBufferNum;
         this.run = false;
 
         this.vbo = [];
         this.indexl = 0;
 
-        if(hasFrameBuffer){
+        if(frameBufferNum){
             this.framebuffer = gl.createFramebuffer();
 
             if(!ShaderProgram.frameCache) {
@@ -17,11 +17,10 @@ class ShaderProgram {
 
                 let type = gl.getExtension('OES_texture_float') ? gl.FLOAT : gl.UNSIGNED_BYTE;
 
-                gl.activeTexture(gl.TEXTURE0);
-                for(let i = 0; i < 2; i++) {
+                for(let i = 0; i <= frameBufferNum; i++) {
                     ShaderProgram.frameCache.push(WebglHelper.createTexture());
                     WebglHelper.setTexture(
-                        ShaderProgram.frameCache[i],0,
+                        ShaderProgram.frameCache[i],
                         512,512,gl.RGB,gl.RGB,type,null
                     )
                 }
@@ -45,6 +44,10 @@ class ShaderProgram {
         gl.enableVertexAttribArray(this.vertexAttribute);
     }
 
+    switch(){
+        gl.useProgram(this.program);
+    }
+
     render(type='triangle',uniforms=true,textures=true){
         if(!this.program||!this.shader) return;
 
@@ -59,11 +62,14 @@ class ShaderProgram {
             if(textures) this._updateTextures();
         }
 
-        if(this.hasFrameBuffer){
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, ShaderProgram.frameCache[0]);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ShaderProgram.frameCache[1], 0);
+        if(this.frameBufferNum){
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.framebuffer);
+            let bufferArray = [];
+            for(let i=0;i<this.frameBufferNum;i++){
+                gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0+i, gl.TEXTURE_2D, ShaderProgram.frameCache[1+i], 0);
+                bufferArray.push(gl.COLOR_ATTACHMENT0+i);
+            }
+            gl.drawBuffers(bufferArray);
         }
 
         for(let buffer of this.vbo){
@@ -79,8 +85,10 @@ class ShaderProgram {
 
         gl.bindFramebuffer(gl.FRAMEBUFFER,null);
 
-        if(this.hasFrameBuffer){
-            ShaderProgram.frameCache.reverse();
+        if(this.frameBufferNum){
+            let tmp = ShaderProgram.frameCache[0];
+            ShaderProgram.frameCache[0] = ShaderProgram.frameCache[1];
+            ShaderProgram.frameCache[1] = tmp;
         }
     }
 
@@ -104,10 +112,16 @@ class ShaderProgram {
     _updateTextures(){
         if(!this.texture) return;
         for(let entry of Object.entries(this.texture)) {
+            gl.activeTexture(gl.TEXTURE0+entry[1].unit);
+
+            if(typeof entry[1].value === "number")
+                gl.bindTexture(gl.TEXTURE_2D, ShaderProgram.frameCache[entry[1].value]);
+            else
+                gl.bindTexture(gl.TEXTURE_2D, entry[1].value);
+
             let location = gl.getUniformLocation(this.program, entry[0]);
             if(location == null) continue;
-
-            gl.uniform1i(location,entry[1]);
+            gl.uniform1i(location,entry[1].unit);
         }
     }
 
@@ -128,9 +142,7 @@ class WebglHelper {
         return gl.createTexture();
     }
 
-    static setTexture(texture,unitID,width,height,internalFormat,format,type,data,npot){
-        gl.activeTexture(gl.TEXTURE0+unitID);
-
+    static setTexture(texture,width,height,internalFormat,format,type,data,npot){
         gl.bindTexture(gl.TEXTURE_2D, texture);
         if(npot){
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);

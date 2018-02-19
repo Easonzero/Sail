@@ -4,7 +4,7 @@ vec3 windowSampler(vec2 coord,inout int count){
 
     count++;
 
-    return texture(tex,coord).rgb;
+    return texture(colorMap,coord).rgb;
 }
 
 vec3 window(vec2 coord,float i,float j,out int count){

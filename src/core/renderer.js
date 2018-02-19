@@ -45,6 +45,10 @@ class Renderer {
     update(scene){
         this.renderShader.setProgram(new RenderShader(scene.rendererConfig()));
         this.tracer.update(scene);
+
+        this.renderShader.texture.colorMap.value = 0;
+        this.renderShader.texture.normalMap.value = ShaderProgram.frameCache[2];
+        this.renderShader.texture.positionMap.value = ShaderProgram.frameCache[3];
     }
 
     render(scene){

@@ -18,7 +18,7 @@ vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){
     return ins.emission+direct;
 }
 
-void trace(Ray ray,out vec3 e,int maxDeepth){
+void trace(Ray ray,int maxDeepth,out vec3 e,out vec3 n,out vec3 p){
     vec3 fpdf = WHITE;e = BLACK;
     int deepth=0;
     while(deepth++<maxDeepth){
@@ -26,10 +26,14 @@ void trace(Ray ray,out vec3 e,int maxDeepth){
         ins.seed = timeSinceStart + float(deepth);
         if(ins.d>=MAX_DISTANCE) break;
 
+        if(deepth==1){
+            n = ins.normal;
+            p = ins.hit;
+        }
+
         vec3 wi;
         vec3 _fpdf;
         e += shade(ins,-ray.dir,wi,_fpdf)*fpdf;
-
         fpdf *= clamp(_fpdf,BLACK,WHITE);
 
         float outdot = dot(ins.normal,wi);

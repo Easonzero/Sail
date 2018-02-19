@@ -2,14 +2,14 @@
  * Created by eason on 17-3-15.
  */
 class ShaderProgram {
-    constructor(hasFrameBuffer=false) {
-        this.hasFrameBuffer = hasFrameBuffer;
+    constructor(frameBufferNum) {
+        this.frameBufferNum = frameBufferNum;
         this.run = false;
 
         this.vbo = [];
         this.indexl = 0;
 
-        if(hasFrameBuffer){
+        if(frameBufferNum){
             this.framebuffer = gl.createFramebuffer();
 
             if(!ShaderProgram.frameCache) {
@@ -17,11 +17,10 @@ class ShaderProgram {
 
                 let type = gl.getExtension('OES_texture_float') ? gl.FLOAT : gl.UNSIGNED_BYTE;
 
-                gl.activeTexture(gl.TEXTURE0);
-                for(let i = 0; i < 2; i++) {
+                for(let i = 0; i <= frameBufferNum; i++) {
                     ShaderProgram.frameCache.push(WebglHelper.createTexture());
                     WebglHelper.setTexture(
-                        ShaderProgram.frameCache[i],0,
+                        ShaderProgram.frameCache[i],
                         512,512,gl.RGB,gl.RGB,type,null
                     );
                 }
@@ -45,6 +44,10 @@ class ShaderProgram {
         gl.enableVertexAttribArray(this.vertexAttribute);
     }
 
+    switch(){
+        gl.useProgram(this.program);
+    }
+
     render(type='triangle',uniforms=true,textures=true){
         if(!this.program||!this.shader) return;
 
@@ -59,11 +62,14 @@ class ShaderProgram {
             if(textures) this._updateTextures();
         }
 
-        if(this.hasFrameBuffer){
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, ShaderProgram.frameCache[0]);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ShaderProgram.frameCache[1], 0);
+        if(this.frameBufferNum){
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.framebuffer);
+            let bufferArray = [];
+            for(let i=0;i<this.frameBufferNum;i++){
+                gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0+i, gl.TEXTURE_2D, ShaderProgram.frameCache[1+i], 0);
+                bufferArray.push(gl.COLOR_ATTACHMENT0+i);
+            }
+            gl.drawBuffers(bufferArray);
         }
 
         for(let buffer of this.vbo){
@@ -79,8 +85,10 @@ class ShaderProgram {
 
         gl.bindFramebuffer(gl.FRAMEBUFFER,null);
 
-        if(this.hasFrameBuffer){
-            ShaderProgram.frameCache.reverse();
+        if(this.frameBufferNum){
+            let tmp = ShaderProgram.frameCache[0];
+            ShaderProgram.frameCache[0] = ShaderProgram.frameCache[1];
+            ShaderProgram.frameCache[1] = tmp;
         }
     }
 
@@ -104,10 +112,16 @@ class ShaderProgram {
     _updateTextures(){
         if(!this.texture) return;
         for(let entry of Object.entries(this.texture)) {
+            gl.activeTexture(gl.TEXTURE0+entry[1].unit);
+
+            if(typeof entry[1].value === "number")
+                gl.bindTexture(gl.TEXTURE_2D, ShaderProgram.frameCache[entry[1].value]);
+            else
+                gl.bindTexture(gl.TEXTURE_2D, entry[1].value);
+
             let location = gl.getUniformLocation(this.program, entry[0]);
             if(location == null) continue;
-
-            gl.uniform1i(location,entry[1]);
+            gl.uniform1i(location,entry[1].unit);
         }
     }
 
@@ -128,9 +142,7 @@ class WebglHelper {
         return gl.createTexture();
     }
 
-    static setTexture(texture,unitID,width,height,internalFormat,format,type,data,npot){
-        gl.activeTexture(gl.TEXTURE0+unitID);
-
+    static setTexture(texture,width,height,internalFormat,format,type,data,npot){
         gl.bindTexture(gl.TEXTURE_2D, texture);
         if(npot){
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -1051,11 +1063,15 @@ var struct = "struct Intersect{\n    float d;\n    vec3 hit;\n    vec3 normal;\n
  */
 var c = new Generator("const",[define],[struct]);
 
-var window$1 = "vec3 windowSampler(vec2 coord,inout int count){\n    if(coord.x<0.0||coord.x>1.0||coord.y<0.0||coord.y>1.0)\n        return vec3(0,0,0);\n    count++;\n    return texture(tex,coord).rgb;\n}\nvec3 window(vec2 coord,float i,float j,out int count){\n    count = 0;\n    vec2 x = vec2(i/512.0,0);\n    vec2 y = vec2(0,j/512.0);\n    vec3 color = vec3(0,0,0);\n    color += windowSampler(coord+x+y,count);\n    color += windowSampler(coord+x-y,count);\n    color += windowSampler(coord-x+y,count);\n    color += windowSampler(coord-x-y,count);\n    return color;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    float weightSum = 0.0;\n    for(int i=0;i<FILTER_WINDOW_WIDTH;i++){\n        for(int j=0;j<FILTER_WINDOW_WIDTH;j++){\n            int count;\n            vec3 tmpColor = window(\n                texCoord,\n                (float(j) + 0.5) * FILTER_WINDOW_RADIUS.x / float(FILTER_WINDOW_WIDTH),\n                (float(i) + 0.5) * FILTER_WINDOW_RADIUS.y / float(FILTER_WINDOW_WIDTH),\n                count\n            );\n            float weight = windowWeightTable[i*j+j];\n            weightSum += weight*float(count);\n            color += tmpColor * weight;\n        }\n    }\n    return vec4(color/weightSum,1.0);\n}";
+var window$1 = "vec3 windowSampler(vec2 coord,inout int count){\n    if(coord.x<0.0||coord.x>1.0||coord.y<0.0||coord.y>1.0)\n        return vec3(0,0,0);\n    count++;\n    return texture(colorMap,coord).rgb;\n}\nvec3 window(vec2 coord,float i,float j,out int count){\n    count = 0;\n    vec2 x = vec2(i/512.0,0);\n    vec2 y = vec2(0,j/512.0);\n    vec3 color = vec3(0,0,0);\n    color += windowSampler(coord+x+y,count);\n    color += windowSampler(coord+x-y,count);\n    color += windowSampler(coord-x+y,count);\n    color += windowSampler(coord-x-y,count);\n    return color;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    float weightSum = 0.0;\n    for(int i=0;i<FILTER_WINDOW_WIDTH;i++){\n        for(int j=0;j<FILTER_WINDOW_WIDTH;j++){\n            int count;\n            vec3 tmpColor = window(\n                texCoord,\n                (float(j) + 0.5) * FILTER_WINDOW_RADIUS.x / float(FILTER_WINDOW_WIDTH),\n                (float(i) + 0.5) * FILTER_WINDOW_RADIUS.y / float(FILTER_WINDOW_WIDTH),\n                count\n            );\n            float weight = windowWeightTable[i*j+j];\n            weightSum += weight*float(count);\n            color += tmpColor * weight;\n        }\n    }\n    return vec4(color/weightSum,1.0);\n}";
 
-var gamma = "float gamma(float x) {\n    return pow(clamp(x,0.0,1.0), 1.0/FILTER_GAMMA_C) + 0.0022222222222222;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(tex, texCoord).rgb;\n    return vec4(gamma(color.r),gamma(color.g),gamma(color.b),1.0);\n}";
+var gamma = "float gamma(float x) {\n    return pow(clamp(x,0.0,1.0), 1.0/FILTER_GAMMA_C) + 0.0022222222222222;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(colorMap, texCoord).rgb;\n    return vec4(gamma(color.r),gamma(color.g),gamma(color.b),1.0);\n}";
 
-var none = "vec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(tex, texCoord).rgb;\n    return vec4(color,1.0);\n}";
+var color = "vec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(colorMap, texCoord).rgb;\n    return vec4(color,1.0);\n}";
+
+var normal = "vec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(normalMap, texCoord).rgb;\n    return vec4(color,1.0);\n}";
+
+var position = "vec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(positionMap, texCoord).rgb;\n    return vec4(color,1.0);\n}";
 
 /**
  * Created by eason on 1/26/18.
@@ -1271,13 +1287,15 @@ function Triangle_param(windowWidth){
  * Created by eason on 1/23/18.
  */
 let plugins = {
-    "none":new Plugin("none",none),
+    "color":new Plugin("color",color),
     "gamma":new Plugin("gamma",gamma),
     "box":new Plugin("box",window$1),
     "gaussian":new Plugin("gaussian",window$1),
     "mitchell":new Plugin("mitchell",window$1),
     "sinc":new Plugin("sinc",window$1),
-    "triangle":new Plugin("triangle",window$1)
+    "triangle":new Plugin("triangle",window$1),
+    "normal":new Plugin("normal",normal),
+    "position":new Plugin("position",position)
 };
 let windowWidth = 4;
 
@@ -1297,7 +1315,7 @@ var fsrender = "in vec2 texCoord;\nout vec4 color;\nvoid main() {\n    color = p
 
 var vsrender = "in vec3 vertex;\nout vec2 texCoord;\nvoid main() {\n    texCoord = vertex.xy * 0.5 + 0.5;\n    gl_Position = vec4(vertex, 1.0);\n}";
 
-var fstrace = "in vec3 raydir;\nout vec4 out_color;\nvoid main() {\n    int deepth;\n    highp vec3 e;\n    Ray ray = Ray(eye,raydir);\n    trace(ray,e,MAXBOUNCES);\n    vec3 texture = texture(cache, gl_FragCoord.xy/512.0).rgb;\n    out_color = vec4(mix(e, texture, textureWeight),1.0);\n}\n";
+var fstrace = "in vec3 raydir;\nlayout(location = 0) out vec4 out_color;\nlayout(location = 1) out vec4 out_normal;\nlayout(location = 2) out vec4 out_position;\nvoid main() {\n    int deepth;\n    vec3 e,n,p;\n    Ray ray = Ray(eye,raydir);\n    trace(ray,MAXBOUNCES,e,n,p);\n    vec3 texture = texture(cache, gl_FragCoord.xy/512.0).rgb;\n    out_color = vec4(mix(e, texture, textureWeight),1.0);\n    out_normal = vec4(n,1.0);\n    out_position = vec4(p,1.0);\n}\n";
 
 var vstrace = "in vec3 vertex;\nout vec3 raydir;\nvoid main() {\n    gl_Position = vec4(vertex, 1.0);\n    raydir = normalize(ensure3byW(matrix*gl_Position)-eye);\n}";
 
@@ -1484,7 +1502,7 @@ let ep$1 = new Export("getSurfaceColor",head$1,tail$1,"texCategory",function(plu
 
 var texture = new Generator("texture",[noise],[""],plugins$4,ep$1);
 
-var path = "vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){\n    vec3 f,direct = BLACK,_fpdf;\n    vec3 ss = normalize(ins.dpdu),ts = cross(ins.normal,ss);\n    wo = worldToLocal(wo,ins.normal,ss,ts);\n    fpdf = material(ins,wo,wi,f);\n    wi = localToWorld(wi,ins.normal,ss,ts);\n    if(ins.index>=ln&&ins.matCategory==MATTE)\n        for(int i=0;i<ln;i++){\n            vec3 light = sampleGeometry(ins,i,_fpdf);\n            vec3 toLight = light - ins.hit;\n            float d = length(toLight);\n            if(!testShadow(Ray(ins.hit + 0.0001*ins.normal, toLight)))\n                direct +=  f * max(0.0, dot(normalize(toLight), ins.normal)) * _fpdf/(d * d);\n        }\n    return ins.emission+direct;\n}\nvoid trace(Ray ray,out vec3 e,int maxDeepth){\n    vec3 fpdf = WHITE;e = BLACK;\n    int deepth=0;\n    while(deepth++<maxDeepth){\n        Intersect ins = intersectObjects(ray);\n        ins.seed = timeSinceStart + float(deepth);\n        if(ins.d>=MAX_DISTANCE) break;\n        vec3 wi;\n        vec3 _fpdf;\n        e += shade(ins,-ray.dir,wi,_fpdf)*fpdf;\n        fpdf *= clamp(_fpdf,BLACK,WHITE);\n        float outdot = dot(ins.normal,wi);\n        ray.origin = ins.hit+ins.normal*(outdot>EPSILON?0.0001:-0.0001);\n        ray.dir = wi;\n    }\n}";
+var path = "vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){\n    vec3 f,direct = BLACK,_fpdf;\n    vec3 ss = normalize(ins.dpdu),ts = cross(ins.normal,ss);\n    wo = worldToLocal(wo,ins.normal,ss,ts);\n    fpdf = material(ins,wo,wi,f);\n    wi = localToWorld(wi,ins.normal,ss,ts);\n    if(ins.index>=ln&&ins.matCategory==MATTE)\n        for(int i=0;i<ln;i++){\n            vec3 light = sampleGeometry(ins,i,_fpdf);\n            vec3 toLight = light - ins.hit;\n            float d = length(toLight);\n            if(!testShadow(Ray(ins.hit + 0.0001*ins.normal, toLight)))\n                direct +=  f * max(0.0, dot(normalize(toLight), ins.normal)) * _fpdf/(d * d);\n        }\n    return ins.emission+direct;\n}\nvoid trace(Ray ray,int maxDeepth,out vec3 e,out vec3 n,out vec3 p){\n    vec3 fpdf = WHITE;e = BLACK;\n    int deepth=0;\n    while(deepth++<maxDeepth){\n        Intersect ins = intersectObjects(ray);\n        ins.seed = timeSinceStart + float(deepth);\n        if(ins.d>=MAX_DISTANCE) break;\n        if(deepth==1){\n            n = ins.normal;\n            p = ins.hit;\n        }\n        vec3 wi;\n        vec3 _fpdf;\n        e += shade(ins,-ray.dir,wi,_fpdf)*fpdf;\n        fpdf *= clamp(_fpdf,BLACK,WHITE);\n        float outdot = dot(ins.normal,wi);\n        ray.origin = ins.hit+ins.normal*(outdot>EPSILON?0.0001:-0.0001);\n        ray.dir = wi;\n    }\n}";
 
 /**
  * Created by eason on 1/21/18.
@@ -1553,9 +1571,9 @@ class TraceShader extends Shader{
             eye:{type:'vec3',value:Vector.Zero(3)},
         };
         this.texture = {
-            cache:0,
-            objects:1,
-            texParams:2
+            cache:{unit:0,value:null},
+            objects:{unit:1,value:null},
+            texParams:{unit:2,value:null}
         };
     }
 
@@ -1594,7 +1612,9 @@ class RenderShader extends Shader{
         super(pluginsList);
 
         this.texture = {
-            tex:0
+            colorMap:{unit:0,value:null},
+            normalMap:{unit:1,value:null},
+            positionMap:{unit:2,value:null}
         };
     }
 
@@ -1642,7 +1662,7 @@ class LineShader extends Shader{
  */
 class Tracer {
     constructor(){
-        this.shader = new ShaderProgram(true);
+        this.shader = new ShaderProgram(3);
         this.timeStart = new Date();
 
         this.objects_tex = {};
@@ -1666,10 +1686,12 @@ class Tracer {
         let n = parseInt(objects.length/ShaderProgram.OBJECTS_LENGTH);
         this.objects_tex = WebglHelper.createTexture();
         WebglHelper.setTexture(
-            this.objects_tex,1,
+            this.objects_tex,
             ShaderProgram.OBJECTS_LENGTH, n,
             gl.R32F,gl.RED,gl.FLOAT,data_objects,true
         );
+
+        this.shader.texture.objects.value = this.objects_tex;
     }
 
     update(scene){
@@ -1690,15 +1712,19 @@ class Tracer {
         this.objects_tex = WebglHelper.createTexture();
         this.params_tex = WebglHelper.createTexture();
         WebglHelper.setTexture(
-            this.objects_tex,1,
+            this.objects_tex,
             ShaderProgram.OBJECTS_LENGTH, n,
             gl.R32F,gl.RED,gl.FLOAT,data_objects,true
         );
         WebglHelper.setTexture(
-            this.params_tex,2,
+            this.params_tex,
             ShaderProgram.TEXPARAMS_LENGTH, tn,
             gl.R32F,gl.RED,gl.FLOAT,data_texparams,true
         );
+
+        this.shader.texture.cache.value = 0;
+        this.shader.texture.objects.value = this.objects_tex;
+        this.shader.texture.texParams.value = this.params_tex;
 
         this.shader.uniform.n.value = scene.obcount;
         this.shader.uniform.ln.value = scene.lgcount;
@@ -1760,6 +1786,10 @@ class Renderer {
     update(scene){
         this.renderShader.setProgram(new RenderShader(scene.rendererConfig()));
         this.tracer.update(scene);
+
+        this.renderShader.texture.colorMap.value = 0;
+        this.renderShader.texture.normalMap.value = ShaderProgram.frameCache[2];
+        this.renderShader.texture.positionMap.value = ShaderProgram.frameCache[3];
     }
 
     render(scene){
@@ -3007,7 +3037,7 @@ class Scene {
         this.lgcount = 0;
         this.obcount = 0;
         this._trace = new PluginParams("path");
-        this._filter = new PluginParams("none");
+        this._filter = new PluginParams("color");
 
         this.select = null;
         this.moving = false;

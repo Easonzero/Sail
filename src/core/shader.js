@@ -47,9 +47,9 @@ class TraceShader extends Shader{
             eye:{type:'vec3',value:Vector.Zero(3)},
         };
         this.texture = {
-            cache:0,
-            objects:1,
-            texParams:2
+            cache:{unit:0,value:null},
+            objects:{unit:1,value:null},
+            texParams:{unit:2,value:null}
         };
     }
 
@@ -88,7 +88,9 @@ class RenderShader extends Shader{
         super(pluginsList);
 
         this.texture = {
-            tex:0
+            colorMap:{unit:0,value:null},
+            normalMap:{unit:1,value:null},
+            positionMap:{unit:2,value:null}
         };
     }
 

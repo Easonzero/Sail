@@ -3,6 +3,6 @@ float gamma(float x) {
 }
 
 vec4 pixelFilter(vec2 texCoord){
-    vec3 color = texture(tex, texCoord).rgb;
+    vec3 color = texture(colorMap, texCoord).rgb;
     return vec4(gamma(color.r),gamma(color.g),gamma(color.b),1.0);
 }

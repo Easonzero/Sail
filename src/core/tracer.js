@@ -7,7 +7,7 @@ import {Matrix,Vector} from '../utils/matrix';
 
 class Tracer {
     constructor(){
-        this.shader = new ShaderProgram(true);
+        this.shader = new ShaderProgram(3);
         this.timeStart = new Date();
 
         this.objects_tex = {};
@@ -31,10 +31,12 @@ class Tracer {
         let n = parseInt(objects.length/ShaderProgram.OBJECTS_LENGTH);
         this.objects_tex = WebglHelper.createTexture();
         WebglHelper.setTexture(
-            this.objects_tex,1,
+            this.objects_tex,
             ShaderProgram.OBJECTS_LENGTH, n,
             gl.R32F,gl.RED,gl.FLOAT,data_objects,true
         );
+
+        this.shader.texture.objects.value = this.objects_tex;
     }
 
     update(scene){
@@ -55,15 +57,19 @@ class Tracer {
         this.objects_tex = WebglHelper.createTexture();
         this.params_tex = WebglHelper.createTexture();
         WebglHelper.setTexture(
-            this.objects_tex,1,
+            this.objects_tex,
             ShaderProgram.OBJECTS_LENGTH, n,
             gl.R32F,gl.RED,gl.FLOAT,data_objects,true
         );
         WebglHelper.setTexture(
-            this.params_tex,2,
+            this.params_tex,
             ShaderProgram.TEXPARAMS_LENGTH, tn,
             gl.R32F,gl.RED,gl.FLOAT,data_texparams,true
         );
+
+        this.shader.texture.cache.value = 0;
+        this.shader.texture.objects.value = this.objects_tex;
+        this.shader.texture.texParams.value = this.params_tex;
 
         this.shader.uniform.n.value = scene.obcount;
         this.shader.uniform.ln.value = scene.lgcount;

@@ -15,7 +15,7 @@ class Scene {
         this.lgcount = 0;
         this.obcount = 0;
         this._trace = new PluginParams("path");
-        this._filter = new PluginParams("none");
+        this._filter = new PluginParams("color");
 
         this.select = null;
         this.moving = false;
