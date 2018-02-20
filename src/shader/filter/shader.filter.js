@@ -7,6 +7,7 @@ import gamma from './gamma.glsl';
 import color from './color.glsl';
 import normal from './normal.glsl';
 import position from './position.glsl';
+import wavelet from './wavelet.glsl'
 import {Box_param} from './box'
 import {Gaussian_param} from './gaussian'
 import {Mitchell_param} from './mitchell'
@@ -22,7 +23,8 @@ let plugins = {
     "sinc":new Plugin("sinc",window),
     "triangle":new Plugin("triangle",window),
     "normal":new Plugin("normal",normal),
-    "position":new Plugin("position",position)
+    "position":new Plugin("position",position),
+    "wavelet":new Plugin("wavelet",wavelet)
 };
 let windowWidth = 4;
 

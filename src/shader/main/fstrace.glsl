@@ -12,6 +12,6 @@ void main() {
 
     vec3 texture = texture(cache, gl_FragCoord.xy/512.0).rgb;
     out_color = vec4(mix(e, texture, textureWeight),1.0);
-    out_normal = vec4(n,1.0);
-    out_position = vec4(p,1.0);
+    out_normal = vec4(n/2.0+0.5,1.0);
+    out_position = vec4(normalize(p),1.0);
 }

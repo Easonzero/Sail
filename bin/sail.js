@@ -1060,7 +1060,7 @@
 	    }
 	}
 
-	var define = "#define OBJECTS_LENGTH 17.0\n#define TEX_PARAMS_LENGTH 15.0\n#define MAX_DISTANCE 1e5\n#define MAXBOUNCES 5\n#define EPSILON 1e-3\n#define ONEMINUSEPSILON 0.9999\n#define INF 1e5\n#define PI 3.141592653589793\n#define INVPI 0.3183098861837907\n#define INV2PI 0.159154943091895\n#define INV4PI 0.079577471545947\n#define PIOVER2 1.570796326794896\n#define PIOVER4 0.785398163397448\n#define SQRT2 1.414213562373095\n#define CUBE 1\n#define SPHERE 2\n#define RECTANGLE 3\n#define CONE 4\n#define CYLINDER 5\n#define DISK 6\n#define HYPERBOLOID 7\n#define PARABOLOID 8\n#define CORNELLBOX 9\n#define MATTE 1\n#define MIRROR 2\n#define METAL 3\n#define GLASS 4\n#define UNIFORM_COLOR 0\n#define CHECKERBOARD 5\n#define CHECKERBOARD2 7\n#define BILERP 8\n#define MIXF 9\n#define SCALE 10\n#define UVF 11\n#define BLACK vec3(0.0,0.0,0.0)\n#define WHITE vec3(1.0,1.0,1.0)\n#define GREY vec3(0.5,0.5,0.5)\n#define RED vec3(0.75,0.25,0.25)\n#define BLUE vec3(0.25, 0.25, 0.75)\n#define GREEN vec3(0.25, 0.75, 0.25)\n#define NC 1.0\n#define NOOP 0\n#define CONDUCTOR 1\n#define DIELECTRIC 2\n#define BECKMANN 1\n#define TROWBRIDGEREITZ 2\n#define OBJECT_SPACE_N vec3(0,1,0)\n#define OBJECT_SPACE_S vec3(0,0,-1)\n#define OBJECT_SPACE_T vec3(1,0,0)\n";
+	var define = "#define OBJECTS_LENGTH 17.0\n#define TEX_PARAMS_LENGTH 15.0\n#define MAX_DISTANCE 1e5\n#define MAXBOUNCES 5\n#define EPSILON 1e-5\n#define ONEMINUSEPSILON 0.9999\n#define INF 1e5\n#define PI 3.141592653589793\n#define INVPI 0.3183098861837907\n#define INV2PI 0.159154943091895\n#define INV4PI 0.079577471545947\n#define PIOVER2 1.570796326794896\n#define PIOVER4 0.785398163397448\n#define SQRT2 1.414213562373095\n#define CUBE 1\n#define SPHERE 2\n#define RECTANGLE 3\n#define CONE 4\n#define CYLINDER 5\n#define DISK 6\n#define HYPERBOLOID 7\n#define PARABOLOID 8\n#define CORNELLBOX 9\n#define MATTE 1\n#define MIRROR 2\n#define METAL 3\n#define GLASS 4\n#define UNIFORM_COLOR 0\n#define CHECKERBOARD 5\n#define CHECKERBOARD2 7\n#define BILERP 8\n#define MIXF 9\n#define SCALE 10\n#define UVF 11\n#define BLACK vec3(0.0,0.0,0.0)\n#define WHITE vec3(1.0,1.0,1.0)\n#define GREY vec3(0.5,0.5,0.5)\n#define RED vec3(0.75,0.25,0.25)\n#define BLUE vec3(0.25, 0.25, 0.75)\n#define GREEN vec3(0.25, 0.75, 0.25)\n#define NC 1.0\n#define NOOP 0\n#define CONDUCTOR 1\n#define DIELECTRIC 2\n#define BECKMANN 1\n#define TROWBRIDGEREITZ 2\n#define OBJECT_SPACE_N vec3(0,1,0)\n#define OBJECT_SPACE_S vec3(0,0,-1)\n#define OBJECT_SPACE_T vec3(1,0,0)\n";
 
 	var struct = "struct Intersect{\n    float d;\n    vec3 hit;\n    vec3 normal;\n    vec3 dpdu,dpdv;\n    bool into;\n    float matIndex;    vec3 sc;    vec3 emission;\n    float seed;    int index;\n    int matCategory;\n};\nstruct Ray{\n    vec3 origin;\n    vec3 dir;\n};";
 
@@ -1078,6 +1078,8 @@
 	var normal = "vec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(normalMap, texCoord).rgb;\n    return vec4(color,1.0);\n}";
 
 	var position = "vec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(positionMap, texCoord).rgb;\n    return vec4(color,1.0);\n}";
+
+	var wavelet = "float W(vec2 uv,float stepwidth,float h,vec4 cval,vec4 nval,vec4 pval,out vec4 ctmp){\n    ctmp = texture(colorMap, uv);\n    vec4 t = cval - ctmp;\n    float dist2 = dot(t,t);\n    float c_w = min(exp(-(dist2)/FILTER_WAVELET_CPHI), 1.0);\n    vec4 ntmp = texture(normalMap, uv);\n    t = nval - ntmp;\n    dist2 = max(dot(t,t)/(stepwidth*stepwidth),0.0);\n    float n_w = min(exp(-(dist2)/FILTER_WAVELET_NPHI), 1.0);\n    vec4 ptmp = texture(positionMap, uv);\n    t = pval - ptmp;\n    dist2 = dot(t,t);\n    float p_w = min(exp(-(dist2)/FILTER_WAVELET_PPHI),1.0);\n    float weight = c_w * n_w * p_w * h;\n    ctmp *= weight;\n    return weight;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec4 color = vec4(0.0);\n    float weightSum = 0.0;\n    vec4 cval = texture(colorMap, texCoord);\n    vec4 nval = texture(normalMap, texCoord);\n    vec4 pval = texture(positionMap, texCoord);\n    float h[5] = float[5](0.375, 0.25, 0.0625, 0.0625, 0.25);\n    for(int n=0;n<FILTER_WAVELET_N;n++){\n        float stepwidth = pow(2.0,float(n)) - 1.0;\n        int count = 0;\n        for(int i=0;i<5;i++){\n            for(int j=0;j<5;j++,count++){\n                int delt = abs(count-12);\n                float _h = 0.0;\n                if(delt%(int(stepwidth)+1)==0)\n                    _h = h[(delt/(int(stepwidth)+1))%5];\n                vec2 uv = texCoord -\n                    vec2(FILTER_WAVELET_R.x / 512.,FILTER_WAVELET_R.y / 512.) +\n                    vec2((float(j) + 0.5) * FILTER_WAVELET_R.x / 1280.,\n                        (float(i) + 0.5) * FILTER_WAVELET_R.y / 1280.);\n                vec4 ctmp;\n                float weight = W(uv,stepwidth,_h,cval,nval,pval,ctmp);\n                weightSum += weight;\n                color += ctmp;\n            }\n        }\n    }\n    return vec4(color/weightSum);\n}\n";
 
 	/**
 	 * Created by eason on 1/26/18.
@@ -1301,7 +1303,8 @@
 	    "sinc":new Plugin("sinc",window$1),
 	    "triangle":new Plugin("triangle",window$1),
 	    "normal":new Plugin("normal",normal),
-	    "position":new Plugin("position",position)
+	    "position":new Plugin("position",position),
+	    "wavelet":new Plugin("wavelet",wavelet)
 	};
 	let windowWidth = 4;
 
@@ -1321,7 +1324,7 @@
 
 	var vsrender = "in vec3 vertex;\nout vec2 texCoord;\nvoid main() {\n    texCoord = vertex.xy * 0.5 + 0.5;\n    gl_Position = vec4(vertex, 1.0);\n}";
 
-	var fstrace = "in vec3 raydir;\nlayout(location = 0) out vec4 out_color;\nlayout(location = 1) out vec4 out_normal;\nlayout(location = 2) out vec4 out_position;\nvoid main() {\n    int deepth;\n    vec3 e,n,p;\n    Ray ray = Ray(eye,raydir);\n    trace(ray,MAXBOUNCES,e,n,p);\n    vec3 texture = texture(cache, gl_FragCoord.xy/512.0).rgb;\n    out_color = vec4(mix(e, texture, textureWeight),1.0);\n    out_normal = vec4(n,1.0);\n    out_position = vec4(p,1.0);\n}\n";
+	var fstrace = "in vec3 raydir;\nlayout(location = 0) out vec4 out_color;\nlayout(location = 1) out vec4 out_normal;\nlayout(location = 2) out vec4 out_position;\nvoid main() {\n    int deepth;\n    vec3 e,n,p;\n    Ray ray = Ray(eye,raydir);\n    trace(ray,MAXBOUNCES,e,n,p);\n    vec3 texture = texture(cache, gl_FragCoord.xy/512.0).rgb;\n    out_color = vec4(mix(e, texture, textureWeight),1.0);\n    out_normal = vec4(n/2.0+0.5,1.0);\n    out_position = vec4(normalize(p),1.0);\n}\n";
 
 	var vstrace = "in vec3 vertex;\nout vec3 raydir;\nvoid main() {\n    gl_Position = vec4(vertex, 1.0);\n    raydir = normalize(ensure3byW(matrix*gl_Position)-eye);\n}";
 

@@ -3,7 +3,7 @@
 
 #define MAX_DISTANCE 1e5
 #define MAXBOUNCES 5
-#define EPSILON 1e-3
+#define EPSILON 1e-5
 #define ONEMINUSEPSILON 0.9999
 #define INF 1e5
 #define PI 3.141592653589793
