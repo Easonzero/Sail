@@ -5,6 +5,16 @@ import {ShaderProgram} from '../core/webgl';
 import {Vector} from '../utils/matrix';
 
 class Texture{
+    constructor(){
+        this._pluginName = '';
+    }
+
+    get pluginName(){
+        return this._pluginName;
+    }
+
+    set pluginName(name){}
+
     gen(data){
         let l = data.length;
         data.length = ShaderProgram.TEXPARAMS_LENGTH;
@@ -20,12 +30,6 @@ class UniformColor extends Texture{
 
         this._pluginName = undefined;
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     gen(){
         let tmp = [
@@ -49,12 +53,6 @@ class Checkerboard extends Texture{
         this._pluginName = "checkerboard";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(){
         let tmp = [
             5,this.size,this.lineWidth
@@ -74,12 +72,6 @@ class Checkerboard2 extends Texture{
 
         this._pluginName = "checkerboard2";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     gen(){
         let tmp = [
@@ -105,12 +97,6 @@ class Bilerp extends Texture{
         this._pluginName = "bilerp";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(){
         let tmp = [
             8,
@@ -135,12 +121,6 @@ class Mix extends Texture{
         this._pluginName = "mixf";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(){
         let tmp = [
             9,
@@ -163,12 +143,6 @@ class Scale extends Texture{
         this._pluginName = "scale";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(){
         let tmp = [
             10,
@@ -185,12 +159,6 @@ class UV extends Texture{
         super();
         this._pluginName = "uvf";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     gen(){
         let tmp = [

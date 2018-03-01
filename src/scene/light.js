@@ -4,7 +4,15 @@ import {Vector} from "../utils/matrix";
 class Light{
     constructor(emission){
         this.emission = new Vector(emission);
+
+        this._pluginName = '';
     }
+
+    get pluginName(){
+        return this._pluginName;
+    }
+
+    set pluginName(name){}
 
     gen(data){
         data.push(
@@ -17,7 +25,7 @@ class Light{
 }
 
 class GeometryLight extends Light{
-    constructor(emission,geometry){
+    constructor(geometry,emission){
         super(emission);
         geometry.emission = new Vector(emission);
         this.geometry = geometry;
@@ -45,17 +53,11 @@ class GeometryLight extends Light{
 }
 
 class AreaLight extends GeometryLight{
-    constructor(emission,geometry){
-        super(emission,geometry);
+    constructor(geometry,emission){
+        super(geometry,emission);
 
         this._pluginName = 'area';
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     gen(){
         let tmp = [0];
@@ -63,4 +65,22 @@ class AreaLight extends GeometryLight{
     }
 }
 
-export {Light,GeometryLight,AreaLight}
+class PointLight extends Light{
+    constructor(from,emission){
+        super(emission);
+
+        this.from = new Vector(from);
+
+        this._pluginName = 'point';
+    }
+
+    gen(){
+        let tmp = [
+            1,
+            this.from.e(1),this.from.e(2),this.from.e(3)
+        ];
+        return super.gen(tmp);
+    }
+}
+
+export {Light,GeometryLight,AreaLight,PointLight}

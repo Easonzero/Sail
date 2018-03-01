@@ -34,7 +34,15 @@ class Object3D{
         this.temporaryTranslation = Vector.Zero(3);
 
         this.light = !this.emission.eql(new Vector([0,0,0]));
+
+        this._pluginName = '';
     }
+
+    get pluginName(){
+        return this._pluginName;
+    }
+
+    set pluginName(name){}
 
     static get _n(){return Vector.j};
     static get _s(){return Vector.k.x(-1)};
@@ -92,12 +100,6 @@ class Cube extends Object3D{
         this._pluginName = "cube";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     boundbox(){
         return {
             min:this.min,
@@ -146,12 +148,6 @@ class Sphere extends Object3D{
 
         this._pluginName = "sphere";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     boundbox(){
         let r = new Vector([this.r,this.r,this.r]);
@@ -202,12 +198,6 @@ class Rectangle extends Object3D{
 
         this._pluginName = "rectangle";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     boundbox(){
         let max = this.max.dup();
@@ -286,12 +276,6 @@ class Cone extends Object3D{
         this._pluginName = "cone";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     boundbox(){
         return {
             min:this.position.subtract(new Vector([this.radius,0,this.radius])),
@@ -358,12 +342,6 @@ class Cylinder extends Object3D{
         this._pluginName = "cylinder";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     boundbox(){
         return {
             min:this.position.subtract(new Vector([this.radius,0,this.radius])),
@@ -428,12 +406,6 @@ class Disk extends Object3D{
 
         this._pluginName = "disk";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     boundbox(){
         return {
@@ -514,12 +486,6 @@ class Hyperboloid extends Object3D{
         }
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     boundbox(){
         return {
             min:this.position.subtract(new Vector([this.rMax,-this.zMin,this.rMax])),
@@ -588,12 +554,6 @@ class Paraboloid extends Object3D{
         this._pluginName = "paraboloid";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     boundbox(){
         return {
             min:this.position.subtract(new Vector([this.radius,-this.zMin,this.radius])),
@@ -659,12 +619,6 @@ class Cornellbox extends Object3D{
         this.min = this.min.x(k);
         this.max = this.max.x(k);
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     gen(texparamID=this.texparamID){
         this.texparamID = texparamID;

@@ -21,10 +21,10 @@ let checkerboard = new Sail.Checkerboard();
 let checkerboard2 = new Sail.Checkerboard();
 //add areaLight
 scene.add(new Sail.AreaLight(
-[6,6,6],new Sail.Rectangle(
+new Sail.Rectangle(
     [2.13,5.48,2.27],[3.43,5.48,3.32],
     matte,Sail.Color.BLACK
-)));
+),[6,6,6]));
 //add cornellBox    
 scene.add(new Sail.Cornellbox());
 //add objects

@@ -4,7 +4,7 @@
 import {Renderer} from './src/core/renderer'
 import {Scene} from './src/scene/scene'
 import {Cube,Sphere,Rectangle,Cone,Cylinder,Disk,Hyperboloid,Paraboloid,Cornellbox} from './src/scene/geometry'
-import {AreaLight} from "./src/scene/light";
+import {AreaLight,PointLight} from "./src/scene/light";
 import {Camera} from './src/scene/camera'
 import {Matte,Mirror,Metal,Glass} from './src/scene/material'
 import {UniformColor,Checkerboard,Checkerboard2,Bilerp,Mix,Scale,UV} from './src/scene/texture'
@@ -23,7 +23,8 @@ window.Sail = {
     Disk:Disk,
     Hyperboloid:Hyperboloid,
     Paraboloid:Paraboloid,
-    AreaLight,
+    AreaLight:AreaLight,
+    PointLight:PointLight,
     Cornellbox:Cornellbox,
     Camera:Camera,
     Control:Control,

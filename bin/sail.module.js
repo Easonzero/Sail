@@ -1056,7 +1056,7 @@ class Generator{
     }
 }
 
-var define = "#define OBJECTS_LENGTH 17.0\n#define LIGHTS_LENGTH 17.0\n#define TEX_PARAMS_LENGTH 15.0\n#define MAX_DISTANCE 1e5\n#define MAXBOUNCES 5\n#define EPSILON 1e-5\n#define ONEMINUSEPSILON 0.9999\n#define INF 1e5\n#define PI 3.141592653589793\n#define INVPI 0.3183098861837907\n#define INV2PI 0.159154943091895\n#define INV4PI 0.079577471545947\n#define PIOVER2 1.570796326794896\n#define PIOVER4 0.785398163397448\n#define SQRT2 1.414213562373095\n#define CUBE 1\n#define SPHERE 2\n#define RECTANGLE 3\n#define CONE 4\n#define CYLINDER 5\n#define DISK 6\n#define HYPERBOLOID 7\n#define PARABOLOID 8\n#define CORNELLBOX 9\n#define AREA 0\n#define MATTE 1\n#define MIRROR 2\n#define METAL 3\n#define GLASS 4\n#define UNIFORM_COLOR 0\n#define CHECKERBOARD 5\n#define CHECKERBOARD2 7\n#define BILERP 8\n#define MIXF 9\n#define SCALE 10\n#define UVF 11\n#define BLACK vec3(0.0,0.0,0.0)\n#define WHITE vec3(1.0,1.0,1.0)\n#define GREY vec3(0.5,0.5,0.5)\n#define RED vec3(0.75,0.25,0.25)\n#define BLUE vec3(0.25, 0.25, 0.75)\n#define GREEN vec3(0.25, 0.75, 0.25)\n#define NC 1.0\n#define NOOP 0\n#define CONDUCTOR 1\n#define DIELECTRIC 2\n#define BECKMANN 1\n#define TROWBRIDGEREITZ 2\n#define OBJECT_SPACE_N vec3(0,1,0)\n#define OBJECT_SPACE_S vec3(0,0,-1)\n#define OBJECT_SPACE_T vec3(1,0,0)\n";
+var define = "#define OBJECTS_LENGTH 17.0\n#define LIGHTS_LENGTH 17.0\n#define TEX_PARAMS_LENGTH 15.0\n#define MAX_DISTANCE 1e5\n#define MAXBOUNCES 5\n#define EPSILON 1e-5\n#define ONEMINUSEPSILON 0.9999\n#define INF 1e5\n#define PI 3.141592653589793\n#define INVPI 0.3183098861837907\n#define INV2PI 0.159154943091895\n#define INV4PI 0.079577471545947\n#define PIOVER2 1.570796326794896\n#define PIOVER4 0.785398163397448\n#define SQRT2 1.414213562373095\n#define CUBE 1\n#define SPHERE 2\n#define RECTANGLE 3\n#define CONE 4\n#define CYLINDER 5\n#define DISK 6\n#define HYPERBOLOID 7\n#define PARABOLOID 8\n#define CORNELLBOX 9\n#define AREA 0\n#define POINT 1\n#define MATTE 1\n#define MIRROR 2\n#define METAL 3\n#define GLASS 4\n#define UNIFORM_COLOR 0\n#define CHECKERBOARD 5\n#define CHECKERBOARD2 7\n#define BILERP 8\n#define MIXF 9\n#define SCALE 10\n#define UVF 11\n#define BLACK vec3(0.0,0.0,0.0)\n#define WHITE vec3(1.0,1.0,1.0)\n#define GREY vec3(0.5,0.5,0.5)\n#define RED vec3(0.75,0.25,0.25)\n#define BLUE vec3(0.25, 0.25, 0.75)\n#define GREEN vec3(0.25, 0.75, 0.25)\n#define NC 1.0\n#define NOOP 0\n#define CONDUCTOR 1\n#define DIELECTRIC 2\n#define BECKMANN 1\n#define TROWBRIDGEREITZ 2\n#define OBJECT_SPACE_N vec3(0,1,0)\n#define OBJECT_SPACE_S vec3(0,0,-1)\n#define OBJECT_SPACE_T vec3(1,0,0)\n";
 
 var struct = "struct Intersect{\n    float d;\n    vec3 hit;\n    vec3 normal;\n    vec3 dpdu,dpdv;\n    bool into;\n    float matIndex;    vec3 sc;    vec3 emission;\n    float seed;    int index;\n    int matCategory;\n};\nstruct Ray{\n    vec3 origin;\n    vec3 dir;\n};";
 
@@ -1456,20 +1456,15 @@ let sample = new Export("sample",sampleHead,sampleTail,"category",function(plugi
     `
 });
 
-let testShadow = `
-bool testShadow(Ray ray){
-    Intersect ins = intersectObjects(ray);
-    if(ins.d>EPSILON&&ins.d<1.0)
-        return true;
-    return false;
-}
-`;
-var shape = new Generator("shape",[boundbox],[testShadow],plugins$3,intersect,sample);
+var shape = new Generator("shape",[boundbox],[],plugins$3,intersect,sample);
 
-var area = "struct Area{\n  vec3 emission;\n  int index;\n};\nArea parseArea(float index){\n    Area area;\n    area.index = readInt(lights,vec2(1.0,index),LIGHTS_LENGTH);\n    area.emission = readVec3(lights,vec2(2.0,index),LIGHTS_LENGTH);\n    return area;\n}\nvec3 area_sample(Area area,vec2 u,vec3 hit,vec3 insNormal){\n    vec3 normal,p;\n    float pdf,d;\n    p = sampleGeometry(u,area.index,normal,pdf);\n    vec3 toLight = p-hit;\n    if(testShadow(Ray(hit + 0.0001*normal, toLight))) return BLACK;\n    d = length(toLight);\n    return area.emission*max(0.0,dot(normal,-toLight)) *\n        max(0.0, dot(normalize(toLight), insNormal)) /\n        (pdf*d*d);\n}";
+var area = "struct Area{\n  vec3 emission;\n  int index;\n};\nArea parseArea(float index){\n    Area area;\n    area.index = readInt(lights,vec2(1.0,index),LIGHTS_LENGTH);\n    area.emission = readVec3(lights,vec2(2.0,index),LIGHTS_LENGTH);\n    return area;\n}\nvec3 area_sample(Area area,float seed,vec3 hit,vec3 insNormal){\n    vec3 normal,p;\n    float pdf,d;\n    p = sampleGeometry(random2(seed),area.index,normal,pdf);\n    vec3 toLight = p-hit;\n    vec3 normToLight = normalize(toLight);\n    if(testShadow(Ray(hit, toLight))) return BLACK;\n    d = length(toLight);\n    return 6.0*area.emission*max(0.0,dot(normal,-normToLight)) *        max(0.0, dot(normToLight, insNormal)) /\n        (pdf*d*d);\n}";
+
+var point = "struct Point{\n  vec3 from;\n  vec3 emission;\n};\nPoint parsePoint(float index){\n    Point point;\n    point.from = readVec3(lights,vec2(1.0,index),LIGHTS_LENGTH);\n    point.emission = readVec3(lights,vec2(4.0,index),LIGHTS_LENGTH);\n    return point;\n}\nvec3 point_sample(Point point,float seed,vec3 hit,vec3 insNormal){\n    vec3 p = point.from;\n    vec3 toLight = p-hit;\n    if(testShadow(Ray(hit, toLight))) return BLACK;\n    float d = length(toLight);\n    return point.emission *\n        max(0.0, dot(normalize(toLight), insNormal)) /\n        (d*d);\n}";
 
 let plugins$4 = {
-    "area":new Plugin("area",area)
+    "area":new Plugin("area",area),
+    "point":new Plugin("point",point)
 };
 
 let head$1 = `vec3 light_sample(Intersect ins){
@@ -1481,10 +1476,19 @@ let tail$1 = `return fpdf;}`;
 
 let ep$1 = new Export("lightSampleP",head$1,tail$1,"lightCategory",function(plugin){
     return `${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(index)/float(ln-1));
-        fpdf = ${plugin.name}_sample(${plugin.name},random2(ins.seed),ins.hit,ins.normal);`
+        fpdf = ${plugin.name}_sample(${plugin.name},ins.seed,ins.hit,ins.normal);`
 });
 
-var light = new Generator("light",[""],[""],plugins$4,ep$1);
+let testShadow = `
+bool testShadow(Ray ray){
+    Intersect ins = intersectObjects(ray);
+    if(ins.d>EPSILON&&ins.d<ONEMINUSEPSILON)
+        return true;
+    return false;
+}
+`;
+
+var light = new Generator("light",[testShadow],[""],plugins$4,ep$1);
 
 var noise = "const int NoisePermSize = 256;\nint NoisePerm[] = int[2 * NoisePermSize](\n    151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140,\n    36, 103, 30, 69, 142,\n    8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62,\n    94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33, 88, 237, 149, 56, 87, 174,\n    20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77,\n    146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55,\n    46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73, 209, 76,\n    132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86, 164, 100,\n    109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38, 147,\n    118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189, 28,\n    42, 223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101,\n    155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232,\n    178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12,\n    191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31,\n    181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254,\n    138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66,\n    215, 61, 156, 180, 151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194,\n    233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6,\n    148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32,\n    57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74,\n    165, 71, 134, 139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60,\n    211, 133, 230, 220, 105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25,\n    63, 161, 1, 216, 80, 73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135,\n    130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226,\n    250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206, 59,\n    227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248, 152, 2,\n    44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9, 129, 22, 39, 253, 19,\n    98, 108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218, 246, 97, 228, 251,\n    34, 242, 193, 238, 210, 144, 12, 191, 179, 162, 241, 81, 51, 145, 235, 249,\n    14, 239, 107, 49, 192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115,\n    121, 50, 45, 127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72,\n    243, 141, 128, 195, 78, 66, 215, 61, 156, 180);\nfloat Grad(int x, int y, int z, float dx, float dy, float dz) {\n    int h = NoisePerm[NoisePerm[NoisePerm[x] + y] + z];\n    h &= 15;\n    float u = h < 8 || h == 12 || h == 13 ? dx : dy;\n    float v = h < 4 || h == 12 || h == 13 ? dy : dz;\n    return ((h & 1)!=0 ? -u : u) + ((h & 2)!=0 ? -v : v);\n}\nfloat noiseWeight(float t) {\n    float t3 = t * t * t;\n    float t4 = t3 * t;\n    return 6.0 * t4 * t - 15.0 * t4 + 10.0 * t3;\n}\nfloat noise(float x, float y, float z) {\n    int ix = int(floor(x)), iy = int(floor(y)), iz = int(floor(z));\n    float dx = x - float(ix), dy = y - float(iy), dz = z - float(iz);\n    ix &= NoisePermSize - 1;\n    iy &= NoisePermSize - 1;\n    iz &= NoisePermSize - 1;\n    float w000 = Grad(ix, iy, iz, dx, dy, dz);\n    float w100 = Grad(ix + 1, iy, iz, dx - 1.0, dy, dz);\n    float w010 = Grad(ix, iy + 1, iz, dx, dy - 1.0, dz);\n    float w110 = Grad(ix + 1, iy + 1, iz, dx - 1.0, dy - 1.0, dz);\n    float w001 = Grad(ix, iy, iz + 1, dx, dy, dz - 1.0);\n    float w101 = Grad(ix + 1, iy, iz + 1, dx - 1.0, dy, dz - 1.0);\n    float w011 = Grad(ix, iy + 1, iz + 1, dx, dy - 1.0, dz - 1.0);\n    float w111 = Grad(ix + 1, iy + 1, iz + 1, dx - 1.0, dy - 1.0, dz - 1.0);\n    float wx = noiseWeight(dx), wy = noiseWeight(dy), wz = noiseWeight(dz);\n    float x00 = mix(w000, w100, wx);\n    float x10 = mix(w010, w110, wx);\n    float x01 = mix(w001, w101, wx);\n    float x11 = mix(w011, w111, wx);\n    float y0 = mix(x00, x10, wy);\n    float y1 = mix(x01, x11, wy);\n    return mix(y0, y1, wz);\n}\nfloat noise(vec3 p){\n    return noise(p.x,p.y,p.z);\n}\nfloat fbm(vec3 p, float omega, int maxOctaves) {\n    int nInt = maxOctaves/2;\n    float sum = 0.0, lambda = 1.0, o = 1.0;\n    for (int i = 0; i < nInt; ++i) {\n        sum += o * noise(lambda * p);\n        lambda *= 1.99f;\n        o *= omega;\n    }\n    float nPartial = float(maxOctaves - nInt);\n    sum += o * smoothstep(0.3, 0.7, nPartial) * noise(lambda * p);\n    return sum;\n}\nfloat turbulence(vec3 p, float omega, int maxOctaves) {\n    int nInt = maxOctaves/2;\n    float sum = 0.0, lambda = 1.0, o = 1.0;\n    for (int i = 0; i < nInt; ++i) {\n        sum += o * abs(noise(lambda * p));\n        lambda *= 1.99;\n        o *= omega;\n    }\n    float nPartial = float(maxOctaves - nInt);\n    sum += o * mix(0.2, abs(noise(lambda * p)),smoothstep(0.3, 0.7, nPartial));\n    for (int i = nInt; i < maxOctaves; ++i) {\n        sum += o * 0.2;\n        o *= omega;\n    }\n    return sum;\n}";
 
@@ -1915,6 +1919,16 @@ class Camera {
  * Created by eason on 17-5-12.
  */
 class Material{
+    constructor(){
+        this._pluginName = '';
+    }
+
+    get pluginName(){
+        return this._pluginName;
+    }
+
+    set pluginName(name){}
+
     gen(data){
         let l = data.length;
         data.length = ShaderProgram.TEXPARAMS_LENGTH;
@@ -1942,12 +1956,6 @@ class Matte extends Material{
         }
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(){
         let tmp = [
             1,this.kd,this.sigma,this.A,this.B
@@ -1967,11 +1975,6 @@ class Mirror extends Material{
         this._pluginName = "mirror";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
     gen(){
         let tmp = [
             2,this.kr
@@ -1993,12 +1996,6 @@ class Metal extends Material{
 
         this._pluginName = "metal";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     gen(){
         let tmp = [
@@ -2024,12 +2021,6 @@ class Glass extends Material{
         this._pluginName = "glass";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(){
         let tmp = [
             4,this.kr,this.kt,this.eta,this.uroughness,this.vroughness
@@ -2043,6 +2034,16 @@ class Glass extends Material{
  * Created by eason on 17-5-12.
  */
 class Texture{
+    constructor(){
+        this._pluginName = '';
+    }
+
+    get pluginName(){
+        return this._pluginName;
+    }
+
+    set pluginName(name){}
+
     gen(data){
         let l = data.length;
         data.length = ShaderProgram.TEXPARAMS_LENGTH;
@@ -2058,12 +2059,6 @@ class UniformColor extends Texture{
 
         this._pluginName = undefined;
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     gen(){
         let tmp = [
@@ -2087,12 +2082,6 @@ class Checkerboard extends Texture{
         this._pluginName = "checkerboard";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(){
         let tmp = [
             5,this.size,this.lineWidth
@@ -2112,12 +2101,6 @@ class Checkerboard2 extends Texture{
 
         this._pluginName = "checkerboard2";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     gen(){
         let tmp = [
@@ -2143,12 +2126,6 @@ class Bilerp extends Texture{
         this._pluginName = "bilerp";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(){
         let tmp = [
             8,
@@ -2173,12 +2150,6 @@ class Mix extends Texture{
         this._pluginName = "mixf";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(){
         let tmp = [
             9,
@@ -2201,12 +2172,6 @@ class Scale extends Texture{
         this._pluginName = "scale";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(){
         let tmp = [
             10,
@@ -2223,12 +2188,6 @@ class UV extends Texture{
         super();
         this._pluginName = "uvf";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     gen(){
         let tmp = [
@@ -2419,7 +2378,15 @@ class Object3D{
         this.temporaryTranslation = Vector.Zero(3);
 
         this.light = !this.emission.eql(new Vector([0,0,0]));
+
+        this._pluginName = '';
     }
+
+    get pluginName(){
+        return this._pluginName;
+    }
+
+    set pluginName(name){}
 
     static get _n(){return Vector.j};
     static get _s(){return Vector.k.x(-1)};
@@ -2477,12 +2444,6 @@ class Cube extends Object3D{
         this._pluginName = "cube";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     boundbox(){
         return {
             min:this.min,
@@ -2531,12 +2492,6 @@ class Sphere extends Object3D{
 
         this._pluginName = "sphere";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     boundbox(){
         let r = new Vector([this.r,this.r,this.r]);
@@ -2587,12 +2542,6 @@ class Rectangle extends Object3D{
 
         this._pluginName = "rectangle";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     boundbox(){
         let max = this.max.dup();
@@ -2671,12 +2620,6 @@ class Cone extends Object3D{
         this._pluginName = "cone";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     boundbox(){
         return {
             min:this.position.subtract(new Vector([this.radius,0,this.radius])),
@@ -2743,12 +2686,6 @@ class Cylinder extends Object3D{
         this._pluginName = "cylinder";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     boundbox(){
         return {
             min:this.position.subtract(new Vector([this.radius,0,this.radius])),
@@ -2813,12 +2750,6 @@ class Disk extends Object3D{
 
         this._pluginName = "disk";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     boundbox(){
         return {
@@ -2899,12 +2830,6 @@ class Hyperboloid extends Object3D{
         }
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     boundbox(){
         return {
             min:this.position.subtract(new Vector([this.rMax,-this.zMin,this.rMax])),
@@ -2973,12 +2898,6 @@ class Paraboloid extends Object3D{
         this._pluginName = "paraboloid";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     boundbox(){
         return {
             min:this.position.subtract(new Vector([this.radius,-this.zMin,this.radius])),
@@ -3045,12 +2964,6 @@ class Cornellbox extends Object3D{
         this.max = this.max.x(k);
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(texparamID=this.texparamID){
         this.texparamID = texparamID;
         let tmp = [
@@ -3065,7 +2978,15 @@ class Cornellbox extends Object3D{
 class Light{
     constructor(emission){
         this.emission = new Vector(emission);
+
+        this._pluginName = '';
     }
+
+    get pluginName(){
+        return this._pluginName;
+    }
+
+    set pluginName(name){}
 
     gen(data){
         data.push(
@@ -3078,7 +2999,7 @@ class Light{
 }
 
 class GeometryLight extends Light{
-    constructor(emission,geometry){
+    constructor(geometry,emission){
         super(emission);
         geometry.emission = new Vector(emission);
         this.geometry = geometry;
@@ -3106,20 +3027,32 @@ class GeometryLight extends Light{
 }
 
 class AreaLight extends GeometryLight{
-    constructor(emission,geometry){
-        super(emission,geometry);
+    constructor(geometry,emission){
+        super(geometry,emission);
 
         this._pluginName = 'area';
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(){
         let tmp = [0];
+        return super.gen(tmp);
+    }
+}
+
+class PointLight extends Light{
+    constructor(from,emission){
+        super(emission);
+
+        this.from = new Vector(from);
+
+        this._pluginName = 'point';
+    }
+
+    gen(){
+        let tmp = [
+            1,
+            this.from.e(1),this.from.e(2),this.from.e(3)
+        ];
         return super.gen(tmp);
     }
 }
@@ -3414,7 +3347,8 @@ window.Sail = {
     Disk:Disk,
     Hyperboloid:Hyperboloid,
     Paraboloid:Paraboloid,
-    AreaLight,
+    AreaLight:AreaLight,
+    PointLight:PointLight,
     Cornellbox:Cornellbox,
     Camera:Camera,
     Control:Control,

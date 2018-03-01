@@ -12,6 +12,16 @@ function roughnessToAlpha(roughness) {
 }
 
 class Material{
+    constructor(){
+        this._pluginName = '';
+    }
+
+    get pluginName(){
+        return this._pluginName;
+    }
+
+    set pluginName(name){}
+
     gen(data){
         let l = data.length;
         data.length = ShaderProgram.TEXPARAMS_LENGTH;
@@ -39,12 +49,6 @@ class Matte extends Material{
         }
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
-
     gen(){
         let tmp = [
             1,this.kd,this.sigma,this.A,this.B
@@ -64,11 +68,6 @@ class Mirror extends Material{
         this._pluginName = "mirror";
     }
 
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
     gen(){
         let tmp = [
             2,this.kr
@@ -90,12 +89,6 @@ class Metal extends Material{
 
         this._pluginName = "metal";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     gen(){
         let tmp = [
@@ -120,12 +113,6 @@ class Glass extends Material{
 
         this._pluginName = "glass";
     }
-
-    get pluginName(){
-        return this._pluginName;
-    }
-
-    set pluginName(name){}
 
     gen(){
         let tmp = [

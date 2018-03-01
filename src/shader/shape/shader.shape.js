@@ -66,12 +66,4 @@ let sample = new Export("sample",sampleHead,sampleTail,"category",function(plugi
     `
 });
 
-let testShadow = `
-bool testShadow(Ray ray){
-    Intersect ins = intersectObjects(ray);
-    if(ins.d>EPSILON&&ins.d<1.0)
-        return true;
-    return false;
-}
-`;
-export default new Generator("shape",[boundbox],[testShadow],plugins,intersect,sample);
+export default new Generator("shape",[boundbox],[],plugins,intersect,sample);
