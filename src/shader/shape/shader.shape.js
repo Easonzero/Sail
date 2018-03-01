@@ -28,10 +28,10 @@ let plugins = {
 let intersectHead = `Intersect intersectObjects(Ray ray){
     Intersect ins;
     ins.d = MAX_DISTANCE;
-    for(int i=0;i<ln+n;i++){
+    for(int i=0;i<n;i++){
         Intersect tmp;
         tmp.d = MAX_DISTANCE;
-        int category = int(texture(objects,vec2(0.0,float(i)/float(ln+n-1))).r);
+        int category = int(texture(objects,vec2(0.0,float(i)/float(n-1))).r);
         if(false) {}`;
 let intersectTail = `if(tmp.d < ins.d) ins = tmp;}
 
@@ -41,7 +41,7 @@ if(!ins.into) ins.normal = -ins.normal;
 return ins;}`;
 
 let intersect = new Export("intersect",intersectHead,intersectTail,"category",function(plugin){
-    return `${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(ln+n-1));
+    return `${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(n-1));
     if(!testBoundboxFor${plugin.capitalName()}(ray,${plugin.name})) continue;
     tmp = intersect${plugin.capitalName()}(ray,${plugin.name});
     vec3 n = (${plugin.name}.reverseNormal?-1.0:1.0)*tmp.normal;
@@ -51,27 +51,25 @@ let intersect = new Export("intersect",intersectHead,intersectTail,"category",fu
 });
 
 let sampleHead = `
-vec3 sampleGeometry(Intersect ins,int i,out vec3 fpdf){
-    float u1 = random( vec3( 43.3234, 12.6533, 51.6212 ), ins.seed );
-    float u2 = random( vec3( 111.734, 63.3433, 123.2336 ), ins.seed );
-    fpdf = BLACK;
-    int category = int(texture(objects,vec2(0.0,float(i)/float(ln+n-1))).r);
+vec3 sampleGeometry(vec2 u,int i,out vec3 normal,out float pdf){
+    normal = BLACK;pdf = 0.0;
+    int category = int(texture(objects,vec2(0.0,float(i)/float(n-1))).r);
     vec3 result = BLACK;if(false){}
 `;
 let sampleTail = `return result;}`;
 
 let sample = new Export("sample",sampleHead,sampleTail,"category",function(plugin){
-    return `float pdf;
-        ${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(ln+n-1));
-        result = sample${plugin.capitalName()}(vec2(u1,u2),${plugin.name},pdf);
-        vec3 normal = normalFor${plugin.capitalName()}(result,${plugin.name});
-        fpdf = ${plugin.name}.emission*max(0.0,dot(normal,ins.hit-result))/pdf;`
+    return `
+        ${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(n-1));
+        result = sample${plugin.capitalName()}(u,${plugin.name},pdf);
+        normal = normalFor${plugin.capitalName()}(result,${plugin.name});
+    `
 });
 
 let testShadow = `
 bool testShadow(Ray ray){
     Intersect ins = intersectObjects(ray);
-    if(ins.index>=ln&&ins.d>EPSILON&&ins.d<1.0)
+    if(ins.d>EPSILON&&ins.d<1.0)
         return true;
     return false;
 }

@@ -42,20 +42,27 @@ class Tracer {
     update(scene){
         this.shader.setProgram(new TraceShader(scene.tracerConfig()));
         //序列化场景数据
-        let objects = [],texparams = [];
+        let objects = [],texparams = [],lights = [];
         for(let object of scene.objects){
             objects.push(...object.gen(texparams.length/ShaderProgram.TEXPARAMS_LENGTH));
             texparams.push(...object.genTexparams());
         }
+        for(let light of scene.lights){
+            lights.push(...light.gen());
+        }
 
         let data_objects = new Float32Array(objects);//物体数据
         let data_texparams = new Float32Array(texparams);//材质参数
+        let data_lights = new Float32Array(lights);//光源数据
 
         let n = parseInt(objects.length/ShaderProgram.OBJECTS_LENGTH);
         let tn = parseInt(texparams.length/ShaderProgram.TEXPARAMS_LENGTH);
+        let ln = parseInt(lights.length/ShaderProgram.LIGHTS_LENGTH);
 
         this.objects_tex = WebglHelper.createTexture();
         this.params_tex = WebglHelper.createTexture();
+        this.lights_tex = WebglHelper.createTexture();
+
         WebglHelper.setTexture(
             this.objects_tex,
             ShaderProgram.OBJECTS_LENGTH, n,
@@ -66,13 +73,19 @@ class Tracer {
             ShaderProgram.TEXPARAMS_LENGTH, tn,
             gl.R32F,gl.RED,gl.FLOAT,data_texparams,true
         );
+        WebglHelper.setTexture(
+            this.lights_tex,
+            ShaderProgram.LIGHTS_LENGTH, ln,
+            gl.R32F,gl.RED,gl.FLOAT,data_lights,true
+        );
 
         this.shader.texture.cache.value = 0;
         this.shader.texture.objects.value = this.objects_tex;
         this.shader.texture.texParams.value = this.params_tex;
+        this.shader.texture.lights.value = this.lights_tex;
 
-        this.shader.uniform.n.value = scene.obcount;
-        this.shader.uniform.ln.value = scene.lgcount;
+        this.shader.uniform.n.value = n;
+        this.shader.uniform.ln.value = ln;
         this.shader.uniform.tn.value = tn;
     }
 

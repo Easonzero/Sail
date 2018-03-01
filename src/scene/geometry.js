@@ -24,7 +24,7 @@ function quadratic(A,B,C) {
     return [t0,t1];
 }
 
-class Object{
+class Object3D{
     constructor(material,texture,emission=[0,0,0],reverseNormal=false){
         this.material = material;
         this.texture = texture;
@@ -49,9 +49,9 @@ class Object{
         return new Vector([v.dot(s),v.dot(t),v.dot(n)]);
     }
 
-    static rayToObjectSpace(ray,offset,n=Object._n,s=Object._s,t=Object._t){
-        let origin = Object.toObjectSpace(ray.origin,offset,n,s,t);
-        let dir = Object.toObjectSpace(ray.dir,Vector.Zero(3),n,s,t);
+    static rayToObjectSpace(ray,offset,n=Object3D._n,s=Object3D._s,t=Object3D._t){
+        let origin = Object3D.toObjectSpace(ray.origin,offset,n,s,t);
+        let dir = Object3D.toObjectSpace(ray.dir,Vector.Zero(3),n,s,t);
 
         return new Ray(origin,dir);
     }
@@ -82,7 +82,7 @@ class Object{
     }
 }
 
-class Cube extends Object{
+class Cube extends Object3D{
     constructor(min,max,material,texture,emission,reverseNormal){
         super(material,texture,emission,reverseNormal);
 
@@ -136,7 +136,7 @@ class Cube extends Object{
     }
 }
 
-class Sphere extends Object{
+class Sphere extends Object3D{
     constructor(c,r,material,texture,emission,reverseNormal){
         super(material,texture,emission,reverseNormal);
 
@@ -162,7 +162,7 @@ class Sphere extends Object{
     }
 
     intersect(_ray){
-        let ray = Object.rayToObjectSpace(_ray,this.c);
+        let ray = Object3D.rayToObjectSpace(_ray,this.c);
         let a = ray.dir.dot(ray.dir);
         let b = 2.0*ray.origin.dot(ray.dir);
         let c = ray.origin.dot(ray.origin) - this.r * this.r;
@@ -193,7 +193,7 @@ class Sphere extends Object{
     }
 }
 
-class Rectangle extends Object{
+class Rectangle extends Object3D{
     constructor(min,max,material,texture,emission,reverseNormal){
         super(material,texture,emission,reverseNormal);
 
@@ -242,7 +242,7 @@ class Rectangle extends Object{
         let t = y.divide(ly);
         let n = s.cross(t);
 
-        let ray = Object.rayToObjectSpace(_ray,this.min,n,s,t);
+        let ray = Object3D.rayToObjectSpace(_ray,this.min,n,s,t);
 
         if(ray.dir.e(3) === 0.0) return MAXVALUE;
 
@@ -275,7 +275,7 @@ class Rectangle extends Object{
     }
 }
 
-class Cone extends Object{
+class Cone extends Object3D{
     constructor(position,height,radius,material,texture,emission,reverseNormal){
         super(material,texture,emission,reverseNormal);
 
@@ -300,7 +300,7 @@ class Cone extends Object{
     }
 
     intersect(_ray){
-        let ray = Object.rayToObjectSpace(_ray,this.position);
+        let ray = Object3D.rayToObjectSpace(_ray,this.position);
         let k = this.radius / this.height;
         k = k * k;
         let a = ray.dir.e(1) * ray.dir.e(1) + ray.dir.e(2) * ray.dir.e(2) - k * ray.dir.e(3) * ray.dir.e(3);
@@ -347,7 +347,7 @@ class Cone extends Object{
     }
 }
 
-class Cylinder extends Object{
+class Cylinder extends Object3D{
     constructor(position,height,radius,material,texture,emission,reverseNormal){
         super(material,texture,emission,reverseNormal);
 
@@ -372,7 +372,7 @@ class Cylinder extends Object{
     }
 
     intersect(_ray){
-        let ray = Object.rayToObjectSpace(_ray,this.position);
+        let ray = Object3D.rayToObjectSpace(_ray,this.position);
         let a = ray.dir.e(1) * ray.dir.e(1) + ray.dir.e(2) * ray.dir.e(2);
         let b = 2.0 * (ray.dir.e(1) * ray.origin.e(1) + ray.dir.e(2) * ray.origin.e(2));
         let c = ray.origin.e(1) * ray.origin.e(1) + ray.origin.e(2) * ray.origin.e(2) - this.radius * this.radius;
@@ -418,7 +418,7 @@ class Cylinder extends Object{
     }
 }
 
-class Disk extends Object{
+class Disk extends Object3D{
     constructor(position,radius,innerRadius,material,texture,emission,reverseNormal){
         super(material,texture,emission,reverseNormal);
 
@@ -443,7 +443,7 @@ class Disk extends Object{
     }
 
     intersect(_ray){
-        let ray = Object.rayToObjectSpace(_ray,this.position);
+        let ray = Object3D.rayToObjectSpace(_ray,this.position);
 
         if (ray.dir.e(3) === 0.0) return MAXVALUE;
         let t = -ray.origin.e(3) / ray.dir.e(3);
@@ -476,7 +476,7 @@ class Disk extends Object{
     }
 }
 
-class Hyperboloid extends Object{
+class Hyperboloid extends Object3D{
     constructor(position,p1,p2,material,texture,emission,reverseNormal){
         super(material,texture,emission,reverseNormal);
 
@@ -528,7 +528,7 @@ class Hyperboloid extends Object{
     }
 
     intersect(_ray){
-        let ray = Object.rayToObjectSpace(_ray,this.position);
+        let ray = Object3D.rayToObjectSpace(_ray,this.position);
         let a = this.ah * ray.dir.e(1) * ray.dir.e(1) + this.ah * ray.dir.e(2) * ray.dir.e(2) - this.ch * ray.dir.e(3) * ray.dir.e(3);
         let b = 2.0 * (this.ah * ray.dir.e(1) * ray.origin.e(1) + this.ah * ray.dir.e(2) * ray.origin.e(2) - this.ch * ray.dir.e(3) * ray.origin.e(3));
         let c = this.ah * ray.origin.e(1) * ray.origin.e(1) + this.ah * ray.origin.e(2) * ray.origin.e(2) - this.ch * ray.origin.e(3) * ray.origin.e(3) - 1.0;
@@ -573,7 +573,7 @@ class Hyperboloid extends Object{
     }
 }
 
-class Paraboloid extends Object{
+class Paraboloid extends Object3D{
     constructor(position,z0,z1,radius,material,texture,emission,reverseNormal){
         super(material,texture,emission,reverseNormal);
 
@@ -602,7 +602,7 @@ class Paraboloid extends Object{
     }
 
     intersect(_ray){
-        let ray = Object.rayToObjectSpace(_ray,this.position);
+        let ray = Object3D.rayToObjectSpace(_ray,this.position);
         let k = this.zMax / (this.radius * this.radius);
         let a = k * (ray.dir.e(1) * ray.dir.e(1) + ray.dir.e(2) * ray.dir.e(2));
         let b = 2.0 * k * (ray.dir.e(1) * ray.origin.e(1) + ray.dir.e(2) * ray.origin.e(2)) - ray.dir.e(3);
@@ -647,7 +647,7 @@ class Paraboloid extends Object{
     }
 }
 
-class Cornellbox extends Object{
+class Cornellbox extends Object3D{
     constructor(min=[0,0,-5],max=[5.560,5.488,5.592]){
         super(new Matte(1),Color.BLACK);
         this.min = new Vector(min);
@@ -677,4 +677,4 @@ class Cornellbox extends Object{
     }
 }
 
-export {Cube,Sphere,Rectangle,Cone,Cylinder,Disk,Hyperboloid,Paraboloid,Cornellbox};
+export {Object3D,Cube,Sphere,Rectangle,Cone,Cylinder,Disk,Hyperboloid,Paraboloid,Cornellbox};

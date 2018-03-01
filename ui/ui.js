@@ -18,12 +18,13 @@ let metal = new Sail.Metal(0,0.01,0.1);
 let mirror = new Sail.Mirror(1.0);
 let glass = new Sail.Glass(1,1,1.5);
 let checkerboard = new Sail.Checkerboard();
+let checkerboard2 = new Sail.Checkerboard();
 //add areaLight
-scene.add(new Sail.Rectangle(
+scene.add(new Sail.AreaLight(
+[6,6,6],new Sail.Rectangle(
     [2.13,5.48,2.27],[3.43,5.48,3.32],
-    matte,Sail.Color.BLACK,
-    [6,6,6]
-));
+    matte,Sail.Color.BLACK
+)));
 //add cornellBox    
 scene.add(new Sail.Cornellbox());
 //add objects
@@ -38,6 +39,7 @@ scene.add(new Sail.Sphere(
 //add camera    
 scene.add(camera);
 //declare renderer setting
+//the format of params' value must be float
 scene.filter = 'gamma';
 scene.filter.addParam('c','2.2');
 scene.trace = 'path';`);

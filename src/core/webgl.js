@@ -9,7 +9,7 @@ class ShaderProgram {
         this.vbo = [];
         this.indexl = 0;
 
-        if(frameBufferNum){
+        if(typeof frameBufferNum !== 'undefined'){
             this.framebuffer = gl.createFramebuffer();
 
             if(!ShaderProgram.frameCache) {
@@ -21,7 +21,7 @@ class ShaderProgram {
                     ShaderProgram.frameCache.push(WebglHelper.createTexture());
                     WebglHelper.setTexture(
                         ShaderProgram.frameCache[i],
-                        512,512,gl.RGB,gl.RGB,type,null
+                        512,512,gl.RGB,gl.RGB,type,null,false
                     )
                 }
             }
@@ -62,7 +62,7 @@ class ShaderProgram {
             if(textures) this._updateTextures();
         }
 
-        if(this.frameBufferNum){
+        if(typeof this.frameBufferNum !== 'undefined'){
             gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.framebuffer);
             let bufferArray = [];
             for(let i=0;i<this.frameBufferNum;i++){
@@ -85,7 +85,7 @@ class ShaderProgram {
 
         gl.bindFramebuffer(gl.FRAMEBUFFER,null);
 
-        if(this.frameBufferNum){
+        if(typeof this.frameBufferNum !== 'undefined'){
             let tmp = ShaderProgram.frameCache[0];
             ShaderProgram.frameCache[0] = ShaderProgram.frameCache[1];
             ShaderProgram.frameCache[1] = tmp;
@@ -135,6 +135,7 @@ class ShaderProgram {
 }
 
 ShaderProgram.OBJECTS_LENGTH = 18;
+ShaderProgram.LIGHTS_LENGTH = 18;
 ShaderProgram.TEXPARAMS_LENGTH = 16;
 
 class WebglHelper {
@@ -150,8 +151,8 @@ class WebglHelper {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         }else{
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         }
         gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, data);
     }

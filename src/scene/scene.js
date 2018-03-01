@@ -2,7 +2,8 @@
  * Created by eason on 17-4-12.
  */
 import {Camera} from './camera';
-import {Cube,Sphere,Rectangle} from './geometry';
+import {Object3D,Cube,Sphere,Rectangle} from './geometry';
+import {Light,GeometryLight} from './light';
 import trace from '../shader/trace/shader.trace'
 import filter from '../shader/filter/shader.filter'
 import {PluginParams} from '../shader/generator';
@@ -11,9 +12,8 @@ class Scene {
     constructor(){
         this.camera = {};
         this.objects = [];
+        this.lights = [];
         this.sampleCount = 0;
-        this.lgcount = 0;
-        this.obcount = 0;
         this._trace = new PluginParams("path");
         this._filter = new PluginParams("color");
 
@@ -52,15 +52,13 @@ class Scene {
     add(something){
         if(something instanceof Camera){
             this.camera = something;
-        }else if(something instanceof Object){
-            if(something.light) {
-                this.objects.unshift(something);
-                this.lgcount++;
+        }else if(something instanceof Object3D){
+            this.objects.push(something);
+        }else if(something instanceof Light){
+            if(something instanceof GeometryLight){
+                this.objects.push(something.getGeometry(this.objects.length));
             }
-            else {
-                this.objects.push(something);
-                this.obcount++;
-            }
+            this.lights.push(something);
         }
     }
 
@@ -72,6 +70,7 @@ class Scene {
     tracerConfig() {
         let pluginsList = {
             shape:[],
+            light:[],
             material:[],
             texture:[],
             trace:this.trace
@@ -79,6 +78,7 @@ class Scene {
 
         let tmp = {
             shape:[],
+            light:[],
             material:[],
             texture:[]
         };
@@ -98,6 +98,14 @@ class Scene {
                 !tmp.texture.includes(ob.texture.pluginName)){
                 pluginsList.texture.push(new PluginParams(ob.texture.pluginName));
                 tmp.texture.push(ob.texture.pluginName);
+            }
+        }
+
+        for(let light of this.lights){
+            if(light.pluginName &&
+                !tmp.light.includes(light.pluginName)){
+                pluginsList.light.push(new PluginParams(light.pluginName));
+                tmp.light.push(light.pluginName);
             }
         }
         return pluginsList;

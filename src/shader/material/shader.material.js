@@ -20,13 +20,11 @@ let plugins = {
 
 let head = `vec3 material(Intersect ins,vec3 wo,out vec3 wi,out vec3 f){
     f = BLACK;
-    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), ins.seed );
-    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), ins.seed );
     vec3 fpdf;if(false){}`;
 let tail = `return fpdf;}`;
 
 let ep = new Export("material",head,tail,"ins.matCategory",function(plugin){
-    return `fpdf = ${plugin.name}(vec2(u1,u2),ins.matIndex,ins.sc,wo,wi,ins.into);
+    return `fpdf = ${plugin.name}(random2(ins.seed),ins.matIndex,ins.sc,wo,wi,ins.into);
         f = ${plugin.name}_f(ins.matIndex,ins.sc,wo,wi,ins.into);`
 });
 

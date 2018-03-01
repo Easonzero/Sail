@@ -31,10 +31,11 @@ class Plugin {
     }
 
     capitalName() {
-        let name = "";
+        let name = "",count = 0;
         for(let c of this.name){
-            if(c==this.name[0]) c=this.name[0].toUpperCase();
+            if(count===0) c=this.name[count].toUpperCase();
             name += c;
+            count++;
         }
         return name;
     }

@@ -1,4 +1,5 @@
 #define OBJECTS_LENGTH 17.0
+#define LIGHTS_LENGTH 17.0
 #define TEX_PARAMS_LENGTH 15.0
 
 #define MAX_DISTANCE 1e5
@@ -23,6 +24,8 @@
 #define HYPERBOLOID 7
 #define PARABOLOID 8
 #define CORNELLBOX 9
+
+#define AREA 0
 
 #define MATTE 1
 #define MIRROR 2

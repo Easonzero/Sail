@@ -15,7 +15,7 @@
 	        this.vbo = [];
 	        this.indexl = 0;
 
-	        if(frameBufferNum){
+	        if(typeof frameBufferNum !== 'undefined'){
 	            this.framebuffer = gl.createFramebuffer();
 
 	            if(!ShaderProgram.frameCache) {
@@ -27,7 +27,7 @@
 	                    ShaderProgram.frameCache.push(WebglHelper.createTexture());
 	                    WebglHelper.setTexture(
 	                        ShaderProgram.frameCache[i],
-	                        512,512,gl.RGB,gl.RGB,type,null
+	                        512,512,gl.RGB,gl.RGB,type,null,false
 	                    );
 	                }
 	            }
@@ -68,7 +68,7 @@
 	            if(textures) this._updateTextures();
 	        }
 
-	        if(this.frameBufferNum){
+	        if(typeof this.frameBufferNum !== 'undefined'){
 	            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.framebuffer);
 	            let bufferArray = [];
 	            for(let i=0;i<this.frameBufferNum;i++){
@@ -91,7 +91,7 @@
 
 	        gl.bindFramebuffer(gl.FRAMEBUFFER,null);
 
-	        if(this.frameBufferNum){
+	        if(typeof this.frameBufferNum !== 'undefined'){
 	            let tmp = ShaderProgram.frameCache[0];
 	            ShaderProgram.frameCache[0] = ShaderProgram.frameCache[1];
 	            ShaderProgram.frameCache[1] = tmp;
@@ -141,6 +141,7 @@
 	}
 
 	ShaderProgram.OBJECTS_LENGTH = 18;
+	ShaderProgram.LIGHTS_LENGTH = 18;
 	ShaderProgram.TEXPARAMS_LENGTH = 16;
 
 	class WebglHelper {
@@ -156,8 +157,8 @@
 	            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 	        }else{
-	            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-	            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+	            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 	        }
 	        gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, data);
 	    }
@@ -965,10 +966,11 @@
 	    }
 
 	    capitalName() {
-	        let name = "";
+	        let name = "",count = 0;
 	        for(let c of this.name){
-	            if(c==this.name[0]) c=this.name[0].toUpperCase();
+	            if(count===0) c=this.name[count].toUpperCase();
 	            name += c;
+	            count++;
 	        }
 	        return name;
 	    }
@@ -1060,7 +1062,7 @@
 	    }
 	}
 
-	var define = "#define OBJECTS_LENGTH 17.0\n#define TEX_PARAMS_LENGTH 15.0\n#define MAX_DISTANCE 1e5\n#define MAXBOUNCES 5\n#define EPSILON 1e-5\n#define ONEMINUSEPSILON 0.9999\n#define INF 1e5\n#define PI 3.141592653589793\n#define INVPI 0.3183098861837907\n#define INV2PI 0.159154943091895\n#define INV4PI 0.079577471545947\n#define PIOVER2 1.570796326794896\n#define PIOVER4 0.785398163397448\n#define SQRT2 1.414213562373095\n#define CUBE 1\n#define SPHERE 2\n#define RECTANGLE 3\n#define CONE 4\n#define CYLINDER 5\n#define DISK 6\n#define HYPERBOLOID 7\n#define PARABOLOID 8\n#define CORNELLBOX 9\n#define MATTE 1\n#define MIRROR 2\n#define METAL 3\n#define GLASS 4\n#define UNIFORM_COLOR 0\n#define CHECKERBOARD 5\n#define CHECKERBOARD2 7\n#define BILERP 8\n#define MIXF 9\n#define SCALE 10\n#define UVF 11\n#define BLACK vec3(0.0,0.0,0.0)\n#define WHITE vec3(1.0,1.0,1.0)\n#define GREY vec3(0.5,0.5,0.5)\n#define RED vec3(0.75,0.25,0.25)\n#define BLUE vec3(0.25, 0.25, 0.75)\n#define GREEN vec3(0.25, 0.75, 0.25)\n#define NC 1.0\n#define NOOP 0\n#define CONDUCTOR 1\n#define DIELECTRIC 2\n#define BECKMANN 1\n#define TROWBRIDGEREITZ 2\n#define OBJECT_SPACE_N vec3(0,1,0)\n#define OBJECT_SPACE_S vec3(0,0,-1)\n#define OBJECT_SPACE_T vec3(1,0,0)\n";
+	var define = "#define OBJECTS_LENGTH 17.0\n#define LIGHTS_LENGTH 17.0\n#define TEX_PARAMS_LENGTH 15.0\n#define MAX_DISTANCE 1e5\n#define MAXBOUNCES 5\n#define EPSILON 1e-5\n#define ONEMINUSEPSILON 0.9999\n#define INF 1e5\n#define PI 3.141592653589793\n#define INVPI 0.3183098861837907\n#define INV2PI 0.159154943091895\n#define INV4PI 0.079577471545947\n#define PIOVER2 1.570796326794896\n#define PIOVER4 0.785398163397448\n#define SQRT2 1.414213562373095\n#define CUBE 1\n#define SPHERE 2\n#define RECTANGLE 3\n#define CONE 4\n#define CYLINDER 5\n#define DISK 6\n#define HYPERBOLOID 7\n#define PARABOLOID 8\n#define CORNELLBOX 9\n#define AREA 0\n#define MATTE 1\n#define MIRROR 2\n#define METAL 3\n#define GLASS 4\n#define UNIFORM_COLOR 0\n#define CHECKERBOARD 5\n#define CHECKERBOARD2 7\n#define BILERP 8\n#define MIXF 9\n#define SCALE 10\n#define UVF 11\n#define BLACK vec3(0.0,0.0,0.0)\n#define WHITE vec3(1.0,1.0,1.0)\n#define GREY vec3(0.5,0.5,0.5)\n#define RED vec3(0.75,0.25,0.25)\n#define BLUE vec3(0.25, 0.25, 0.75)\n#define GREEN vec3(0.25, 0.75, 0.25)\n#define NC 1.0\n#define NOOP 0\n#define CONDUCTOR 1\n#define DIELECTRIC 2\n#define BECKMANN 1\n#define TROWBRIDGEREITZ 2\n#define OBJECT_SPACE_N vec3(0,1,0)\n#define OBJECT_SPACE_S vec3(0,0,-1)\n#define OBJECT_SPACE_T vec3(1,0,0)\n";
 
 	var struct = "struct Intersect{\n    float d;\n    vec3 hit;\n    vec3 normal;\n    vec3 dpdu,dpdv;\n    bool into;\n    float matIndex;    vec3 sc;    vec3 emission;\n    float seed;    int index;\n    int matCategory;\n};\nstruct Ray{\n    vec3 origin;\n    vec3 dir;\n};";
 
@@ -1079,7 +1081,7 @@
 
 	var position = "vec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(positionMap, texCoord).rgb;\n    return vec4(color,1.0);\n}";
 
-	var wavelet = "float W(vec2 uv,float stepwidth,float h,vec4 cval,vec4 nval,vec4 pval,out vec4 ctmp){\n    ctmp = texture(colorMap, uv);\n    vec4 t = cval - ctmp;\n    float dist2 = dot(t,t);\n    float c_w = min(exp(-(dist2)/FILTER_WAVELET_CPHI), 1.0);\n    vec4 ntmp = texture(normalMap, uv);\n    t = nval - ntmp;\n    dist2 = max(dot(t,t)/(stepwidth*stepwidth),0.0);\n    float n_w = min(exp(-(dist2)/FILTER_WAVELET_NPHI), 1.0);\n    vec4 ptmp = texture(positionMap, uv);\n    t = pval - ptmp;\n    dist2 = dot(t,t);\n    float p_w = min(exp(-(dist2)/FILTER_WAVELET_PPHI),1.0);\n    float weight = c_w * n_w * p_w * h;\n    ctmp *= weight;\n    return weight;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec4 color = vec4(0.0);\n    float weightSum = 0.0;\n    vec4 cval = texture(colorMap, texCoord);\n    vec4 nval = texture(normalMap, texCoord);\n    vec4 pval = texture(positionMap, texCoord);\n    float h[5] = float[5](0.375, 0.25, 0.0625, 0.0625, 0.25);\n    for(int n=0;n<FILTER_WAVELET_N;n++){\n        float stepwidth = pow(2.0,float(n)) - 1.0;\n        int count = 0;\n        for(int i=0;i<5;i++){\n            for(int j=0;j<5;j++,count++){\n                int delt = abs(count-12);\n                float _h = 0.0;\n                if(delt%(int(stepwidth)+1)==0)\n                    _h = h[(delt/(int(stepwidth)+1))%5];\n                vec2 uv = texCoord -\n                    vec2(FILTER_WAVELET_R.x / 512.,FILTER_WAVELET_R.y / 512.) +\n                    vec2((float(j) + 0.5) * FILTER_WAVELET_R.x / 1280.,\n                        (float(i) + 0.5) * FILTER_WAVELET_R.y / 1280.);\n                vec4 ctmp;\n                float weight = W(uv,stepwidth,_h,cval,nval,pval,ctmp);\n                weightSum += weight;\n                color += ctmp;\n            }\n        }\n    }\n    return vec4(color/weightSum);\n}\n";
+	var wavelet = "#define FILTER_WAVELET_CPHI 4.0\n#define FILTER_WAVELET_NPHI 128.0\n#define FILTER_WAVELET_ZPHI 1.0\nfloat W(vec2 uv,float stepwidth,float h,vec4 cval,vec4 nval,vec4 pval,out vec4 ctmp){\n    ctmp = texture(colorMap, uv);\n    vec4 t = cval - ctmp;\n    float dist2 = dot(t,t);\n    float c_w = min(exp(-(dist2)/FILTER_WAVELET_CPHI), 1.0);\n    vec4 ntmp = texture(normalMap, uv);\n    dist2 = max(dot(t,t)/(stepwidth*stepwidth),0.0);\n    float n_w = min(exp(-(dist2)/FILTER_WAVELET_NPHI), 1.0);\n    vec4 ptmp = texture(positionMap, uv);\n    t = pval - ptmp;\n    dist2 = dot(t,t);\n    float p_w = min(exp(-(dist2)/FILTER_WAVELET_ZPHI),1.0);\n    float weight = c_w * n_w * p_w * h;\n    ctmp *= weight;\n    return weight;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec4 color = vec4(0.0);\n    float weightSum = 0.0;\n    vec4 cval = texture(colorMap, texCoord);\n    vec4 nval = texture(normalMap, texCoord);\n    vec4 pval = texture(positionMap, texCoord);\n    float h[5] = float[5](0.375, 0.25, 0.0625, 0.0625, 0.25);\n    for(int n=0;n<3;n++){\n        float stepwidth = pow(2.0,float(n)) - 1.0;\n        int count = 0;\n        for(int i=0;i<5;i++){\n            for(int j=0;j<5;j++,count++){\n                int delt = abs(count-12);\n                float _h = 0.0;\n                if(delt%(int(stepwidth)+1)==0)\n                    _h = h[(delt/(int(stepwidth)+1))%5];\n                if(_h==0.0) continue;\n                vec2 uv = texCoord -\n                    vec2(FILTER_WAVELET_R.x / 512.,FILTER_WAVELET_R.y / 512.) +\n                    vec2((float(j) + 0.5) * FILTER_WAVELET_R.x / 1280.,\n                        (float(i) + 0.5) * FILTER_WAVELET_R.y / 1280.);\n                vec4 ctmp;\n                float weight = W(uv,stepwidth,_h,cval,nval,pval,ctmp);\n                weightSum += weight;\n                color += ctmp;\n            }\n        }\n    }\n    return vec4(color/weightSum);\n}\n";
 
 	/**
 	 * Created by eason on 1/26/18.
@@ -1374,13 +1376,11 @@
 
 	let head = `vec3 material(Intersect ins,vec3 wo,out vec3 wi,out vec3 f){
     f = BLACK;
-    float u1 = random( vec3( 12.9898, 78.233, 151.7182 ), ins.seed );
-    float u2 = random( vec3( 63.7264, 10.873, 623.6736 ), ins.seed );
     vec3 fpdf;if(false){}`;
 	let tail = `return fpdf;}`;
 
 	let ep = new Export("material",head,tail,"ins.matCategory",function(plugin){
-	    return `fpdf = ${plugin.name}(vec2(u1,u2),ins.matIndex,ins.sc,wo,wi,ins.into);
+	    return `fpdf = ${plugin.name}(random2(ins.seed),ins.matIndex,ins.sc,wo,wi,ins.into);
         f = ${plugin.name}_f(ins.matIndex,ins.sc,wo,wi,ins.into);`
 	});
 
@@ -1424,10 +1424,10 @@
 	let intersectHead = `Intersect intersectObjects(Ray ray){
     Intersect ins;
     ins.d = MAX_DISTANCE;
-    for(int i=0;i<ln+n;i++){
+    for(int i=0;i<n;i++){
         Intersect tmp;
         tmp.d = MAX_DISTANCE;
-        int category = int(texture(objects,vec2(0.0,float(i)/float(ln+n-1))).r);
+        int category = int(texture(objects,vec2(0.0,float(i)/float(n-1))).r);
         if(false) {}`;
 	let intersectTail = `if(tmp.d < ins.d) ins = tmp;}
 
@@ -1437,7 +1437,7 @@ if(!ins.into) ins.normal = -ins.normal;
 return ins;}`;
 
 	let intersect = new Export("intersect",intersectHead,intersectTail,"category",function(plugin){
-	    return `${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(ln+n-1));
+	    return `${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(n-1));
     if(!testBoundboxFor${plugin.capitalName()}(ray,${plugin.name})) continue;
     tmp = intersect${plugin.capitalName()}(ray,${plugin.name});
     vec3 n = (${plugin.name}.reverseNormal?-1.0:1.0)*tmp.normal;
@@ -1447,32 +1447,50 @@ return ins;}`;
 	});
 
 	let sampleHead = `
-vec3 sampleGeometry(Intersect ins,int i,out vec3 fpdf){
-    float u1 = random( vec3( 43.3234, 12.6533, 51.6212 ), ins.seed );
-    float u2 = random( vec3( 111.734, 63.3433, 123.2336 ), ins.seed );
-    fpdf = BLACK;
-    int category = int(texture(objects,vec2(0.0,float(i)/float(ln+n-1))).r);
+vec3 sampleGeometry(vec2 u,int i,out vec3 normal,out float pdf){
+    normal = BLACK;pdf = 0.0;
+    int category = int(texture(objects,vec2(0.0,float(i)/float(n-1))).r);
     vec3 result = BLACK;if(false){}
 `;
 	let sampleTail = `return result;}`;
 
 	let sample = new Export("sample",sampleHead,sampleTail,"category",function(plugin){
-	    return `float pdf;
-        ${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(ln+n-1));
-        result = sample${plugin.capitalName()}(vec2(u1,u2),${plugin.name},pdf);
-        vec3 normal = normalFor${plugin.capitalName()}(result,${plugin.name});
-        fpdf = ${plugin.name}.emission*max(0.0,dot(normal,ins.hit-result))/pdf;`
+	    return `
+        ${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(i)/float(n-1));
+        result = sample${plugin.capitalName()}(u,${plugin.name},pdf);
+        normal = normalFor${plugin.capitalName()}(result,${plugin.name});
+    `
 	});
 
 	let testShadow = `
 bool testShadow(Ray ray){
     Intersect ins = intersectObjects(ray);
-    if(ins.index>=ln&&ins.d>EPSILON&&ins.d<1.0)
+    if(ins.d>EPSILON&&ins.d<1.0)
         return true;
     return false;
 }
 `;
 	var shape = new Generator("shape",[boundbox],[testShadow],plugins$3,intersect,sample);
+
+	var area = "struct Area{\n  vec3 emission;\n  int index;\n};\nArea parseArea(float index){\n    Area area;\n    area.index = readInt(lights,vec2(1.0,index),LIGHTS_LENGTH);\n    area.emission = readVec3(lights,vec2(2.0,index),LIGHTS_LENGTH);\n    return area;\n}\nvec3 area_sample(Area area,vec2 u,vec3 hit,vec3 insNormal){\n    vec3 normal,p;\n    float pdf,d;\n    p = sampleGeometry(u,area.index,normal,pdf);\n    vec3 toLight = p-hit;\n    if(testShadow(Ray(hit + 0.0001*normal, toLight))) return BLACK;\n    d = length(toLight);\n    return area.emission*max(0.0,dot(normal,-toLight)) *\n        max(0.0, dot(normalize(toLight), insNormal)) /\n        (pdf*d*d);\n}";
+
+	let plugins$4 = {
+	    "area":new Plugin("area",area)
+	};
+
+	let head$1 = `vec3 light_sample(Intersect ins){
+    vec3 fpdf = BLACK;
+    int index = randomInt(ins.seed,0,ln);
+    int lightCategory = readInt(lights,vec2(0.0,index),TEX_PARAMS_LENGTH);
+    if(false){}`;
+	let tail$1 = `return fpdf;}`;
+
+	let ep$1 = new Export("lightSampleP",head$1,tail$1,"lightCategory",function(plugin){
+	    return `${plugin.capitalName()} ${plugin.name} = parse${plugin.capitalName()}(float(index)/float(ln-1));
+        fpdf = ${plugin.name}_sample(${plugin.name},random2(ins.seed),ins.hit,ins.normal);`
+	});
+
+	var light = new Generator("light",[""],[""],plugins$4,ep$1);
 
 	var noise = "const int NoisePermSize = 256;\nint NoisePerm[] = int[2 * NoisePermSize](\n    151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140,\n    36, 103, 30, 69, 142,\n    8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62,\n    94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33, 88, 237, 149, 56, 87, 174,\n    20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77,\n    146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55,\n    46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73, 209, 76,\n    132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86, 164, 100,\n    109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38, 147,\n    118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189, 28,\n    42, 223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101,\n    155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232,\n    178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12,\n    191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31,\n    181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254,\n    138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66,\n    215, 61, 156, 180, 151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194,\n    233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6,\n    148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32,\n    57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74,\n    165, 71, 134, 139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60,\n    211, 133, 230, 220, 105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25,\n    63, 161, 1, 216, 80, 73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135,\n    130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226,\n    250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206, 59,\n    227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248, 152, 2,\n    44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9, 129, 22, 39, 253, 19,\n    98, 108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218, 246, 97, 228, 251,\n    34, 242, 193, 238, 210, 144, 12, 191, 179, 162, 241, 81, 51, 145, 235, 249,\n    14, 239, 107, 49, 192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115,\n    121, 50, 45, 127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72,\n    243, 141, 128, 195, 78, 66, 215, 61, 156, 180);\nfloat Grad(int x, int y, int z, float dx, float dy, float dz) {\n    int h = NoisePerm[NoisePerm[NoisePerm[x] + y] + z];\n    h &= 15;\n    float u = h < 8 || h == 12 || h == 13 ? dx : dy;\n    float v = h < 4 || h == 12 || h == 13 ? dy : dz;\n    return ((h & 1)!=0 ? -u : u) + ((h & 2)!=0 ? -v : v);\n}\nfloat noiseWeight(float t) {\n    float t3 = t * t * t;\n    float t4 = t3 * t;\n    return 6.0 * t4 * t - 15.0 * t4 + 10.0 * t3;\n}\nfloat noise(float x, float y, float z) {\n    int ix = int(floor(x)), iy = int(floor(y)), iz = int(floor(z));\n    float dx = x - float(ix), dy = y - float(iy), dz = z - float(iz);\n    ix &= NoisePermSize - 1;\n    iy &= NoisePermSize - 1;\n    iz &= NoisePermSize - 1;\n    float w000 = Grad(ix, iy, iz, dx, dy, dz);\n    float w100 = Grad(ix + 1, iy, iz, dx - 1.0, dy, dz);\n    float w010 = Grad(ix, iy + 1, iz, dx, dy - 1.0, dz);\n    float w110 = Grad(ix + 1, iy + 1, iz, dx - 1.0, dy - 1.0, dz);\n    float w001 = Grad(ix, iy, iz + 1, dx, dy, dz - 1.0);\n    float w101 = Grad(ix + 1, iy, iz + 1, dx - 1.0, dy, dz - 1.0);\n    float w011 = Grad(ix, iy + 1, iz + 1, dx, dy - 1.0, dz - 1.0);\n    float w111 = Grad(ix + 1, iy + 1, iz + 1, dx - 1.0, dy - 1.0, dz - 1.0);\n    float wx = noiseWeight(dx), wy = noiseWeight(dy), wz = noiseWeight(dz);\n    float x00 = mix(w000, w100, wx);\n    float x10 = mix(w010, w110, wx);\n    float x01 = mix(w001, w101, wx);\n    float x11 = mix(w011, w111, wx);\n    float y0 = mix(x00, x10, wy);\n    float y1 = mix(x01, x11, wy);\n    return mix(y0, y1, wz);\n}\nfloat noise(vec3 p){\n    return noise(p.x,p.y,p.z);\n}\nfloat fbm(vec3 p, float omega, int maxOctaves) {\n    int nInt = maxOctaves/2;\n    float sum = 0.0, lambda = 1.0, o = 1.0;\n    for (int i = 0; i < nInt; ++i) {\n        sum += o * noise(lambda * p);\n        lambda *= 1.99f;\n        o *= omega;\n    }\n    float nPartial = float(maxOctaves - nInt);\n    sum += o * smoothstep(0.3, 0.7, nPartial) * noise(lambda * p);\n    return sum;\n}\nfloat turbulence(vec3 p, float omega, int maxOctaves) {\n    int nInt = maxOctaves/2;\n    float sum = 0.0, lambda = 1.0, o = 1.0;\n    for (int i = 0; i < nInt; ++i) {\n        sum += o * abs(noise(lambda * p));\n        lambda *= 1.99;\n        o *= omega;\n    }\n    float nPartial = float(maxOctaves - nInt);\n    sum += o * mix(0.2, abs(noise(lambda * p)),smoothstep(0.3, 0.7, nPartial));\n    for (int i = nInt; i < maxOctaves; ++i) {\n        sum += o * 0.2;\n        o *= omega;\n    }\n    return sum;\n}";
 
@@ -1491,7 +1509,7 @@ bool testShadow(Ray ray){
 	/**
 	 * Created by eason on 1/20/18.
 	 */
-	let plugins$4 = {
+	let plugins$5 = {
 	    "checkerboard":new Plugin("checkerboard",checkerboard),
 	    "checkerboard2":new Plugin("checkerboard2",checkerboard2),
 	    "bilerp":new Plugin("bilerp",bilerp),
@@ -1500,29 +1518,29 @@ bool testShadow(Ray ray){
 	    "uvf":new Plugin("uvf",uvf),
 	};
 
-	let head$1 = `vec3 getSurfaceColor(vec3 hit,vec2 uv,float texIndex){
+	let head$2 = `vec3 getSurfaceColor(vec3 hit,vec2 uv,float texIndex){
     int texCategory = readInt(texParams,vec2(0.0,texIndex),TEX_PARAMS_LENGTH);
     if(texCategory==UNIFORM_COLOR) return readVec3(texParams,vec2(1.0,texIndex),TEX_PARAMS_LENGTH);`;
-	let tail$1 = `return BLACK;}`;
+	let tail$2 = `return BLACK;}`;
 
-	let ep$1 = new Export("getSurfaceColor",head$1,tail$1,"texCategory",function(plugin){
+	let ep$2 = new Export("getSurfaceColor",head$2,tail$2,"texCategory",function(plugin){
 	    return `return ${plugin.name}(hit,uv,texIndex);`
 	});
 
-	var texture = new Generator("texture",[noise],[""],plugins$4,ep$1);
+	var texture = new Generator("texture",[noise],[""],plugins$5,ep$2);
 
-	var path = "vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){\n    vec3 f,direct = BLACK,_fpdf;\n    vec3 ss = normalize(ins.dpdu),ts = cross(ins.normal,ss);\n    wo = worldToLocal(wo,ins.normal,ss,ts);\n    fpdf = material(ins,wo,wi,f);\n    wi = localToWorld(wi,ins.normal,ss,ts);\n    if(ins.index>=ln&&ins.matCategory==MATTE)\n        for(int i=0;i<ln;i++){\n            vec3 light = sampleGeometry(ins,i,_fpdf);\n            vec3 toLight = light - ins.hit;\n            float d = length(toLight);\n            if(!testShadow(Ray(ins.hit + 0.0001*ins.normal, toLight)))\n                direct +=  f * max(0.0, dot(normalize(toLight), ins.normal)) * _fpdf/(d * d);\n        }\n    return ins.emission+direct;\n}\nvoid trace(Ray ray,int maxDeepth,out vec3 e,out vec3 n,out vec3 p){\n    vec3 fpdf = WHITE;e = BLACK;\n    int deepth=0;\n    while(deepth++<maxDeepth){\n        Intersect ins = intersectObjects(ray);\n        ins.seed = timeSinceStart + float(deepth);\n        if(ins.d>=MAX_DISTANCE) break;\n        if(deepth==1){\n            n = ins.normal;\n            p = ins.hit;\n        }\n        vec3 wi;\n        vec3 _fpdf;\n        e += shade(ins,-ray.dir,wi,_fpdf)*fpdf;\n        fpdf *= clamp(_fpdf,BLACK,WHITE);\n        float outdot = dot(ins.normal,wi);\n        ray.origin = ins.hit+ins.normal*(outdot>EPSILON?0.0001:-0.0001);\n        ray.dir = wi;\n    }\n}";
+	var path = "vec3 shade(Intersect ins,vec3 wo,out vec3 wi,out vec3 fpdf){\n    vec3 f,direct = BLACK;\n    vec3 ss = normalize(ins.dpdu),ts = cross(ins.normal,ss);\n    wo = worldToLocal(wo,ins.normal,ss,ts);\n    fpdf = clamp(material(ins,wo,wi,f),BLACK,WHITE);\n    wi = localToWorld(wi,ins.normal,ss,ts);\n    if(ins.emission==BLACK&&ins.matCategory==MATTE)\n        direct += light_sample(ins) * f;\n    return ins.emission+direct;\n}\nvoid trace(Ray ray,int maxDeepth,out vec3 e,out vec3 n,out vec3 p){\n    vec3 fpdf = WHITE;e = BLACK;\n    int deepth=0;\n    while(deepth++<maxDeepth){\n        Intersect ins = intersectObjects(ray);\n        ins.seed = timeSinceStart + float(deepth);\n        if(ins.d>=MAX_DISTANCE) break;\n        if(deepth==1){\n            n = ins.normal;\n            p = ins.hit;\n        }\n        vec3 wi;\n        vec3 _fpdf;\n        e += shade(ins,-ray.dir,wi,_fpdf)*fpdf;\n        fpdf *= _fpdf;\n        float outdot = dot(ins.normal,wi);\n        ray.origin = ins.hit+ins.normal*(outdot>EPSILON?0.0001:-0.0001);\n        ray.dir = wi;\n    }\n}";
 
 	/**
 	 * Created by eason on 1/21/18.
 	 */
-	let plugins$5 = {
+	let plugins$6 = {
 	    "path":new Plugin("path",path)
 	};
 
-	var trace = new Generator("trace",[""],[""],plugins$5);
+	var trace = new Generator("trace",[""],[""],plugins$6);
 
-	var random = "float random( vec3 scale, float seed ){\n\treturn(fract( sin( dot( gl_FragCoord.xyz + seed, scale ) ) * 43758.5453 + seed ) );\n}";
+	var random = "float random( vec3 scale, float seed ){\n\treturn(fract( sin( dot( gl_FragCoord.xyz + seed, scale ) ) * 43758.5453 + seed ) );\n}\nvec2 random2(float seed){\n    return vec2(\n        fract( sin( dot( gl_FragCoord.xyz + seed, vec3( 12.9898, 78.233, 151.7182 ) ) ) * 43758.5453 + seed ),\n        fract( sin( dot( gl_FragCoord.xyz + seed, vec3( 63.7264, 10.873, 623.6736 ) ) ) * 43758.5453 + seed )\n    );\n}\nint randomInt(float seed,int min,int max){\n    return min+\n    int(\n    fract( sin( dot( gl_FragCoord.xyz + seed, vec3( 12.9898, 78.233, 151.7182 ) ) ) * 43758.5453 + seed ) *\n    float(max-min)\n    );\n}";
 
 	var sampler = "vec3 uniformSampleSphere(vec2 u){\n\tfloat z = 1.0 - 2.0 * u.x;   float r = sqrt( 1.0 - z * z );\n\tfloat angle = 2.0 * PI * u.y;\n\treturn vec3( r * cos( angle ), r * sin( angle ), z );\n}\nvec3 cosineSampleHemisphere(vec2 u){\n\tfloat r = sqrt(u.x);\n\tfloat angle = 2.0 * PI * u.y;\n\treturn vec3(r*cos(angle),r*sin(angle),sqrt(1.-u.x));\n}\nvec3 cosineSampleHemisphere2(vec2 u){\n\tfloat angle = 2.0 * PI * u.y;\n\treturn vec3(u.x*cos(angle),u.x*sin(angle),cos(asin(u.x)));\n}\nvec2 uniformSampleDisk(vec2 u) {\n    float r = sqrt(u.x);\n    float theta = 2.0 * PI * u.y;\n    return vec2(r * cos(theta), r * sin(theta));\n}\nvec2 concentricSampleDisk(vec2 u){\n    float uOffset = 2.0 * u.x - 1.0;\n    float vOffset = 2.0 * u.y - 1.0;\n    if (uOffset == 0.0 && vOffset == 0.0) return vec2(0, 0);\n    float theta, r;\n    if (abs(uOffset) > abs(vOffset)) {\n        r = uOffset;\n        theta =(vOffset / uOffset) * PIOVER4;\n    } else {\n        r = vOffset;\n        theta = PIOVER2 - (uOffset / vOffset) * PIOVER4;\n    }\n    return r * vec2(cos(theta), sin(theta));\n}\nvec3 uniformSampleCone(vec2 u,float cosThetaMax) {\n    float cosTheta = (1.0 - u.x) + u.x * cosThetaMax;\n    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);\n    float phi = u.y * 2.0 * PI;\n    return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta,\n                    cosTheta);\n}\nvec2 uniformSampleTriangle(vec2 u) {\n    float su0 = sqrt(u.x);\n    return vec2(1.0 - su0, u.y * su0);\n}";
 
@@ -1533,14 +1551,14 @@ bool testShadow(Ray ray){
 	/**
 	 * Created by eason on 1/20/18.
 	 */
-	let plugins$6 = {
+	let plugins$7 = {
 	    "random":new Plugin("random",random),
 	    "sampler":new Plugin("sampler",sampler),
 	    "texhelper":new Plugin("texhelper",texhelper),
 	    "utility":new Plugin("utility",utility)
 	};
 
-	var util = new Generator("util",[""],[""],plugins$6);
+	var util = new Generator("util",[""],[""],plugins$7);
 
 	/**
 	 * Created by eason on 1/20/18.
@@ -1582,7 +1600,8 @@ bool testShadow(Ray ray){
 	        this.texture = {
 	            cache:{unit:0,value:null},
 	            objects:{unit:1,value:null},
-	            texParams:{unit:2,value:null}
+	            texParams:{unit:2,value:null},
+	            lights:{unit:3,value:null}
 	        };
 	    }
 
@@ -1601,6 +1620,7 @@ bool testShadow(Ray ray){
 	            + texture.generate(...this.pluginsList.texture)
 	            + material.generate(...this.pluginsList.material)
 	            + shape.generate(...this.pluginsList.shape)
+	            + light.generate(...this.pluginsList.light)
 	            + trace.generate(this.pluginsList.trace)
 	            + main.generate(new PluginParams("fstrace"))
 	    }
@@ -1706,20 +1726,27 @@ bool testShadow(Ray ray){
 	    update(scene){
 	        this.shader.setProgram(new TraceShader(scene.tracerConfig()));
 	        //序列化场景数据
-	        let objects = [],texparams = [];
+	        let objects = [],texparams = [],lights = [];
 	        for(let object of scene.objects){
 	            objects.push(...object.gen(texparams.length/ShaderProgram.TEXPARAMS_LENGTH));
 	            texparams.push(...object.genTexparams());
 	        }
+	        for(let light of scene.lights){
+	            lights.push(...light.gen());
+	        }
 
 	        let data_objects = new Float32Array(objects);//物体数据
 	        let data_texparams = new Float32Array(texparams);//材质参数
+	        let data_lights = new Float32Array(lights);//光源数据
 
 	        let n = parseInt(objects.length/ShaderProgram.OBJECTS_LENGTH);
 	        let tn = parseInt(texparams.length/ShaderProgram.TEXPARAMS_LENGTH);
+	        let ln = parseInt(lights.length/ShaderProgram.LIGHTS_LENGTH);
 
 	        this.objects_tex = WebglHelper.createTexture();
 	        this.params_tex = WebglHelper.createTexture();
+	        this.lights_tex = WebglHelper.createTexture();
+
 	        WebglHelper.setTexture(
 	            this.objects_tex,
 	            ShaderProgram.OBJECTS_LENGTH, n,
@@ -1730,13 +1757,19 @@ bool testShadow(Ray ray){
 	            ShaderProgram.TEXPARAMS_LENGTH, tn,
 	            gl.R32F,gl.RED,gl.FLOAT,data_texparams,true
 	        );
+	        WebglHelper.setTexture(
+	            this.lights_tex,
+	            ShaderProgram.LIGHTS_LENGTH, ln,
+	            gl.R32F,gl.RED,gl.FLOAT,data_lights,true
+	        );
 
 	        this.shader.texture.cache.value = 0;
 	        this.shader.texture.objects.value = this.objects_tex;
 	        this.shader.texture.texParams.value = this.params_tex;
+	        this.shader.texture.lights.value = this.lights_tex;
 
-	        this.shader.uniform.n.value = scene.obcount;
-	        this.shader.uniform.ln.value = scene.lgcount;
+	        this.shader.uniform.n.value = n;
+	        this.shader.uniform.ln.value = ln;
 	        this.shader.uniform.tn.value = tn;
 	    }
 
@@ -2382,7 +2415,7 @@ bool testShadow(Ray ray){
 	    return [t0,t1];
 	}
 
-	class Object$1{
+	class Object3D{
 	    constructor(material,texture,emission=[0,0,0],reverseNormal=false){
 	        this.material = material;
 	        this.texture = texture;
@@ -2407,9 +2440,9 @@ bool testShadow(Ray ray){
 	        return new Vector([v.dot(s),v.dot(t),v.dot(n)]);
 	    }
 
-	    static rayToObjectSpace(ray,offset,n=Object$1._n,s=Object$1._s,t=Object$1._t){
-	        let origin = Object$1.toObjectSpace(ray.origin,offset,n,s,t);
-	        let dir = Object$1.toObjectSpace(ray.dir,Vector.Zero(3),n,s,t);
+	    static rayToObjectSpace(ray,offset,n=Object3D._n,s=Object3D._s,t=Object3D._t){
+	        let origin = Object3D.toObjectSpace(ray.origin,offset,n,s,t);
+	        let dir = Object3D.toObjectSpace(ray.dir,Vector.Zero(3),n,s,t);
 
 	        return new Ray(origin,dir);
 	    }
@@ -2440,7 +2473,7 @@ bool testShadow(Ray ray){
 	    }
 	}
 
-	class Cube extends Object$1{
+	class Cube extends Object3D{
 	    constructor(min,max,material,texture,emission,reverseNormal){
 	        super(material,texture,emission,reverseNormal);
 
@@ -2494,7 +2527,7 @@ bool testShadow(Ray ray){
 	    }
 	}
 
-	class Sphere extends Object$1{
+	class Sphere extends Object3D{
 	    constructor(c,r,material,texture,emission,reverseNormal){
 	        super(material,texture,emission,reverseNormal);
 
@@ -2520,7 +2553,7 @@ bool testShadow(Ray ray){
 	    }
 
 	    intersect(_ray){
-	        let ray = Object$1.rayToObjectSpace(_ray,this.c);
+	        let ray = Object3D.rayToObjectSpace(_ray,this.c);
 	        let a = ray.dir.dot(ray.dir);
 	        let b = 2.0*ray.origin.dot(ray.dir);
 	        let c = ray.origin.dot(ray.origin) - this.r * this.r;
@@ -2551,7 +2584,7 @@ bool testShadow(Ray ray){
 	    }
 	}
 
-	class Rectangle extends Object$1{
+	class Rectangle extends Object3D{
 	    constructor(min,max,material,texture,emission,reverseNormal){
 	        super(material,texture,emission,reverseNormal);
 
@@ -2600,7 +2633,7 @@ bool testShadow(Ray ray){
 	        let t = y.divide(ly);
 	        let n = s.cross(t);
 
-	        let ray = Object$1.rayToObjectSpace(_ray,this.min,n,s,t);
+	        let ray = Object3D.rayToObjectSpace(_ray,this.min,n,s,t);
 
 	        if(ray.dir.e(3) === 0.0) return 100000;
 
@@ -2633,7 +2666,7 @@ bool testShadow(Ray ray){
 	    }
 	}
 
-	class Cone extends Object$1{
+	class Cone extends Object3D{
 	    constructor(position,height,radius,material,texture,emission,reverseNormal){
 	        super(material,texture,emission,reverseNormal);
 
@@ -2658,7 +2691,7 @@ bool testShadow(Ray ray){
 	    }
 
 	    intersect(_ray){
-	        let ray = Object$1.rayToObjectSpace(_ray,this.position);
+	        let ray = Object3D.rayToObjectSpace(_ray,this.position);
 	        let k = this.radius / this.height;
 	        k = k * k;
 	        let a = ray.dir.e(1) * ray.dir.e(1) + ray.dir.e(2) * ray.dir.e(2) - k * ray.dir.e(3) * ray.dir.e(3);
@@ -2705,7 +2738,7 @@ bool testShadow(Ray ray){
 	    }
 	}
 
-	class Cylinder extends Object$1{
+	class Cylinder extends Object3D{
 	    constructor(position,height,radius,material,texture,emission,reverseNormal){
 	        super(material,texture,emission,reverseNormal);
 
@@ -2730,7 +2763,7 @@ bool testShadow(Ray ray){
 	    }
 
 	    intersect(_ray){
-	        let ray = Object$1.rayToObjectSpace(_ray,this.position);
+	        let ray = Object3D.rayToObjectSpace(_ray,this.position);
 	        let a = ray.dir.e(1) * ray.dir.e(1) + ray.dir.e(2) * ray.dir.e(2);
 	        let b = 2.0 * (ray.dir.e(1) * ray.origin.e(1) + ray.dir.e(2) * ray.origin.e(2));
 	        let c = ray.origin.e(1) * ray.origin.e(1) + ray.origin.e(2) * ray.origin.e(2) - this.radius * this.radius;
@@ -2776,7 +2809,7 @@ bool testShadow(Ray ray){
 	    }
 	}
 
-	class Disk extends Object$1{
+	class Disk extends Object3D{
 	    constructor(position,radius,innerRadius,material,texture,emission,reverseNormal){
 	        super(material,texture,emission,reverseNormal);
 
@@ -2801,7 +2834,7 @@ bool testShadow(Ray ray){
 	    }
 
 	    intersect(_ray){
-	        let ray = Object$1.rayToObjectSpace(_ray,this.position);
+	        let ray = Object3D.rayToObjectSpace(_ray,this.position);
 
 	        if (ray.dir.e(3) === 0.0) return 100000;
 	        let t = -ray.origin.e(3) / ray.dir.e(3);
@@ -2834,7 +2867,7 @@ bool testShadow(Ray ray){
 	    }
 	}
 
-	class Hyperboloid extends Object$1{
+	class Hyperboloid extends Object3D{
 	    constructor(position,p1,p2,material,texture,emission,reverseNormal){
 	        super(material,texture,emission,reverseNormal);
 
@@ -2886,7 +2919,7 @@ bool testShadow(Ray ray){
 	    }
 
 	    intersect(_ray){
-	        let ray = Object$1.rayToObjectSpace(_ray,this.position);
+	        let ray = Object3D.rayToObjectSpace(_ray,this.position);
 	        let a = this.ah * ray.dir.e(1) * ray.dir.e(1) + this.ah * ray.dir.e(2) * ray.dir.e(2) - this.ch * ray.dir.e(3) * ray.dir.e(3);
 	        let b = 2.0 * (this.ah * ray.dir.e(1) * ray.origin.e(1) + this.ah * ray.dir.e(2) * ray.origin.e(2) - this.ch * ray.dir.e(3) * ray.origin.e(3));
 	        let c = this.ah * ray.origin.e(1) * ray.origin.e(1) + this.ah * ray.origin.e(2) * ray.origin.e(2) - this.ch * ray.origin.e(3) * ray.origin.e(3) - 1.0;
@@ -2931,7 +2964,7 @@ bool testShadow(Ray ray){
 	    }
 	}
 
-	class Paraboloid extends Object$1{
+	class Paraboloid extends Object3D{
 	    constructor(position,z0,z1,radius,material,texture,emission,reverseNormal){
 	        super(material,texture,emission,reverseNormal);
 
@@ -2960,7 +2993,7 @@ bool testShadow(Ray ray){
 	    }
 
 	    intersect(_ray){
-	        let ray = Object$1.rayToObjectSpace(_ray,this.position);
+	        let ray = Object3D.rayToObjectSpace(_ray,this.position);
 	        let k = this.zMax / (this.radius * this.radius);
 	        let a = k * (ray.dir.e(1) * ray.dir.e(1) + ray.dir.e(2) * ray.dir.e(2));
 	        let b = 2.0 * k * (ray.dir.e(1) * ray.origin.e(1) + ray.dir.e(2) * ray.origin.e(2)) - ray.dir.e(3);
@@ -3005,7 +3038,7 @@ bool testShadow(Ray ray){
 	    }
 	}
 
-	class Cornellbox extends Object$1{
+	class Cornellbox extends Object3D{
 	    constructor(min=[0,0,-5],max=[5.560,5.488,5.592]){
 	        super(new Matte(1),Color.BLACK);
 	        this.min = new Vector(min);
@@ -3035,6 +3068,68 @@ bool testShadow(Ray ray){
 	    }
 	}
 
+	class Light{
+	    constructor(emission){
+	        this.emission = new Vector(emission);
+	    }
+
+	    gen(data){
+	        data.push(
+	            this.emission.e(1),this.emission.e(2),this.emission.e(3)
+	        );
+	        let l = data.length;
+	        data.length = ShaderProgram.LIGHTS_LENGTH;
+	        return data.fill(0,l,data.length);
+	    }
+	}
+
+	class GeometryLight extends Light{
+	    constructor(emission,geometry){
+	        super(emission);
+	        geometry.emission = new Vector(emission);
+	        this.geometry = geometry;
+	    }
+
+	    set geometry(geometry){
+	        this._geometry = geometry;
+	    }
+
+	    get geometry(){
+	        if(typeof this.index !== 'undefined') return this._geometry;
+	    }
+
+	    //don't directly visit geometry
+	    getGeometry(index){
+	        this.index = index;
+	        return this.geometry;
+	    }
+
+	    gen(data){
+	        if(typeof this.index === 'undefined') throw "can't find index of AreaLight's geometry";
+	        data.push(this.index);
+	        return super.gen(data);
+	    }
+	}
+
+	class AreaLight extends GeometryLight{
+	    constructor(emission,geometry){
+	        super(emission,geometry);
+
+	        this._pluginName = 'area';
+	    }
+
+	    get pluginName(){
+	        return this._pluginName;
+	    }
+
+	    set pluginName(name){}
+
+	    gen(){
+	        let tmp = [0];
+	        return super.gen(tmp);
+	    }
+	}
+
 	/**
 	 * Created by eason on 17-4-12.
 	 */
@@ -3042,9 +3137,8 @@ bool testShadow(Ray ray){
 	    constructor(){
 	        this.camera = {};
 	        this.objects = [];
+	        this.lights = [];
 	        this.sampleCount = 0;
-	        this.lgcount = 0;
-	        this.obcount = 0;
 	        this._trace = new PluginParams("path");
 	        this._filter = new PluginParams("color");
 
@@ -3083,15 +3177,13 @@ bool testShadow(Ray ray){
 	    add(something){
 	        if(something instanceof Camera){
 	            this.camera = something;
-	        }else if(something instanceof Object){
-	            if(something.light) {
-	                this.objects.unshift(something);
-	                this.lgcount++;
+	        }else if(something instanceof Object3D){
+	            this.objects.push(something);
+	        }else if(something instanceof Light){
+	            if(something instanceof GeometryLight){
+	                this.objects.push(something.getGeometry(this.objects.length));
 	            }
-	            else {
-	                this.objects.push(something);
-	                this.obcount++;
-	            }
+	            this.lights.push(something);
 	        }
 	    }
 
@@ -3103,6 +3195,7 @@ bool testShadow(Ray ray){
 	    tracerConfig() {
 	        let pluginsList = {
 	            shape:[],
+	            light:[],
 	            material:[],
 	            texture:[],
 	            trace:this.trace
@@ -3110,6 +3203,7 @@ bool testShadow(Ray ray){
 
 	        let tmp = {
 	            shape:[],
+	            light:[],
 	            material:[],
 	            texture:[]
 	        };
@@ -3129,6 +3223,14 @@ bool testShadow(Ray ray){
 	                !tmp.texture.includes(ob.texture.pluginName)){
 	                pluginsList.texture.push(new PluginParams(ob.texture.pluginName));
 	                tmp.texture.push(ob.texture.pluginName);
+	            }
+	        }
+
+	        for(let light of this.lights){
+	            if(light.pluginName &&
+	                !tmp.light.includes(light.pluginName)){
+	                pluginsList.light.push(new PluginParams(light.pluginName));
+	                tmp.light.push(light.pluginName);
 	            }
 	        }
 	        return pluginsList;
@@ -3318,6 +3420,7 @@ bool testShadow(Ray ray){
 	    Disk:Disk,
 	    Hyperboloid:Hyperboloid,
 	    Paraboloid:Paraboloid,
+	    AreaLight,
 	    Cornellbox:Cornellbox,
 	    Camera:Camera,
 	    Control:Control,

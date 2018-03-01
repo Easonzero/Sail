@@ -8,6 +8,7 @@ import filter from '../shader/filter/shader.filter'
 import main from '../shader/main/shader.main'
 import material from '../shader/material/shader.material'
 import shape from '../shader/shape/shader.shape'
+import light from '../shader/light/shader.light'
 import texture from '../shader/texture/shader.texture'
 import trace from '../shader/trace/shader.trace'
 import util from '../shader/util/shader.util'
@@ -49,7 +50,8 @@ class TraceShader extends Shader{
         this.texture = {
             cache:{unit:0,value:null},
             objects:{unit:1,value:null},
-            texParams:{unit:2,value:null}
+            texParams:{unit:2,value:null},
+            lights:{unit:3,value:null}
         };
     }
 
@@ -68,6 +70,7 @@ class TraceShader extends Shader{
             + texture.generate(...this.pluginsList.texture)
             + material.generate(...this.pluginsList.material)
             + shape.generate(...this.pluginsList.shape)
+            + light.generate(...this.pluginsList.light)
             + trace.generate(this.pluginsList.trace)
             + main.generate(new PluginParams("fstrace"))
     }
