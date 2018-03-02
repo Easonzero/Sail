@@ -18,7 +18,7 @@ let metal = new Sail.Metal(0,0.01,0.1);
 let mirror = new Sail.Mirror(1.0);
 let glass = new Sail.Glass(1,1,1.5);
 let checkerboard = new Sail.Checkerboard();
-let checkerboard2 = new Sail.Checkerboard();
+let checkerboard2 = new Sail.Checkerboard2();
 //add areaLight
 scene.add(new Sail.AreaLight(
 new Sail.Rectangle(
