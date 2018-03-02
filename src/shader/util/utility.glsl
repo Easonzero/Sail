@@ -56,5 +56,5 @@ vec3 sphericalDirection(float sinTheta, float cosTheta, float phi) {
 }
 
 bool equalZero(float x){
-    return x < 1e-4 && x > -1e-4;
+    return x < 1e-3 && x > -1e-3;
 }

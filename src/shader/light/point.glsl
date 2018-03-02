@@ -11,12 +11,10 @@ Point parsePoint(float index){
 }
 
 vec3 point_sample(Point point,float seed,vec3 hit,vec3 insNormal){
-    vec3 p = point.from;
+    vec3 p = point.from + uniformSampleSphere(random2(seed))*0.1;
     vec3 toLight = p-hit;
     if(testShadow(Ray(hit, toLight))) return BLACK;
-    float d = length(toLight);
 
     return point.emission *
-        max(0.0, dot(normalize(toLight), insNormal)) /
-        (d*d);
+        max(0.0, dot(normalize(toLight), insNormal));
 }
