@@ -24,7 +24,7 @@ scene.add(new Sail.AreaLight(
 new Sail.Rectangle(
     [2.13,5.48,2.27],[3.43,5.48,3.32],
     matte,Sail.Color.BLACK
-),[1.5,1.5,1.5]));
+),[3,3,3]));
 //add cornellBox    
 scene.add(new Sail.Cornellbox());
 //add objects
