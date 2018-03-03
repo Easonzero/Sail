@@ -24,7 +24,7 @@ scene.add(new Sail.AreaLight(
 new Sail.Rectangle(
     [2.13,5.48,2.27],[3.43,5.48,3.32],
     matte,Sail.Color.BLACK
-),[3,3,3]));
+),[1,1,1]));
 //add cornellBox    
 scene.add(new Sail.Cornellbox());
 //add objects
@@ -40,8 +40,7 @@ scene.add(new Sail.Sphere(
 scene.add(camera);
 //declare renderer setting
 //the format of params' value must be float
-scene.filter = 'gamma';
-scene.filter.addParam('c','2.2');
+scene.filter = 'tonemapping';
 scene.trace = 'path';`);
 }
 

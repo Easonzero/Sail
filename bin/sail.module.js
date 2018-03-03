@@ -1067,7 +1067,9 @@ var c = new Generator("const",[define],[struct]);
 
 var window$1 = "vec3 windowSampler(vec2 coord,inout int count){\n    if(coord.x<0.0||coord.x>1.0||coord.y<0.0||coord.y>1.0)\n        return vec3(0,0,0);\n    count++;\n    return texture(colorMap,coord).rgb;\n}\nvec3 window(vec2 coord,float i,float j,out int count){\n    count = 0;\n    vec2 x = vec2(i/512.0,0);\n    vec2 y = vec2(0,j/512.0);\n    vec3 color = vec3(0,0,0);\n    color += windowSampler(coord+x+y,count);\n    color += windowSampler(coord+x-y,count);\n    color += windowSampler(coord-x+y,count);\n    color += windowSampler(coord-x-y,count);\n    return color;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = vec3(0.0,0.0,0.0);\n    float weightSum = 0.0;\n    for(int i=0;i<FILTER_WINDOW_WIDTH;i++){\n        for(int j=0;j<FILTER_WINDOW_WIDTH;j++){\n            int count;\n            vec3 tmpColor = window(\n                texCoord,\n                (float(j) + 0.5) * FILTER_WINDOW_RADIUS.x / float(FILTER_WINDOW_WIDTH),\n                (float(i) + 0.5) * FILTER_WINDOW_RADIUS.y / float(FILTER_WINDOW_WIDTH),\n                count\n            );\n            float weight = windowWeightTable[i*j+j];\n            weightSum += weight*float(count);\n            color += tmpColor * weight;\n        }\n    }\n    return vec4(color/weightSum,1.0);\n}";
 
-var gamma = "float gamma(float x) {\n    return pow(clamp(x,0.0,1.0), 1.0/FILTER_GAMMA_C) + 0.0022222222222222;\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(colorMap, texCoord).rgb;\n    return vec4(gamma(color.r),gamma(color.g),gamma(color.b),1.0);\n}";
+var gamma = "vec3 gamma(vec3 v) {\n  return pow(v, vec3(1.0 / FILTER_GAMMA_C));\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(colorMap, texCoord).rgb;\n    return vec4(gamma(color),1.0);\n}";
+
+var tonemapping = "vec3 tonemapping(vec3 color) {\n    vec3 x = max(vec3(0.0), color - 0.004);\n    return (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);\n}\nvec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(colorMap, texCoord).rgb;\n    return vec4(tonemapping(color),1.0);\n}";
 
 var color = "vec4 pixelFilter(vec2 texCoord){\n    vec3 color = texture(colorMap, texCoord).rgb;\n    return vec4(color,1.0);\n}";
 
@@ -1300,7 +1302,8 @@ let plugins = {
     "triangle":new Plugin("triangle",window$1),
     "normal":new Plugin("normal",normal),
     "position":new Plugin("position",position),
-    "wavelet":new Plugin("wavelet",wavelet)
+    "wavelet":new Plugin("wavelet",wavelet),
+    "tonemapping":new Plugin("tonemapping",tonemapping)
 };
 let windowWidth = 4;
 

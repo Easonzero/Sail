@@ -22,8 +22,9 @@ a path tracer using WebGL for realtime performance
 3. 实时可交互
 4. 支持棋盘、线性混合等过程纹理
 5. 支持金属、镜面、玻璃、漫反射材质(采用Fresnel和微分布实现的bsdf)
-6. 面积光源
+6. 点光源,聚光灯,面积光源
 7. 支持球体、立方体、矩形、锥面、二次曲面等几何形状
+8. 支持盒式、sinc、高斯等滤波器
 
 ## 运行
 

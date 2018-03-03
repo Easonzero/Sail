@@ -4,6 +4,7 @@
 import {Generator,Plugin} from '../generator';
 import window from './window.glsl';
 import gamma from './gamma.glsl';
+import tonemapping from './tonemapping.glsl';
 import color from './color.glsl';
 import normal from './normal.glsl';
 import position from './position.glsl';
@@ -24,7 +25,8 @@ let plugins = {
     "triangle":new Plugin("triangle",window),
     "normal":new Plugin("normal",normal),
     "position":new Plugin("position",position),
-    "wavelet":new Plugin("wavelet",wavelet)
+    "wavelet":new Plugin("wavelet",wavelet),
+    "tonemapping":new Plugin("tonemapping",tonemapping)
 };
 let windowWidth = 4;
 
