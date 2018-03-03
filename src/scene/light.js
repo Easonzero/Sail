@@ -1,5 +1,8 @@
 import {ShaderProgram} from "../core/webgl";
 import {Vector} from "../utils/matrix";
+import {Disk} from "./geometry";
+import {Matte} from "./material";
+import {Color} from "../core/color";
 
 class Light{
     constructor(emission){
@@ -83,4 +86,24 @@ class PointLight extends Light{
     }
 }
 
-export {Light,GeometryLight,AreaLight,PointLight}
+class SpotLight extends Light{
+    constructor(from,coneangle,conedelta,emission){
+        super(emission);
+
+        this.cosTotalWidth = Math.cos(coneangle/180*Math.PI);
+        this.cosFalloffStart = Math.cos((coneangle-conedelta)/180*Math.PI);
+        this.from = new Vector(from);
+
+        this._pluginName = 'spot';
+    }
+
+    gen(){
+        let tmp = [
+            2,this.cosTotalWidth, this.cosFalloffStart,
+            this.from.e(1),this.from.e(2),this.from.e(3)
+        ];
+        return super.gen(tmp);
+    }
+}
+
+export {Light,GeometryLight,AreaLight,PointLight,SpotLight}

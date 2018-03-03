@@ -1056,7 +1056,7 @@ class Generator{
     }
 }
 
-var define = "#define OBJECTS_LENGTH 17.0\n#define LIGHTS_LENGTH 17.0\n#define TEX_PARAMS_LENGTH 15.0\n#define MAX_DISTANCE 1e5\n#define MAXBOUNCES 5\n#define EPSILON 1e-5\n#define ONEMINUSEPSILON 0.9999\n#define INF 1e5\n#define PI 3.141592653589793\n#define INVPI 0.3183098861837907\n#define INV2PI 0.159154943091895\n#define INV4PI 0.079577471545947\n#define PIOVER2 1.570796326794896\n#define PIOVER4 0.785398163397448\n#define SQRT2 1.414213562373095\n#define CUBE 1\n#define SPHERE 2\n#define RECTANGLE 3\n#define CONE 4\n#define CYLINDER 5\n#define DISK 6\n#define HYPERBOLOID 7\n#define PARABOLOID 8\n#define CORNELLBOX 9\n#define AREA 0\n#define POINT 1\n#define MATTE 1\n#define MIRROR 2\n#define METAL 3\n#define GLASS 4\n#define UNIFORM_COLOR 0\n#define CHECKERBOARD 5\n#define CHECKERBOARD2 7\n#define BILERP 8\n#define MIXF 9\n#define SCALE 10\n#define UVF 11\n#define BLACK vec3(0.0,0.0,0.0)\n#define WHITE vec3(1.0,1.0,1.0)\n#define GREY vec3(0.5,0.5,0.5)\n#define RED vec3(0.75,0.25,0.25)\n#define BLUE vec3(0.25, 0.25, 0.75)\n#define GREEN vec3(0.25, 0.75, 0.25)\n#define NC 1.0\n#define NOOP 0\n#define CONDUCTOR 1\n#define DIELECTRIC 2\n#define BECKMANN 1\n#define TROWBRIDGEREITZ 2\n#define OBJECT_SPACE_N vec3(0,1,0)\n#define OBJECT_SPACE_S vec3(0,0,-1)\n#define OBJECT_SPACE_T vec3(1,0,0)\n";
+var define = "#define OBJECTS_LENGTH 17.0\n#define LIGHTS_LENGTH 17.0\n#define TEX_PARAMS_LENGTH 15.0\n#define MAX_DISTANCE 1e5\n#define MAXBOUNCES 5\n#define EPSILON 1e-5\n#define ONEMINUSEPSILON 0.9999\n#define INF 1e5\n#define PI 3.141592653589793\n#define INVPI 0.3183098861837907\n#define INV2PI 0.159154943091895\n#define INV4PI 0.079577471545947\n#define PIOVER2 1.570796326794896\n#define PIOVER4 0.785398163397448\n#define SQRT2 1.414213562373095\n#define CUBE 1\n#define SPHERE 2\n#define RECTANGLE 3\n#define CONE 4\n#define CYLINDER 5\n#define DISK 6\n#define HYPERBOLOID 7\n#define PARABOLOID 8\n#define CORNELLBOX 9\n#define AREA 0\n#define POINT 1\n#define SPOT 2\n#define MATTE 1\n#define MIRROR 2\n#define METAL 3\n#define GLASS 4\n#define UNIFORM_COLOR 0\n#define CHECKERBOARD 5\n#define CHECKERBOARD2 7\n#define BILERP 8\n#define MIXF 9\n#define SCALE 10\n#define UVF 11\n#define BLACK vec3(0.0,0.0,0.0)\n#define WHITE vec3(1.0,1.0,1.0)\n#define GREY vec3(0.5,0.5,0.5)\n#define RED vec3(0.75,0.25,0.25)\n#define BLUE vec3(0.25, 0.25, 0.75)\n#define GREEN vec3(0.25, 0.75, 0.25)\n#define NC 1.0\n#define NOOP 0\n#define CONDUCTOR 1\n#define DIELECTRIC 2\n#define BECKMANN 1\n#define TROWBRIDGEREITZ 2\n#define OBJECT_SPACE_N vec3(0,1,0)\n#define OBJECT_SPACE_S vec3(0,0,-1)\n#define OBJECT_SPACE_T vec3(1,0,0)\n";
 
 var struct = "struct Intersect{\n    float d;\n    vec3 hit;\n    vec3 normal;\n    vec3 dpdu,dpdv;\n    bool into;\n    float matIndex;    vec3 sc;    vec3 emission;\n    float seed;    int index;\n    int matCategory;\n};\nstruct Ray{\n    vec3 origin;\n    vec3 dir;\n};";
 
@@ -1462,9 +1462,12 @@ var area = "struct Area{\n  vec3 emission;\n  int index;\n};\nArea parseArea(flo
 
 var point = "struct Point{\n  vec3 from;\n  vec3 emission;\n};\nPoint parsePoint(float index){\n    Point point;\n    point.from = readVec3(lights,vec2(1.0,index),LIGHTS_LENGTH);\n    point.emission = readVec3(lights,vec2(4.0,index),LIGHTS_LENGTH);\n    return point;\n}\nvec3 point_sample(Point point,float seed,vec3 hit,vec3 insNormal){\n    vec3 p = point.from + uniformSampleSphere(random2(seed))*0.1;\n    vec3 toLight = p-hit;\n    if(testShadow(Ray(hit, toLight))) return BLACK;\n    return point.emission *\n        max(0.0, dot(normalize(toLight), insNormal));\n}";
 
+var spot = "struct Spot{\n  vec3 emission;\n  float cosTotalWidth;\n  float cosFalloffStart;\n  vec3 from;\n};\nSpot parseSpot(float index){\n    Spot spot;\n    spot.cosTotalWidth = readFloat(lights,vec2(1.0,index),LIGHTS_LENGTH);\n    spot.cosFalloffStart = readFloat(lights,vec2(2.0,index),LIGHTS_LENGTH);\n    spot.from = readVec3(lights,vec2(3.0,index),LIGHTS_LENGTH);\n    spot.emission = readVec3(lights,vec2(6.0,index),LIGHTS_LENGTH);\n    return spot;\n}\nfloat falloff(Spot spot,vec3 w){\n    vec3 wl = w;\n    float cosTheta = -wl.y;\n    if (cosTheta < spot.cosTotalWidth) return 0.0;\n    if (cosTheta >= spot.cosFalloffStart) return 1.0;\n    float delta =\n        (cosTheta - spot.cosTotalWidth) / (spot.cosFalloffStart - spot.cosTotalWidth);\n    float delta2 = delta * delta;\n    return delta2 * delta2;\n}\nvec3 spot_sample(Spot spot,float seed,vec3 hit,vec3 insNormal){\n    vec3 p = spot.from;\n    vec3 toLight = p-hit;\n    if(testShadow(Ray(hit, toLight))) return BLACK;\n    vec3 normToLight = normalize(toLight);\n    float d = length(toLight);\n    return spot.emission * falloff(spot,-normToLight) *\n        max(0.0, dot(normalize(toLight), insNormal)) / (d*d);\n}";
+
 let plugins$4 = {
     "area":new Plugin("area",area),
-    "point":new Plugin("point",point)
+    "point":new Plugin("point",point),
+    "spot":new Plugin("spot",spot)
 };
 
 let head$1 = `vec3 light_sample(Intersect ins){
@@ -3057,6 +3060,26 @@ class PointLight extends Light{
     }
 }
 
+class SpotLight extends Light{
+    constructor(from,coneangle,conedelta,emission){
+        super(emission);
+
+        this.cosTotalWidth = Math.cos(coneangle/180*Math.PI);
+        this.cosFalloffStart = Math.cos((coneangle-conedelta)/180*Math.PI);
+        this.from = new Vector(from);
+
+        this._pluginName = 'spot';
+    }
+
+    gen(){
+        let tmp = [
+            2,this.cosTotalWidth, this.cosFalloffStart,
+            this.from.e(1),this.from.e(2),this.from.e(3)
+        ];
+        return super.gen(tmp);
+    }
+}
+
 /**
  * Created by eason on 17-4-12.
  */
@@ -3349,6 +3372,7 @@ window.Sail = {
     Paraboloid:Paraboloid,
     AreaLight:AreaLight,
     PointLight:PointLight,
+    SpotLight:SpotLight,
     Cornellbox:Cornellbox,
     Camera:Camera,
     Control:Control,

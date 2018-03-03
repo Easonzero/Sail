@@ -1,10 +1,12 @@
 import {Generator,Export,Plugin} from '../generator';
 import area from './area.glsl';
 import point from './point.glsl';
+import spot from './spot.glsl';
 
 let plugins = {
     "area":new Plugin("area",area),
-    "point":new Plugin("point",point)
+    "point":new Plugin("point",point),
+    "spot":new Plugin("spot",spot)
 };
 
 let head = `vec3 light_sample(Intersect ins){

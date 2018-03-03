@@ -27,6 +27,7 @@
 
 #define AREA 0
 #define POINT 1
+#define SPOT 2
 
 #define MATTE 1
 #define MIRROR 2
