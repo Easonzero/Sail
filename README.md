@@ -1,4 +1,7 @@
 # Sail
+[![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
+[![Badge](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu/#/zh_CN)
+
 a path tracer using WebGL for realtime performance
 
 *Sail*是一个基于Webgl技术实现的具有实时表现的路径追踪器
